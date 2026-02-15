@@ -199,6 +199,7 @@ mod tests {
             text: text.to_string(),
             children,
             parent,
+            metadata: HashMap::new(),
         }
     }
 

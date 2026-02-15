@@ -173,6 +173,7 @@ mod tests {
             text: String::new(),
             children,
             parent: None,
+            metadata: HashMap::new(),
         }
     }
 
@@ -191,6 +192,7 @@ mod tests {
             text: String::new(),
             children,
             parent,
+            metadata: HashMap::new(),
         }
     }
 
@@ -210,6 +212,7 @@ mod tests {
             text: String::new(),
             children,
             parent,
+            metadata: HashMap::new(),
         }
     }
 
@@ -228,6 +231,7 @@ mod tests {
             text: String::new(),
             children: vec![],
             parent,
+            metadata: HashMap::new(),
         }
     }
 

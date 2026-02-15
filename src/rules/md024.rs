@@ -33,8 +33,7 @@ impl Rule for MD024 {
         let headings = params.tokens.filter_by_type("heading");
 
         for heading in headings {
-            let text = heading.text.trim();
-            let normalized = text.trim_start_matches('#').trim();
+            let normalized = heading.text.trim();
 
             if !normalized.is_empty() && seen_headings.contains(normalized) {
                 errors.push(LintError {

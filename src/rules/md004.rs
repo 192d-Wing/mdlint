@@ -242,6 +242,7 @@ mod tests {
             text: String::new(),
             children: vec![],
             parent: None,
+            metadata: std::collections::HashMap::new(),
         }
     }
 

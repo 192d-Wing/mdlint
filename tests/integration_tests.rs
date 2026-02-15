@@ -1,6 +1,6 @@
 //! Integration tests for mdlint
 
-use mdlint::{lint_sync, Config, LintOptions};
+use mdlint::{lint_sync, apply_fixes, Config, LintOptions};
 use std::collections::HashMap;
 
 /// Helper to lint a single markdown string and return errors for "test.md"
@@ -335,4 +335,90 @@ fn test_config_file_option() {
     let errors = results.get(&file_path.to_string_lossy().to_string()).unwrap_or(&[]);
     // All rules disabled, so no errors expected
     assert!(errors.is_empty(), "All rules disabled via config_file, expected 0 errors but got {}", errors.len());
+}
+
+// ---- New: MD001 fires through lint_sync (parser → tokens → rule) ----
+
+#[test]
+fn test_md001_heading_increment_via_lint_sync() {
+    // # H1 then ### H3 skips level 2 — MD001 should fire
+    let errors = lint_string("# H1\n\n### H3\n");
+    assert!(
+        has_rule(&errors, "MD001"),
+        "MD001 should fire for heading increment skip (H1 → H3). Errors: {:?}",
+        errors.iter().map(|e| &e.rule_names).collect::<Vec<_>>()
+    );
+}
+
+#[test]
+fn test_md001_no_violation_sequential() {
+    // Sequential headings: H1, H2, H3 — MD001 should NOT fire
+    let errors = lint_string("# H1\n\n## H2\n\n### H3\n");
+    assert!(
+        !has_rule(&errors, "MD001"),
+        "MD001 should NOT fire for sequential headings"
+    );
+}
+
+// ---- New: Config wiring (MD013 line_length) ----
+
+#[test]
+fn test_md013_config_line_length_200() {
+    // With line_length=200, a 100-char line should NOT trigger MD013
+    let json = r#"{"default": false, "MD013": {"line_length": 200}}"#;
+    let config: Config = serde_json::from_str(json).unwrap();
+    let line = format!("# Title\n\n{}\n", "a".repeat(100));
+    let errors = lint_string_with_config(&line, config);
+    assert!(
+        !has_rule(&errors, "MD013"),
+        "MD013 should NOT fire with line_length=200 for 100-char line"
+    );
+}
+
+#[test]
+fn test_md013_config_line_length_50() {
+    // With line_length=50, a 60-char line should trigger MD013
+    let json = r#"{"default": false, "MD013": {"line_length": 50}}"#;
+    let config: Config = serde_json::from_str(json).unwrap();
+    let line = format!("# Title\n\n{}\n", "a".repeat(60));
+    let errors = lint_string_with_config(&line, config);
+    assert!(
+        has_rule(&errors, "MD013"),
+        "MD013 should fire with line_length=50 for 60-char line. Errors: {:?}",
+        errors.iter().map(|e| &e.rule_names).collect::<Vec<_>>()
+    );
+}
+
+// ---- New: apply_fixes round-trip ----
+
+#[test]
+fn test_apply_fixes_round_trip_trailing_whitespace() {
+    // Lint → get errors → apply_fixes → lint again → 0 MD009 errors
+    let content = "# Title\n\nSome text   \nMore text  \n";
+    let errors = lint_string(content);
+    assert!(has_rule(&errors, "MD009"), "Should have MD009 initially");
+
+    let fixed = apply_fixes(content, &errors);
+    let errors_after = lint_string(&fixed);
+    assert!(
+        !has_rule(&errors_after, "MD009"),
+        "After apply_fixes, MD009 should be gone. Fixed content: {:?}",
+        fixed
+    );
+}
+
+#[test]
+fn test_apply_fixes_round_trip_hard_tabs() {
+    // Lint → get errors → apply_fixes → lint again → 0 MD010 errors
+    let content = "# Title\n\n\tindented\n";
+    let errors = lint_string(content);
+    assert!(has_rule(&errors, "MD010"), "Should have MD010 initially");
+
+    let fixed = apply_fixes(content, &errors);
+    let errors_after = lint_string(&fixed);
+    assert!(
+        !has_rule(&errors_after, "MD010"),
+        "After apply_fixes, MD010 should be gone. Fixed content: {:?}",
+        fixed
+    );
 }

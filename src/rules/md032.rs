@@ -285,6 +285,7 @@ mod tests {
             text: String::new(),
             children,
             parent: None,
+            metadata: HashMap::new(),
         }
     }
 
@@ -303,6 +304,7 @@ mod tests {
             text: String::new(),
             children,
             parent: Some(parent),
+            metadata: HashMap::new(),
         }
     }
 

@@ -10,26 +10,13 @@ use regex::Regex;
 pub struct MD001;
 
 impl MD001 {
-    /// Get the heading level from a heading token
-    fn get_heading_level(heading: &Token, all_tokens: &[Token]) -> usize {
-        // Look for atxHeadingSequence or setextHeadingLine in children
-        for &child_idx in &heading.children {
-            if let Some(child) = all_tokens.get(child_idx) {
-                if child.token_type == "atxHeadingSequence" {
-                    // Count the number of # characters
-                    let hash_count = child.text.chars().filter(|&c| c == '#').count();
-                    return hash_count.min(6);
-                } else if child.token_type == "setextHeadingLine" {
-                    // Check if it's = (level 1) or - (level 2)
-                    if child.text.starts_with('=') {
-                        return 1;
-                    } else if child.text.starts_with('-') {
-                        return 2;
-                    }
-                }
-            }
-        }
-        1 // Default to level 1 if we can't determine
+    /// Get the heading level from a heading token's metadata
+    fn get_heading_level(heading: &Token) -> usize {
+        heading
+            .metadata
+            .get("level")
+            .and_then(|l| l.parse::<usize>().ok())
+            .unwrap_or(1)
     }
 
     /// Check if front matter has a title field
@@ -85,13 +72,11 @@ impl Rule for MD001 {
             usize::MAX // Start with max so first heading is always valid
         };
 
-        // Filter for heading tokens (both ATX and Setext)
-        let headings = params
-            .tokens
-            .filter_by_types(&["atxHeading", "setextHeading"]);
+        // Filter for heading tokens
+        let headings = params.tokens.filter_by_type("heading");
 
         for heading in headings {
-            let level = Self::get_heading_level(heading, params.tokens);
+            let level = Self::get_heading_level(heading);
 
             // Only report error if level increases by more than 1
             if level > prev_level.saturating_add(1) {
@@ -118,78 +103,34 @@ impl Rule for MD001 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::parser::Token;
     use std::collections::HashMap;
 
-    /// Helper to create an ATX heading token with children
-    fn create_atx_heading(line: usize, level: usize, tokens: &mut Vec<Token>) -> Token {
-        let hash_text = "#".repeat(level);
-        let sequence_idx = tokens.len();
+    /// Helper to create a heading token with metadata
+    fn create_heading(line: usize, level: usize, setext: bool) -> Token {
+        let mut metadata = HashMap::new();
+        metadata.insert("level".to_string(), level.to_string());
+        metadata.insert("setext".to_string(), setext.to_string());
 
-        // Create the heading sequence token
-        tokens.push(Token {
-            token_type: "atxHeadingSequence".to_string(),
-            start_line: line,
-            start_column: 1,
-            end_line: line,
-            end_column: level + 1,
-            text: hash_text,
-            children: vec![],
-            parent: None,
-        });
-
-        // Create the heading token
         Token {
-            token_type: "atxHeading".to_string(),
+            token_type: "heading".to_string(),
             start_line: line,
             start_column: 1,
-            end_line: line,
+            end_line: if setext { line + 1 } else { line },
             end_column: 20,
-            text: format!("{} Heading", "#".repeat(level)),
-            children: vec![sequence_idx],
-            parent: None,
-        }
-    }
-
-    /// Helper to create a setext heading token with children
-    fn create_setext_heading(line: usize, level: usize, tokens: &mut Vec<Token>) -> Token {
-        let underline_char = if level == 1 { '=' } else { '-' };
-        let sequence_idx = tokens.len();
-
-        // Create the heading line token
-        tokens.push(Token {
-            token_type: "setextHeadingLine".to_string(),
-            start_line: line + 1,
-            start_column: 1,
-            end_line: line + 1,
-            end_column: 5,
-            text: underline_char.to_string().repeat(4),
+            text: format!("Heading {}", level),
             children: vec![],
             parent: None,
-        });
-
-        // Create the heading token
-        Token {
-            token_type: "setextHeading".to_string(),
-            start_line: line,
-            start_column: 1,
-            end_line: line + 1,
-            end_column: 5,
-            text: "Heading".to_string(),
-            children: vec![sequence_idx],
-            parent: None,
+            metadata,
         }
     }
 
     #[test]
     fn test_md001_valid_increment() {
-        let mut tokens = Vec::new();
-        let h1 = create_atx_heading(1, 1, &mut tokens);
-        tokens.push(h1);
-        let h2 = create_atx_heading(2, 2, &mut tokens);
-        tokens.push(h2);
-        let h3 = create_atx_heading(3, 3, &mut tokens);
-        tokens.push(h3);
+        let tokens = vec![
+            create_heading(1, 1, false),
+            create_heading(2, 2, false),
+            create_heading(3, 3, false),
+        ];
 
         let lines = vec![
             "# Heading 1\n".to_string(),
@@ -213,11 +154,10 @@ mod tests {
 
     #[test]
     fn test_md001_skip_level() {
-        let mut tokens = Vec::new();
-        let h1 = create_atx_heading(1, 1, &mut tokens);
-        tokens.push(h1);
-        let h3 = create_atx_heading(2, 3, &mut tokens); // Skip from h1 to h3
-        tokens.push(h3);
+        let tokens = vec![
+            create_heading(1, 1, false),
+            create_heading(2, 3, false), // Skip from h1 to h3
+        ];
 
         let lines = vec![
             "# Heading 1\n".to_string(),
@@ -243,15 +183,12 @@ mod tests {
 
     #[test]
     fn test_md001_decrease_is_ok() {
-        let mut tokens = Vec::new();
-        let h1 = create_atx_heading(1, 1, &mut tokens);
-        tokens.push(h1);
-        let h2 = create_atx_heading(2, 2, &mut tokens);
-        tokens.push(h2);
-        let h3 = create_atx_heading(3, 3, &mut tokens);
-        tokens.push(h3);
-        let h1_again = create_atx_heading(4, 1, &mut tokens); // Back to h1 is ok
-        tokens.push(h1_again);
+        let tokens = vec![
+            create_heading(1, 1, false),
+            create_heading(2, 2, false),
+            create_heading(3, 3, false),
+            create_heading(4, 1, false), // Back to h1 is ok
+        ];
 
         let lines = vec![
             "# Heading 1\n".to_string(),
@@ -276,9 +213,9 @@ mod tests {
 
     #[test]
     fn test_md001_with_front_matter_title() {
-        let mut tokens = Vec::new();
-        let h2 = create_atx_heading(4, 2, &mut tokens); // h2 after front matter title is ok
-        tokens.push(h2);
+        let tokens = vec![
+            create_heading(4, 2, false), // h2 after front matter title is ok
+        ];
 
         let lines = vec![
             "---\n".to_string(),
@@ -307,11 +244,10 @@ mod tests {
 
     #[test]
     fn test_md001_setext_headings() {
-        let mut tokens = Vec::new();
-        let h1 = create_setext_heading(1, 1, &mut tokens); // h1
-        tokens.push(h1);
-        let h2 = create_setext_heading(4, 2, &mut tokens); // h2
-        tokens.push(h2);
+        let tokens = vec![
+            create_heading(1, 1, true),
+            create_heading(4, 2, true),
+        ];
 
         let lines = vec![
             "Heading 1\n".to_string(),
@@ -337,13 +273,11 @@ mod tests {
 
     #[test]
     fn test_md001_multiple_skips() {
-        let mut tokens = Vec::new();
-        let h1 = create_atx_heading(1, 1, &mut tokens);
-        tokens.push(h1);
-        let h4 = create_atx_heading(2, 4, &mut tokens); // Skip from h1 to h4
-        tokens.push(h4);
-        let h6 = create_atx_heading(3, 6, &mut tokens); // Skip from h4 to h6
-        tokens.push(h6);
+        let tokens = vec![
+            create_heading(1, 1, false),
+            create_heading(2, 4, false), // Skip from h1 to h4
+            create_heading(3, 6, false), // Skip from h4 to h6
+        ];
 
         let lines = vec![
             "# Heading 1\n".to_string(),

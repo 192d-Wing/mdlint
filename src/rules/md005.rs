@@ -154,6 +154,7 @@ mod tests {
             text: String::new(),
             children,
             parent: None,
+            metadata: HashMap::new(),
         }
     }
 
@@ -173,6 +174,7 @@ mod tests {
             text: text.to_string(),
             children: vec![],
             parent: Some(parent),
+            metadata: HashMap::new(),
         }
     }
 

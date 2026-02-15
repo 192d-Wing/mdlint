@@ -1,5 +1,7 @@
 //! Token types for parsed markdown
 
+use std::collections::HashMap;
+
 /// A token representing a parsed element of markdown
 #[derive(Debug, Clone, PartialEq)]
 pub struct Token {
@@ -26,6 +28,9 @@ pub struct Token {
 
     /// Parent token index
     pub parent: Option<usize>,
+
+    /// Node-specific metadata (e.g., heading level, code block info string)
+    pub metadata: HashMap<String, String>,
 }
 
 impl Token {
@@ -40,6 +45,7 @@ impl Token {
             text: String::new(),
             children: Vec::new(),
             parent: None,
+            metadata: HashMap::new(),
         }
     }
 

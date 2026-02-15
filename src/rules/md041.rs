@@ -97,6 +97,7 @@ mod tests {
             text: "# Heading".to_string(),
             children: vec![],
             parent: None,
+            metadata: HashMap::new(),
         }];
 
         let lines = vec!["# Heading\n".to_string()];
@@ -145,6 +146,7 @@ mod tests {
             text: "# Heading".to_string(),
             children: vec![],
             parent: None,
+            metadata: HashMap::new(),
         }];
 
         let lines = vec![

@@ -88,6 +88,7 @@ mod tests {
                 text: "---".to_string(),
                 children: vec![],
                 parent: None,
+                metadata: HashMap::new(),
             },
             Token {
                 token_type: "thematicBreak".to_string(),
@@ -98,6 +99,7 @@ mod tests {
                 text: "---".to_string(),
                 children: vec![],
                 parent: None,
+                metadata: HashMap::new(),
             },
         ];
 
@@ -129,6 +131,7 @@ mod tests {
                 text: "---".to_string(),
                 children: vec![],
                 parent: None,
+                metadata: HashMap::new(),
             },
             Token {
                 token_type: "thematicBreak".to_string(),
@@ -139,6 +142,7 @@ mod tests {
                 text: "***".to_string(),
                 children: vec![],
                 parent: None,
+                metadata: HashMap::new(),
             },
         ];
 
@@ -175,6 +179,7 @@ mod tests {
                 text: "---".to_string(),
                 children: vec![],
                 parent: None,
+                metadata: HashMap::new(),
             },
             Token {
                 token_type: "thematicBreak".to_string(),
@@ -185,6 +190,7 @@ mod tests {
                 text: "***".to_string(),
                 children: vec![],
                 parent: None,
+                metadata: HashMap::new(),
             },
         ];
 
@@ -227,6 +233,7 @@ mod tests {
                 text: "---".to_string(),
                 children: vec![],
                 parent: None,
+                metadata: HashMap::new(),
             },
             Token {
                 token_type: "thematicBreak".to_string(),
@@ -237,6 +244,7 @@ mod tests {
                 text: "***".to_string(),
                 children: vec![],
                 parent: None,
+                metadata: HashMap::new(),
             },
             Token {
                 token_type: "thematicBreak".to_string(),
@@ -247,6 +255,7 @@ mod tests {
                 text: "* * *".to_string(),
                 children: vec![],
                 parent: None,
+                metadata: HashMap::new(),
             },
         ];
 

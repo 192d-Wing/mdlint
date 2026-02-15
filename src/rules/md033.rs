@@ -210,6 +210,7 @@ mod tests {
             text: "<div>".to_string(),
             children: vec![],
             parent: None,
+            metadata: HashMap::new(),
         }];
 
         let lines = vec!["<div>\n".to_string()];
@@ -240,6 +241,7 @@ mod tests {
             text: "<div>".to_string(),
             children: vec![],
             parent: None,
+            metadata: HashMap::new(),
         }];
 
         let lines = vec!["<div>\n".to_string()];
@@ -275,6 +277,7 @@ mod tests {
             text: "</div>".to_string(),
             children: vec![],
             parent: None,
+            metadata: HashMap::new(),
         }];
 
         let lines = vec!["</div>\n".to_string()];

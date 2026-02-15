@@ -32,11 +32,14 @@ impl Rule for MD025 {
         let mut found_h1 = false;
 
         for heading in headings {
-            // Check if it's an H1 (starts with single #)
-            let is_h1 = heading.text.trim_start().starts_with('#')
-                && !heading.text.trim_start().starts_with("##");
+            // Check if it's an H1 via metadata
+            let level = heading
+                .metadata
+                .get("level")
+                .and_then(|l| l.parse::<u8>().ok())
+                .unwrap_or(0);
 
-            if is_h1 {
+            if level == 1 {
                 if found_h1 {
                     errors.push(LintError {
                         line_number: heading.start_line,
