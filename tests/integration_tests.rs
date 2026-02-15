@@ -422,3 +422,61 @@ fn test_apply_fixes_round_trip_hard_tabs() {
         fixed
     );
 }
+
+// ---- MD022: Headings should be surrounded by blank lines ----
+
+#[test]
+fn test_md022_missing_blank_before_heading() {
+    let errors = lint_string("# Title\nSome text\n## Section\n");
+    assert!(
+        has_rule(&errors, "MD022"),
+        "MD022 should fire when heading lacks blank line before it"
+    );
+}
+
+#[test]
+fn test_md022_correct_blank_lines() {
+    let errors = lint_string("# Title\n\nSome text\n\n## Section\n\nMore text\n");
+    assert!(
+        !has_rule(&errors, "MD022"),
+        "MD022 should NOT fire when headings have blank lines around them"
+    );
+}
+
+// ---- MD031 apply_fixes round-trip: blank line insertion ----
+
+#[test]
+fn test_apply_fixes_round_trip_md031_missing_blank_lines() {
+    // Code fence missing blank lines before/after
+    let content = "# Title\n\nSome text\n```\ncode\n```\nMore text\n";
+    let errors = lint_string(content);
+    assert!(has_rule(&errors, "MD031"), "Should have MD031 initially");
+
+    let fixed = apply_fixes(content, &errors);
+    let errors_after = lint_string(&fixed);
+    assert!(
+        !has_rule(&errors_after, "MD031"),
+        "After apply_fixes, MD031 should be gone. Fixed content: {:?}",
+        fixed
+    );
+}
+
+// ---- MD042: Reference links now work ----
+
+#[test]
+fn test_md042_empty_link_via_lint_sync() {
+    let errors = lint_string("[click here]()\n");
+    assert!(
+        has_rule(&errors, "MD042"),
+        "MD042 should fire for empty inline link"
+    );
+}
+
+#[test]
+fn test_md042_reference_empty_via_lint_sync() {
+    let errors = lint_string("[click][ref]\n\n[ref]: #\n");
+    assert!(
+        has_rule(&errors, "MD042"),
+        "MD042 should fire for reference link pointing to empty fragment"
+    );
+}

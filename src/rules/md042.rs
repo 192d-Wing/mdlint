@@ -21,7 +21,8 @@ static REFERENCE_LINK_RE: Lazy<Regex> = Lazy::new(|| {
 
 static LINK_DEFINITION_RE: Lazy<Regex> = Lazy::new(|| {
     // Match link definitions: [ref]: url
-    Regex::new(r"^\s*\[([^\]]+)\]:\s*(.*)$").unwrap()
+    // Note: no $ anchor because lines may have trailing \n
+    Regex::new(r"^\s*\[([^\]]+)\]:\s*(\S*)").unwrap()
 });
 
 pub struct MD042;
@@ -280,7 +281,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore] // TODO: Fix reference link detection after regex change
     fn test_md042_reference_link_with_empty_definition() {
         let lines = vec![
             "[text][frag]\n".to_string(),
@@ -304,7 +304,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore] // TODO: Fix reference link detection after regex change
     fn test_md042_reference_link_shorthand() {
         let lines = vec![
             "[frag][]\n".to_string(),
@@ -327,7 +326,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore] // TODO: Fix reference link detection after regex change
     fn test_md042_reference_link_implicit() {
         let lines = vec![
             "[frag]\n".to_string(),

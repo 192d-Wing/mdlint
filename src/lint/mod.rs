@@ -221,7 +221,6 @@ mod tests {
     use crate::types::{FixInfo, Severity};
 
     #[test]
-    #[ignore] // TODO: Fix after MD042 reference link regex is corrected
     fn test_lint_string() {
         let options = LintOptions {
             strings: vec![("test.md".to_string(), "# Hello\n".to_string())]
@@ -231,7 +230,8 @@ mod tests {
         };
 
         let results = lint_sync(&options).unwrap();
-        assert!(!results.is_empty());
+        // Verify the file was processed (key exists in results)
+        assert!(results.get("test.md").is_some());
     }
 
     fn make_error(line: usize, fix: FixInfo) -> LintError {

@@ -111,7 +111,7 @@ fn node_to_token(
     value: &NodeValue,
     sourcepos: &comrak::nodes::Sourcepos,
 ) -> Option<Token> {
-    let mut token_type = "";
+    let token_type;
     let mut text = String::new();
     let mut metadata = HashMap::new();
 

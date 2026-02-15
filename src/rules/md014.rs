@@ -30,8 +30,6 @@ impl Rule for MD014 {
     fn lint(&self, params: &RuleParams) -> Vec<LintError> {
         let mut errors = Vec::new();
         let mut in_code_block = false;
-        let mut code_block_start = 0;
-
         for (idx, line) in params.lines.iter().enumerate() {
             let line_number = idx + 1;
             let trimmed = line.trim();
@@ -41,7 +39,6 @@ impl Rule for MD014 {
                     in_code_block = false;
                 } else {
                     in_code_block = true;
-                    code_block_start = line_number;
                 }
             } else if in_code_block && trimmed.starts_with('$') {
                 errors.push(LintError {
