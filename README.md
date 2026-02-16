@@ -215,6 +215,7 @@ mkdlint includes a full-featured Language Server for real-time linting in your e
 
    - Real-time diagnostics as you type
    - Quick-fix code actions (auto-fix on Ctrl+.)
+   - **"Fix All" command** - Fix all issues in a document at once
    - Respects your `.markdownlint.json` config
    - Debounced linting (300ms) for performance
 
@@ -233,8 +234,15 @@ require('lspconfig').mkdlint.setup{
 Any editor with LSP support can use `mkdlint-lsp`. The server uses stdio for communication and supports:
 
 - `textDocument/didOpen`, `didChange`, `didSave`, `didClose`
-- `textDocument/codeAction` (for auto-fixes)
+- `textDocument/codeAction` (for individual auto-fixes)
+- `workspace/executeCommand` (for "Fix All" command)
 - Full document synchronization
+
+**Usage Tips:**
+
+- Use quick-fix (Ctrl+.) to fix individual issues
+- Use "Fix All" command to apply all fixes at once
+- All 34 auto-fixable rules are supported
 
 ## CI/CD Integration
 
