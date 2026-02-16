@@ -3,3 +3,7 @@ target/
 *.rs.bk
 *.pdb
 Cargo.lock
+
+# Node.js (VS Code extension)
+node_modules/
+editors/vscode/out/

@@ -1,0 +1,98 @@
+{
+  "name": "mkdlint",
+  "displayName": "mkdlint",
+  "description": "Markdown linting powered by mkdlint — real-time diagnostics, quick fixes, and auto-fix for 53 rules.",
+  "version": "0.1.0",
+  "publisher": "192d-wing",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/192d-Wing/mkdlint",
+    "directory": "editors/vscode"
+  },
+  "bugs": {
+    "url": "https://github.com/192d-Wing/mkdlint/issues"
+  },
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Linters",
+    "Programming Languages"
+  ],
+  "keywords": [
+    "markdown",
+    "lint",
+    "markdownlint",
+    "commonmark"
+  ],
+  "activationEvents": [
+    "onLanguage:markdown"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "configuration": {
+      "title": "mkdlint",
+      "properties": {
+        "mkdlint.enable": {
+          "type": "boolean",
+          "default": true,
+          "scope": "resource",
+          "description": "Enable or disable mkdlint linting."
+        },
+        "mkdlint.path": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null,
+          "scope": "machine-overridable",
+          "description": "Absolute path to the mkdlint-lsp binary. When null, the bundled binary or PATH is used."
+        },
+        "mkdlint.trace.server": {
+          "type": "string",
+          "enum": [
+            "off",
+            "messages",
+            "verbose"
+          ],
+          "default": "off",
+          "scope": "window",
+          "description": "Trace level for LSP communication (for debugging)."
+        }
+      }
+    },
+    "commands": [
+      {
+        "command": "mkdlint.fixAll",
+        "title": "Fix All Issues",
+        "category": "mkdlint"
+      },
+      {
+        "command": "mkdlint.restart",
+        "title": "Restart Server",
+        "category": "mkdlint"
+      },
+      {
+        "command": "mkdlint.showOutput",
+        "title": "Show Output",
+        "category": "mkdlint"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "package": "vsce package"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.80.0",
+    "@types/node": "^20.0.0",
+    "@vscode/vsce": "^3.0.0",
+    "typescript": "^5.4.0"
+  }
+}
