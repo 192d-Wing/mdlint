@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-02-16
+
+### Fixed
+
+- **CI/CD Pipeline Improvements**:
+  - Fixed ARM64 (aarch64) cross-compilation by configuring proper linker
+  - Migrated from deprecated GitHub Actions to modern `softprops/action-gh-release@v2`
+  - Fixed changelog extraction to use version-specific sections instead of Unreleased
+  - Added `fail-fast: false` to allow partial releases when one platform fails
+  - Added `permissions: contents: write` for GitHub release creation
+
 ## [0.3.0] - 2026-02-15
 
 ### Changed
@@ -135,7 +146,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Parallel file processing
 - Inline configuration comments support
 
-[Unreleased]: https://github.com/192d-Wing/mkdlint/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/192d-Wing/mkdlint/compare/v0.3.1...HEAD
+[0.3.1]: https://github.com/192d-Wing/mkdlint/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/192d-Wing/mkdlint/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/192d-Wing/mkdlint/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/192d-Wing/mkdlint/releases/tag/v0.1.0
