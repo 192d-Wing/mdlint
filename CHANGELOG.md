@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.1] - 2026-02-16
+
+### Fixed
+
+- **MD013**: Panic on multi-byte UTF-8 input — replaced byte-index slice with char-safe truncation
+- **MD018**: Panic on multi-byte UTF-8 context truncation — replaced with char-safe `.chars().take(N)`
+- **MD022**: Out-of-bounds line access when parser reports heading line numbers beyond line count — added bounds check
+
+### Technical
+
+- Added property-based test suite (`tests/proptest_tests.rs`) with 13 properties (~3,450 cases) covering lint-never-panics, parser-never-panics, fix-roundtrip safety, and more
+
 ## [0.10.0] - 2026-02-16
 
 ### Added
