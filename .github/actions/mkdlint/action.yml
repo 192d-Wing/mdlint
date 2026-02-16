@@ -87,6 +87,16 @@ inputs:
     required: false
     default: '.'
 
+  changed-only:
+    description: 'Only lint changed markdown files in pull requests'
+    required: false
+    default: 'false'
+
+  job-summary:
+    description: 'Write a rich summary to the GitHub Actions job summary'
+    required: false
+    default: 'true'
+
 outputs:
   exit-code:
     description: 'Exit code from mkdlint'
@@ -96,9 +106,17 @@ outputs:
     description: 'Number of errors found'
     value: ${{ steps.run.outputs.error-count }}
 
+  warning-count:
+    description: 'Number of warnings found'
+    value: ${{ steps.run.outputs.warning-count }}
+
   file-count:
-    description: 'Number of files with errors'
+    description: 'Number of files with issues'
     value: ${{ steps.run.outputs.file-count }}
+
+  duration-ms:
+    description: 'Linting duration in milliseconds'
+    value: ${{ steps.run.outputs.duration-ms }}
 
   sarif-file:
     description: 'Path to SARIF output file'
@@ -134,15 +152,37 @@ runs:
           "${{ inputs.use-binary }}" \
           "${{ steps.cache.outputs.cache-hit }}"
 
+    - name: Detect changed files
+      id: changed
+      if: inputs.changed-only == 'true' && github.event_name == 'pull_request'
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        CHANGED=$("${{ github.action_path }}/action.sh" changed-files "${{ github.base_ref }}")
+        echo "files=$CHANGED" >> "$GITHUB_OUTPUT"
+        if [ -z "$CHANGED" ]; then
+          echo "skip=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+        fi
+
     - name: Run mkdlint
       id: run
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       continue-on-error: true
+      if: steps.changed.outputs.skip != 'true'
       run: |
+        # Use changed files if incremental mode, otherwise use configured files
+        if [ "${{ inputs.changed-only }}" = "true" ] && [ "${{ github.event_name }}" = "pull_request" ] && [ -n "${{ steps.changed.outputs.files }}" ]; then
+          LINT_FILES="${{ steps.changed.outputs.files }}"
+        else
+          LINT_FILES="${{ inputs.files }}"
+        fi
+
         "${{ github.action_path }}/action.sh" run \
           "${{ steps.setup.outputs.binary-path }}" \
-          "${{ inputs.files }}" \
+          "$LINT_FILES" \
           "${{ inputs.config }}" \
           "${{ inputs.output-format }}" \
           "${{ inputs.sarif-file }}" \
@@ -154,8 +194,38 @@ runs:
           "${{ inputs.verbose }}" \
           "${{ inputs.quiet }}"
 
+    - name: Skip summary (no changed files)
+      id: run-skip
+      if: steps.changed.outputs.skip == 'true'
+      shell: bash
+      run: |
+        echo "exit-code=0" >> "$GITHUB_OUTPUT"
+        echo "error-count=0" >> "$GITHUB_OUTPUT"
+        echo "warning-count=0" >> "$GITHUB_OUTPUT"
+        echo "file-count=0" >> "$GITHUB_OUTPUT"
+        echo "duration-ms=0" >> "$GITHUB_OUTPUT"
+        echo "sarif-file=" >> "$GITHUB_OUTPUT"
+        echo "## :white_check_mark: mkdlint Results" >> "$GITHUB_STEP_SUMMARY"
+        echo "" >> "$GITHUB_STEP_SUMMARY"
+        echo "> No changed markdown files found in this PR. Skipped linting." >> "$GITHUB_STEP_SUMMARY"
+
+    - name: Write job summary
+      if: inputs.job-summary == 'true' && steps.changed.outputs.skip != 'true'
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        "${{ github.action_path }}/action.sh" summary \
+          "${{ steps.run.outputs.error-count }}" \
+          "${{ steps.run.outputs.warning-count }}" \
+          "${{ steps.run.outputs.file-count }}" \
+          "${{ steps.run.outputs.duration-ms }}" \
+          "${{ inputs.fix }}" \
+          "${{ steps.run.outputs.exit-code }}" \
+          "${{ inputs.sarif-file }}" \
+          "${{ inputs.output-format }}"
+
     - name: Upload SARIF file
-      if: inputs.upload-sarif == 'true' && inputs.output-format == 'sarif'
+      if: inputs.upload-sarif == 'true' && inputs.output-format == 'sarif' && steps.changed.outputs.skip != 'true'
       uses: github/codeql-action/upload-sarif@v3
       with:
         sarif_file: ${{ inputs.working-directory }}/${{ inputs.sarif-file }}
@@ -164,7 +234,7 @@ runs:
 
     - name: Check results
       shell: bash
-      if: inputs.fail-on-error == 'true' && steps.run.outputs.exit-code != '0'
+      if: inputs.fail-on-error == 'true' && steps.run.outputs.exit-code != '0' && steps.run.outputs.exit-code != ''
       run: |
         echo "::error::mkdlint found errors"
         exit ${{ steps.run.outputs.exit-code }}

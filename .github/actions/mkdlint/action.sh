@@ -223,22 +223,22 @@ cmd_run() {
     local no_color="${10}"
     local verbose="${11}"
     local quiet="${12}"
-    
+
     # Build command
     local cmd=("$binary_path")
-    
+
     # Add flags
     [ "$fix" = "true" ] && cmd+=(--fix)
     [ "$no_color" = "true" ] && cmd+=(--no-color)
     [ "$verbose" = "true" ] && cmd+=(--verbose)
     [ "$quiet" = "true" ] && cmd+=(--quiet)
-    
+
     # Add config
     [ -n "$config" ] && cmd+=(--config "$config")
-    
+
     # Add output format
     cmd+=(--output-format "$output_format")
-    
+
     # Add ignore patterns
     if [ -n "$ignore" ]; then
         IFS=',' read -ra PATTERNS <<< "$ignore"
@@ -246,7 +246,7 @@ cmd_run() {
             cmd+=(--ignore "$pattern")
         done
     fi
-    
+
     # Add enable rules
     if [ -n "$enable" ]; then
         IFS=',' read -ra RULES <<< "$enable"
@@ -254,7 +254,7 @@ cmd_run() {
             cmd+=(--enable "$rule")
         done
     fi
-    
+
     # Add disable rules
     if [ -n "$disable" ]; then
         IFS=',' read -ra RULES <<< "$disable"
@@ -262,17 +262,19 @@ cmd_run() {
             cmd+=(--disable "$rule")
         done
     fi
-    
+
     # Add files
     cmd+=($files)
-    
+
     info "Running: ${cmd[*]}"
-    
-    # Run and capture output
+
+    # Run and capture output with timing
     local exit_code=0
     local output_file
     output_file=$(mktemp)
-    
+    local start_time
+    start_time=$(date +%s%N 2>/dev/null || date +%s)
+
     if [ "$output_format" = "sarif" ]; then
         "${cmd[@]}" > "$sarif_file" 2>&1 || exit_code=$?
         cp "$sarif_file" "$output_file"
@@ -280,16 +282,33 @@ cmd_run() {
         "${cmd[@]}" > "$output_file" 2>&1 || exit_code=$?
         cat "$output_file"
     fi
-    
+
+    local end_time
+    end_time=$(date +%s%N 2>/dev/null || date +%s)
+    local duration_ms=0
+    if [[ "$start_time" =~ [0-9]{10,} ]]; then
+        # Nanosecond precision available
+        duration_ms=$(( (end_time - start_time) / 1000000 ))
+    else
+        # Fall back to seconds
+        duration_ms=$(( (end_time - start_time) * 1000 ))
+    fi
+
     # Parse results
     local error_count=0
+    local warning_count=0
     local file_count=0
-    
+    local total_files_scanned=0
+    local rule_breakdown=""
+
     if [ "$output_format" = "sarif" ] && command -v jq &> /dev/null; then
         # Parse SARIF with jq if available
         if [ -f "$sarif_file" ]; then
-            error_count=$(jq '[.runs[].results | length] | add // 0' "$sarif_file" 2>/dev/null || echo "0")
+            error_count=$(jq '[.runs[].results[] | select(.level == "error")] | length' "$sarif_file" 2>/dev/null || echo "0")
+            warning_count=$(jq '[.runs[].results[] | select(.level == "warning")] | length' "$sarif_file" 2>/dev/null || echo "0")
             file_count=$(jq '[.runs[].results[].locations[].physicalLocation.artifactLocation.uri] | unique | length' "$sarif_file" 2>/dev/null || echo "0")
+            # Top violated rules (up to 5)
+            rule_breakdown=$(jq -r '[.runs[].results[].ruleId] | group_by(.) | map({rule: .[0], count: length}) | sort_by(-.count) | .[0:5] | .[] | "\(.rule): \(.count)"' "$sarif_file" 2>/dev/null || echo "")
         fi
     elif [ "$output_format" = "json" ] && command -v jq &> /dev/null; then
         # Parse JSON
@@ -298,29 +317,131 @@ cmd_run() {
             file_count=$(jq 'keys | length' "$output_file" 2>/dev/null || echo "0")
         fi
     fi
-    
+
+    local total_issues=$(( error_count + warning_count ))
+
     # Output to GitHub Actions
     echo "exit-code=$exit_code" >> "$GITHUB_OUTPUT"
     echo "error-count=$error_count" >> "$GITHUB_OUTPUT"
+    echo "warning-count=$warning_count" >> "$GITHUB_OUTPUT"
     echo "file-count=$file_count" >> "$GITHUB_OUTPUT"
     echo "sarif-file=$sarif_file" >> "$GITHUB_OUTPUT"
-    
+    echo "duration-ms=$duration_ms" >> "$GITHUB_OUTPUT"
+
     # Summary
     if [ "$exit_code" -eq 0 ]; then
         success "No errors found!"
     else
-        warn "Found $error_count error(s) in $file_count file(s)"
+        warn "Found $error_count error(s), $warning_count warning(s) in $file_count file(s)"
     fi
-    
+
     rm -f "$output_file"
     return "$exit_code"
+}
+
+# Write GitHub Actions job summary
+cmd_summary() {
+    local error_count="$1"
+    local warning_count="$2"
+    local file_count="$3"
+    local duration_ms="$4"
+    local fix="$5"
+    local exit_code="$6"
+    local sarif_file="$7"
+    local output_format="$8"
+
+    local total_issues=$(( error_count + warning_count ))
+
+    # Format duration
+    local duration_str
+    if [ "$duration_ms" -ge 1000 ]; then
+        local seconds=$(( duration_ms / 1000 ))
+        local ms=$(( duration_ms % 1000 ))
+        duration_str="${seconds}.$(printf '%03d' $ms)s"
+    else
+        duration_str="${duration_ms}ms"
+    fi
+
+    # Header with status icon
+    local status_icon
+    if [ "$exit_code" -eq 0 ]; then
+        status_icon=":white_check_mark:"
+    else
+        status_icon=":x:"
+    fi
+
+    {
+        echo "## ${status_icon} mkdlint Results"
+        echo ""
+        echo "| Metric | Value |"
+        echo "| --- | --- |"
+        echo "| **Errors** | $error_count |"
+        echo "| **Warnings** | $warning_count |"
+        echo "| **Files with issues** | $file_count |"
+        echo "| **Duration** | $duration_str |"
+        if [ "$fix" = "true" ]; then
+            echo "| **Auto-fix** | Enabled |"
+        fi
+        echo ""
+
+        # Top violated rules (from SARIF)
+        if [ "$output_format" = "sarif" ] && [ -f "$sarif_file" ] && command -v jq &> /dev/null; then
+            local rules
+            rules=$(jq -r '[.runs[].results[].ruleId] | group_by(.) | map({rule: .[0], count: length}) | sort_by(-.count) | .[0:5] | .[] | "| \(.rule) | \(.count) |"' "$sarif_file" 2>/dev/null || echo "")
+            if [ -n "$rules" ]; then
+                echo "### Top Violated Rules"
+                echo ""
+                echo "| Rule | Count |"
+                echo "| --- | --- |"
+                echo "$rules"
+                echo ""
+            fi
+        fi
+
+        if [ "$total_issues" -eq 0 ]; then
+            echo "> All files passed linting checks."
+        fi
+    } >> "$GITHUB_STEP_SUMMARY"
+}
+
+# Get changed markdown files in a PR
+cmd_changed_files() {
+    local base_ref="$1"
+
+    if [ -z "$base_ref" ]; then
+        error "No base ref provided for changed files detection"
+        return 1
+    fi
+
+    # Fetch the base branch for comparison
+    git fetch --no-tags --depth=1 origin "$base_ref" 2>/dev/null || true
+
+    # Get changed .md/.markdown files
+    local changed
+    changed=$(git diff --name-only --diff-filter=ACMR "origin/$base_ref"...HEAD -- '*.md' '*.markdown' 2>/dev/null || echo "")
+
+    if [ -z "$changed" ]; then
+        info "No changed markdown files found"
+        echo ""
+        return 0
+    fi
+
+    # Filter to only existing files (in case of renames)
+    local existing=""
+    while IFS= read -r file; do
+        if [ -f "$file" ]; then
+            existing="$existing $file"
+        fi
+    done <<< "$changed"
+
+    echo "$existing"
 }
 
 # Main
 main() {
     local command="${1:-}"
     shift || true
-    
+
     case "$command" in
         setup)
             cmd_setup "$@"
@@ -328,9 +449,15 @@ main() {
         run)
             cmd_run "$@"
             ;;
+        summary)
+            cmd_summary "$@"
+            ;;
+        changed-files)
+            cmd_changed_files "$@"
+            ;;
         *)
             error "Unknown command: $command"
-            echo "Usage: $0 {setup|run} [args...]"
+            echo "Usage: $0 {setup|run|summary|changed-files} [args...]"
             exit 1
             ;;
     esac

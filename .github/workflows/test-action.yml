@@ -499,6 +499,79 @@ jobs:
           upload-sarif: false
           fail-on-error: false
 
+  # Test job summary output
+  test-job-summary:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create test file with errors
+        run: |
+          mkdir -p test-summary
+          cat > test-summary/errors.md << 'TESTEOF'
+          #Bad heading
+          Some text here
+
+          ## heading
+
+          ## heading
+          TESTEOF
+
+      - name: Run with job summary enabled
+        id: summary-test
+        uses: ./.github/actions/mkdlint
+        with:
+          files: 'test-summary/'
+          upload-sarif: false
+          fail-on-error: false
+          job-summary: true
+          output-format: sarif
+
+      - name: Verify new outputs exist
+        run: |
+          echo "Warning count: ${{ steps.summary-test.outputs.warning-count }}"
+          echo "Duration ms: ${{ steps.summary-test.outputs.duration-ms }}"
+
+          # Duration should be a number > 0
+          if [ -z "${{ steps.summary-test.outputs.duration-ms }}" ]; then
+            echo "Error: duration-ms output is empty"
+            exit 1
+          fi
+
+          # warning-count should be set (can be 0)
+          if [ -z "${{ steps.summary-test.outputs.warning-count }}" ]; then
+            echo "Error: warning-count output is empty"
+            exit 1
+          fi
+
+      - name: Run with job summary disabled
+        uses: ./.github/actions/mkdlint
+        with:
+          files: 'test-summary/'
+          upload-sarif: false
+          fail-on-error: false
+          job-summary: false
+
+  # Test incremental linting (changed-only mode)
+  test-changed-only:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Test changed-only on push (should lint all files)
+        id: push-test
+        uses: ./.github/actions/mkdlint
+        with:
+          files: 'README.md'
+          changed-only: true
+          upload-sarif: false
+          fail-on-error: false
+
+      - name: Verify push event lints normally
+        run: |
+          # On push events, changed-only should still lint the specified files
+          echo "Exit code: ${{ steps.push-test.outputs.exit-code }}"
+
   # Summary job
   test-summary:
     runs-on: ubuntu-latest
@@ -515,6 +588,8 @@ jobs:
       - test-verbosity
       - integration-test
       - test-working-directory
+      - test-job-summary
+      - test-changed-only
     if: always()
     steps:
       - name: Check all tests passed
@@ -530,7 +605,9 @@ jobs:
              [ "${{ needs.test-output-formats.result }}" != "success" ] || \
              [ "${{ needs.test-verbosity.result }}" != "success" ] || \
              [ "${{ needs.integration-test.result }}" != "success" ] || \
-             [ "${{ needs.test-working-directory.result }}" != "success" ]; then
+             [ "${{ needs.test-working-directory.result }}" != "success" ] || \
+             [ "${{ needs.test-job-summary.result }}" != "success" ] || \
+             [ "${{ needs.test-changed-only.result }}" != "success" ]; then
             echo "❌ Some tests failed"
             exit 1
           else

@@ -5,24 +5,28 @@ Fast Markdown linting with auto-fix and SARIF Code Scanning support.
 ## Features
 
 - ⚡ **Fast binary caching** - 10-100x faster than building from source
-- 🔧 **Auto-fix** - Automatically fix 44/54 rules (81.5% coverage)
+- 🔧 **Auto-fix** - Automatically fix 45/53 rules (84.9% coverage)
 - 📊 **SARIF Support** - Native GitHub Code Scanning integration
+- 📋 **Job Summary** - Rich markdown summary with stats and top violated rules
+- 🔄 **Incremental Linting** - Only lint changed files in pull requests
+- ⏱️ **Performance Metrics** - Timing and file counts in outputs
 - 🎯 **Zero config** - Works out of the box
-- 🔄 **Flexible** - Lint, fix, or just report
 - 📝 **Rich output** - Text, JSON, or SARIF formats
 
 ## Quick Start
 
 ```yaml
-- uses: 192d-Wing/mkdlint/.github/actions/mkdlint@v0.8.0
+- uses: 192d-Wing/mkdlint/.github/actions/mkdlint@main
   with:
     files: '.'
 ```
 
 That's it! This will:
+
 1. Lint all Markdown files in your repository
 2. Upload results to GitHub Code Scanning
-3. Fail the workflow if errors are found
+3. Write a rich job summary with stats
+4. Fail the workflow if errors are found
 
 ## Usage Examples
 
@@ -37,9 +41,27 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: 192d-Wing/mkdlint/.github/actions/mkdlint@v0.8.0
+      - uses: 192d-Wing/mkdlint/.github/actions/mkdlint@main
         with:
           files: '.'
+```
+
+### Incremental Linting (PRs Only)
+
+```yaml
+name: Lint Changed Markdown
+on: pull_request
+
+jobs:
+  markdown:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: 192d-Wing/mkdlint/.github/actions/mkdlint@main
+        with:
+          changed-only: true
 ```
 
 ### Auto-Fix and Commit
@@ -53,13 +75,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
-      - uses: 192d-Wing/mkdlint/.github/actions/mkdlint@v0.8.0
+
+      - uses: 192d-Wing/mkdlint/.github/actions/mkdlint@main
         with:
           files: '.'
           fix: true
           fail-on-error: false
-      
+
       - uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: 'docs: auto-fix markdown issues'
@@ -68,7 +90,7 @@ jobs:
 ### Custom Configuration
 
 ```yaml
-- uses: 192d-Wing/mkdlint/.github/actions/mkdlint@v0.8.0
+- uses: 192d-Wing/mkdlint/.github/actions/mkdlint@main
   with:
     files: 'docs/ README.md'
     config: '.markdownlint.json'
@@ -76,23 +98,19 @@ jobs:
     disable: 'MD013,MD033'
 ```
 
-### Multiple Output Formats
+### Use Outputs
 
 ```yaml
-- uses: 192d-Wing/mkdlint/.github/actions/mkdlint@v0.8.0
+- id: lint
+  uses: 192d-Wing/mkdlint/.github/actions/mkdlint@main
   with:
-    files: '.'
-    output-format: 'json'
-    upload-sarif: false
-```
+    fail-on-error: false
 
-### Specific Version
-
-```yaml
-- uses: 192d-Wing/mkdlint/.github/actions/mkdlint@v0.8.0
-  with:
-    files: '.'
-    version: '0.8.0'  # Pin to specific version
+- name: Report
+  run: |
+    echo "Errors: ${{ steps.lint.outputs.error-count }}"
+    echo "Warnings: ${{ steps.lint.outputs.warning-count }}"
+    echo "Duration: ${{ steps.lint.outputs.duration-ms }}ms"
 ```
 
 ## Inputs
@@ -100,7 +118,7 @@ jobs:
 | Input | Description | Default |
 |-------|-------------|---------|
 | `files` | Files or directories to lint | `.` |
-| `version` | mkdlint version (`latest` or specific like `0.8.0`) | `latest` |
+| `version` | mkdlint version (`latest` or specific like `0.9.1`) | `latest` |
 | `use-binary` | Use pre-built binary (much faster) | `true` |
 | `config` | Path to configuration file | `` |
 | `output-format` | Output format: `text`, `json`, or `sarif` | `sarif` |
@@ -115,6 +133,8 @@ jobs:
 | `fail-on-error` | Fail if errors found | `true` |
 | `upload-sarif` | Upload to Code Scanning | `true` |
 | `working-directory` | Working directory | `.` |
+| `changed-only` | Only lint changed `.md` files in PRs | `false` |
+| `job-summary` | Write rich summary to job summary | `true` |
 
 ## Outputs
 
@@ -122,47 +142,30 @@ jobs:
 |--------|-------------|
 | `exit-code` | Exit code from mkdlint |
 | `error-count` | Number of errors found |
-| `file-count` | Number of files with errors |
+| `warning-count` | Number of warnings found |
+| `file-count` | Number of files with issues |
+| `duration-ms` | Linting duration in milliseconds |
 | `sarif-file` | Path to SARIF file |
 | `binary-path` | Path to mkdlint binary |
 | `cache-hit` | Whether binary was cached |
 
-## Advanced Examples
+## Job Summary
 
-### Matrix Testing
+When `job-summary: true` (default), the action writes a rich markdown summary to the GitHub Actions job summary page, including:
 
-```yaml
-strategy:
-  matrix:
-    os: [ubuntu-latest, macos-latest, windows-latest]
-runs-on: ${{ matrix.os }}
-steps:
-  - uses: actions/checkout@v4
-  - uses: 192d-Wing/mkdlint/.github/actions/mkdlint@v0.8.0
-```
+- Error and warning counts
+- Number of files with issues
+- Linting duration
+- Top 5 most violated rules (when using SARIF output)
 
-### Conditional Execution
+## Incremental Linting
 
-```yaml
-- uses: 192d-Wing/mkdlint/.github/actions/mkdlint@v0.8.0
-  if: github.event_name == 'pull_request'
-  with:
-    files: ${{ github.event.pull_request.changed_files }}
-```
+When `changed-only: true`, the action detects changed `.md` and `.markdown` files in pull requests using `git diff` against the base branch. This is useful for large repositories where linting all files is slow.
 
-### Use Outputs
+Requirements:
 
-```yaml
-- id: lint
-  uses: 192d-Wing/mkdlint/.github/actions/mkdlint@v0.8.0
-  with:
-    fail-on-error: false
-
-- name: Comment on PR
-  if: steps.lint.outputs.error-count > 0
-  run: |
-    echo "Found ${{ steps.lint.outputs.error-count }} errors"
-```
+- Only works on `pull_request` events (falls back to normal linting on `push`)
+- Requires `fetch-depth: 0` in the checkout step for accurate diff detection
 
 ## Performance
 
@@ -200,7 +203,7 @@ permissions:
 The action automatically falls back to building from source. To force source build:
 
 ```yaml
-- uses: 192d-Wing/mkdlint/.github/actions/mkdlint@v0.8.0
+- uses: 192d-Wing/mkdlint/.github/actions/mkdlint@main
   with:
     use-binary: false
 ```
@@ -219,9 +222,11 @@ with:
 | Feature | mkdlint | markdownlint-cli | markdownlint-cli2 |
 |---------|---------|------------------|-------------------|
 | Speed | ⚡ Rust (parallel) | Node.js | Node.js |
-| Auto-fix | 81.5% (44/54) | Limited | Limited |
+| Auto-fix | 84.9% (45/53) | Limited | Limited |
 | SARIF | ✅ Native | ❌ | ✅ Via plugin |
 | Binary caching | ✅ Yes | ❌ | ❌ |
+| Job summary | ✅ Yes | ❌ | ❌ |
+| Incremental lint | ✅ Yes | ❌ | ❌ |
 | Watch mode | ✅ Yes | ❌ | ❌ |
 | Config wizard | ✅ Yes | ❌ | ❌ |
 
