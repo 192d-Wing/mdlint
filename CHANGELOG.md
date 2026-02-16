@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Interactive Configuration Wizard** 🧙
+  - `mkdlint init --interactive` - Guided configuration setup
+  - Asks questions about:
+    - Format preference (JSON/YAML/TOML)
+    - Line length limits
+    - Heading style preferences (ATX/Setext)
+    - List marker style (dash/asterisk/plus)
+    - Emphasis style (asterisk/underscore)
+    - Inline HTML preferences with element selection
+    - Code block style (fenced/indented)
+    - Common rules to disable
+  - Generates optimal config based on answers
+  - Auto-adjusts output filename extension to match format
+  - Uses `dialoguer` crate for interactive prompts
+
 ## [0.6.1] - 2026-02-16
 
 ### Added

@@ -1,6 +1,6 @@
 [package]
 name = "mkdlint"
-version = "0.6.1"
+version = "0.7.0"
 edition = "2024"
 license = "Apache-2.0"
 description = "A style checker and lint tool for Markdown/CommonMark files, written in Rust."
@@ -61,6 +61,7 @@ clap = { version = "4.5", features = ["derive", "cargo"], optional = true }
 colored = { version = "3.1", optional = true }
 walkdir = { version = "2.5", optional = true }
 globset = { version = "0.4", optional = true }
+dialoguer = { version = "0.11", optional = true }
 
 # LSP dependencies (optional)
 tower-lsp = { version = "0.20", optional = true }
@@ -79,7 +80,7 @@ insta = "1.41"                                                  # Snapshot testi
 
 [features]
 default = ["cli"]
-cli = ["dep:clap", "dep:colored", "dep:walkdir", "dep:globset"]
+cli = ["dep:clap", "dep:colored", "dep:walkdir", "dep:globset", "dep:dialoguer"]
 async = ["dep:tokio"]
 lsp = ["async", "dep:tower-lsp", "dep:lsp-types", "dep:tower", "dep:url", "dep:env_logger"]
 
