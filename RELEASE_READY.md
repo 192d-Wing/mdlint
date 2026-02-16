@@ -60,11 +60,11 @@ Added auto-fix support for 14 additional rules:
 
 ### 📦 Package Info
 
-- **Name**: mdlint
+- **Name**: mkdlint
 - **Version**: 0.2.0
 - **License**: Apache-2.0
-- **Repository**: https://github.com/192d-Wing/mdlint
-- **Documentation**: https://docs.rs/mdlint
+- **Repository**: https://github.com/192d-Wing/mkdlint
+- **Documentation**: https://docs.rs/mkdlint
 - **Package size**: 602.0 KiB (99.5 KiB compressed)
 - **Files**: 110
 
@@ -101,10 +101,10 @@ git push origin v0.2.0
 
 ### Post-Release Verification:
 
-- [ ] GitHub release created: https://github.com/192d-Wing/mdlint/releases/tag/v0.2.0
+- [ ] GitHub release created: https://github.com/192d-Wing/mkdlint/releases/tag/v0.2.0
 - [ ] Binary artifacts uploaded (5 platforms)
-- [ ] crates.io updated: https://crates.io/crates/mdlint/0.2.0
-- [ ] Documentation updated: https://docs.rs/mdlint/0.2.0
+- [ ] crates.io updated: https://crates.io/crates/mkdlint/0.2.0
+- [ ] Documentation updated: https://docs.rs/mkdlint/0.2.0
 - [ ] CI badges showing passing status
 
 ## Manual Testing Commands
@@ -114,9 +114,9 @@ git push origin v0.2.0
 cargo install --path .
 
 # Test the CLI
-mdlint README.md
-mdlint --fix tests/fixtures/*.md
-mdlint --output-format json .
+mkdlint README.md
+mkdlint --fix tests/fixtures/*.md
+mkdlint --output-format json .
 
 # Test as library
 cargo build --no-default-features

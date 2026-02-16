@@ -1,21 +1,21 @@
 [package]
-name = "mdlint"
+name = "mkdlint"
 version = "0.2.0"
 edition = "2024"
 license = "Apache-2.0"
 description = "A style checker and lint tool for Markdown/CommonMark files, written in Rust."
-repository = "https://github.com/1456055067/mdlint"
+repository = "https://github.com/192d-Wing/mkdlint"
 readme = "README.md"
 keywords = ["markdown", "lint", "commonmark", "linter", "checker"]
 categories = ["command-line-utilities", "development-tools", "text-processing"]
 rust-version = "1.93"
 
 [lib]
-name = "mdlint"
+name = "mkdlint"
 path = "src/lib.rs"
 
 [[bin]]
-name = "mdlint"
+name = "mkdlint"
 path = "src/main.rs"
 required-features = ["cli"]
 

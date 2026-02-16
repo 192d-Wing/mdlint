@@ -1,6 +1,6 @@
 use criterion::{criterion_group, criterion_main, Criterion};
 use std::hint::black_box;
-use mdlint::{lint_sync, apply_fixes, Config, LintOptions};
+use mkdlint::{lint_sync, apply_fixes, Config, LintOptions};
 use std::collections::HashMap;
 
 fn generate_small_md() -> String {
@@ -110,7 +110,7 @@ fn bench_parser_only(c: &mut Criterion) {
     let content = generate_large_md();
     c.bench_function("parser_only", |b| {
         b.iter(|| {
-            black_box(mdlint::parser::parse(&content))
+            black_box(mkdlint::parser::parse(&content))
         })
     });
 }

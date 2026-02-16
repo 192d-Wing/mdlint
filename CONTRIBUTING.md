@@ -1,6 +1,6 @@
-# Contributing to mdlint
+# Contributing to mkdlint
 
-Thank you for your interest in contributing to mdlint! This document provides guidelines and instructions for contributing.
+Thank you for your interest in contributing to mkdlint! This document provides guidelines and instructions for contributing.
 
 ## Getting Started
 
@@ -14,12 +14,12 @@ Thank you for your interest in contributing to mdlint! This document provides gu
 1. Fork the repository on GitHub
 2. Clone your fork:
    ```bash
-   git clone https://github.com/YOUR_USERNAME/mdlint.git
-   cd mdlint
+   git clone https://github.com/YOUR_USERNAME/mkdlint.git
+   cd mkdlint
    ```
 3. Add the upstream repository:
    ```bash
-   git remote add upstream https://github.com/192d-Wing/mdlint.git
+   git remote add upstream https://github.com/192d-Wing/mkdlint.git
    ```
 4. Install dependencies and run tests:
    ```bash
@@ -201,4 +201,4 @@ fn test_rule_name_specific_case() {
 
 ## License
 
-By contributing to mdlint, you agree that your contributions will be licensed under the Apache-2.0 license.
+By contributing to mkdlint, you agree that your contributions will be licensed under the Apache-2.0 license.

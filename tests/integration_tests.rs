@@ -1,10 +1,10 @@
-//! Integration tests for mdlint
+//! Integration tests for mkdlint
 
-use mdlint::{lint_sync, apply_fixes, Config, LintOptions};
+use mkdlint::{lint_sync, apply_fixes, Config, LintOptions};
 use std::collections::HashMap;
 
 /// Helper to lint a single markdown string and return errors for "test.md"
-fn lint_string(markdown: &str) -> Vec<mdlint::LintError> {
+fn lint_string(markdown: &str) -> Vec<mkdlint::LintError> {
     let mut strings = HashMap::new();
     strings.insert("test.md".to_string(), markdown.to_string());
     let options = LintOptions {
@@ -16,7 +16,7 @@ fn lint_string(markdown: &str) -> Vec<mdlint::LintError> {
 }
 
 /// Helper to lint with a specific config
-fn lint_string_with_config(markdown: &str, config: Config) -> Vec<mdlint::LintError> {
+fn lint_string_with_config(markdown: &str, config: Config) -> Vec<mkdlint::LintError> {
     let mut strings = HashMap::new();
     strings.insert("test.md".to_string(), markdown.to_string());
     let options = LintOptions {
@@ -29,7 +29,7 @@ fn lint_string_with_config(markdown: &str, config: Config) -> Vec<mdlint::LintEr
 }
 
 /// Check if any error matches a given rule ID
-fn has_rule(errors: &[mdlint::LintError], rule_id: &str) -> bool {
+fn has_rule(errors: &[mkdlint::LintError], rule_id: &str) -> bool {
     errors.iter().any(|e| e.rule_names.contains(&rule_id.to_string()))
 }
 
@@ -70,7 +70,7 @@ fn test_lint_with_config() {
 
 #[test]
 fn test_results_display() {
-    let results = mdlint::LintResults::new();
+    let results = mkdlint::LintResults::new();
     let display = format!("{}", results);
     assert_eq!(display, "");
 }
@@ -87,7 +87,7 @@ fn test_config_json_parsing() {
 
 #[test]
 fn test_library_version() {
-    let version = mdlint::version();
+    let version = mkdlint::version();
     assert!(!version.is_empty());
     assert!(version.starts_with("0."));
 }

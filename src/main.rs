@@ -1,10 +1,10 @@
-//! Command-line interface for mdlint
+//! Command-line interface for mkdlint
 
 #[cfg(feature = "cli")]
 use clap::Parser;
 
 #[cfg(feature = "cli")]
-use mdlint::{apply_fixes, formatters, lint_sync, LintOptions};
+use mkdlint::{apply_fixes, formatters, lint_sync, LintOptions};
 
 #[cfg(feature = "cli")]
 #[derive(clap::ValueEnum, Clone, Debug, Default)]
@@ -17,7 +17,7 @@ enum OutputFormat {
 
 #[cfg(feature = "cli")]
 #[derive(Parser, Debug)]
-#[command(name = "mdlint")]
+#[command(name = "mkdlint")]
 #[command(about = "A linter for Markdown files", long_about = None)]
 #[command(version)]
 struct Args {
@@ -218,7 +218,7 @@ default_language = "text"
     println!();
     println!("Next steps:");
     println!("  1. Edit {} to customize rules", output_path.cyan());
-    println!("  2. Run: {} {} {}", "mdlint".cyan(), "--config".yellow(), output_path.cyan());
+    println!("  2. Run: {} {} {}", "mkdlint".cyan(), "--config".yellow(), output_path.cyan());
 
     Ok(())
 }
@@ -226,7 +226,7 @@ default_language = "text"
 /// List all available linting rules
 #[cfg(feature = "cli")]
 fn list_rules() {
-    use mdlint::rules::get_rules;
+    use mkdlint::rules::get_rules;
     use colored::Colorize;
 
     println!("{}", "Available Linting Rules".bold().underline());
@@ -303,13 +303,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Build configuration with enable/disable rules
     let mut config = if let Some(ref config_path) = args.config {
-        mdlint::Config::from_file(config_path)?
+        mkdlint::Config::from_file(config_path)?
     } else {
-        mdlint::Config::default()
+        mkdlint::Config::default()
     };
 
     // Apply --enable and --disable flags
-    use mdlint::RuleConfig;
+    use mkdlint::RuleConfig;
     for rule in &args.enable {
         config.rules.insert(rule.to_uppercase(), RuleConfig::Enabled(true));
     }

@@ -1,4 +1,4 @@
-//! End-to-end tests for the mdlint CLI binary
+//! End-to-end tests for the mkdlint CLI binary
 
 use std::process::Command;
 
@@ -11,16 +11,16 @@ fn binary_path() -> std::path::PathBuf {
         .parent()
         .unwrap()
         .to_path_buf();
-    path.push("mdlint");
+    path.push("mkdlint");
     path
 }
 
-/// Run the mdlint binary with given args and return (exit_code, stdout, stderr)
-fn run_mdlint(args: &[&str]) -> (i32, String, String) {
+/// Run the mkdlint binary with given args and return (exit_code, stdout, stderr)
+fn run_mkdlint(args: &[&str]) -> (i32, String, String) {
     let output = Command::new(binary_path())
         .args(args)
         .output()
-        .expect("Failed to execute mdlint binary");
+        .expect("Failed to execute mkdlint binary");
 
     let code = output.status.code().unwrap_or(-1);
     let stdout = String::from_utf8_lossy(&output.stdout).to_string();
@@ -30,16 +30,16 @@ fn run_mdlint(args: &[&str]) -> (i32, String, String) {
 
 #[test]
 fn test_cli_version() {
-    let (code, stdout, _stderr) = run_mdlint(&["--version"]);
+    let (code, stdout, _stderr) = run_mkdlint(&["--version"]);
     assert_eq!(code, 0, "--version should exit 0");
     assert!(stdout.contains("0."), "Version output should contain version number");
 }
 
 #[test]
 fn test_cli_help() {
-    let (code, stdout, _stderr) = run_mdlint(&["--help"]);
+    let (code, stdout, _stderr) = run_mkdlint(&["--help"]);
     assert_eq!(code, 0, "--help should exit 0");
-    assert!(stdout.contains("lint") || stdout.contains("Markdown") || stdout.contains("mdlint"),
+    assert!(stdout.contains("lint") || stdout.contains("Markdown") || stdout.contains("mkdlint"),
         "Help output should mention linting or markdown");
 }
 
@@ -49,7 +49,7 @@ fn test_cli_clean_file() {
     let file_path = dir.path().join("clean.md");
     std::fs::write(&file_path, "# Title\n\nA paragraph with normal text.\n\n## Section\n\nAnother paragraph.\n").unwrap();
 
-    let (code, stdout, _stderr) = run_mdlint(&[file_path.to_str().unwrap()]);
+    let (code, stdout, _stderr) = run_mkdlint(&[file_path.to_str().unwrap()]);
     // Clean file should exit 0 with "No errors found" or similar
     // Note: some rules might still fire, so we just check it doesn't crash
     assert!(code == 0 || code == 1, "Exit code should be 0 (clean) or 1 (violations)");
@@ -63,7 +63,7 @@ fn test_cli_violation_file() {
     // This triggers MD001 (skipped heading level) and MD009 (trailing spaces)
     std::fs::write(&file_path, "# Heading 1\n\n### Heading 3\n\nTrailing spaces   \n").unwrap();
 
-    let (code, stdout, _stderr) = run_mdlint(&[file_path.to_str().unwrap()]);
+    let (code, stdout, _stderr) = run_mkdlint(&[file_path.to_str().unwrap()]);
     assert_eq!(code, 1, "File with violations should exit 1");
     assert!(!stdout.is_empty(), "Should print violation details");
 }
@@ -78,7 +78,7 @@ fn test_cli_with_config() {
     let file_path = dir.path().join("test.md");
     std::fs::write(&file_path, "# H1\n### H3\ntrailing   \n").unwrap();
 
-    let (code, stdout, _stderr) = run_mdlint(&[
+    let (code, stdout, _stderr) = run_mkdlint(&[
         "--config", config_path.to_str().unwrap(),
         file_path.to_str().unwrap(),
     ]);
@@ -95,7 +95,7 @@ fn test_cli_multiple_files() {
     std::fs::write(&file1, "# File A\n\nContent.\n").unwrap();
     std::fs::write(&file2, "# File B\n\nContent.\n").unwrap();
 
-    let (code, _stdout, _stderr) = run_mdlint(&[
+    let (code, _stdout, _stderr) = run_mkdlint(&[
         file1.to_str().unwrap(),
         file2.to_str().unwrap(),
     ]);
@@ -105,7 +105,7 @@ fn test_cli_multiple_files() {
 
 #[test]
 fn test_cli_nonexistent_file() {
-    let (code, _stdout, stderr) = run_mdlint(&["/tmp/this_file_does_not_exist_99999.md"]);
+    let (code, _stdout, stderr) = run_mkdlint(&["/tmp/this_file_does_not_exist_99999.md"]);
     assert_ne!(code, 0, "Nonexistent file should produce non-zero exit");
     assert!(!stderr.is_empty() || !_stdout.is_empty(), "Should output an error message");
 }
@@ -117,7 +117,7 @@ fn test_cli_output_format() {
     // Trigger MD009 (trailing spaces)
     std::fs::write(&file_path, "# Title\n\nTrailing   \n").unwrap();
 
-    let (code, stdout, _stderr) = run_mdlint(&[file_path.to_str().unwrap()]);
+    let (code, stdout, _stderr) = run_mkdlint(&[file_path.to_str().unwrap()]);
     if code == 1 {
         // Output should contain the filename and a rule identifier
         assert!(stdout.contains("format_test.md"), "Output should contain the filename");
@@ -134,7 +134,7 @@ fn fixture_path(name: &str) -> String {
 
 #[test]
 fn test_fixture_clean_file_exits_zero() {
-    let (code, stdout, _) = run_mdlint(&[&fixture_path("clean.md")]);
+    let (code, stdout, _) = run_mkdlint(&[&fixture_path("clean.md")]);
     assert_eq!(code, 0, "Clean fixture should produce exit 0. Output: {}", stdout);
     assert!(
         stdout.contains("No errors"),
@@ -145,7 +145,7 @@ fn test_fixture_clean_file_exits_zero() {
 
 #[test]
 fn test_fixture_heading_errors_detected() {
-    let (code, stdout, _) = run_mdlint(&["--no-color", &fixture_path("heading_errors.md")]);
+    let (code, stdout, _) = run_mkdlint(&["--no-color", &fixture_path("heading_errors.md")]);
     assert_eq!(code, 1, "heading_errors.md should produce exit 1");
     assert!(stdout.contains("MD022"), "Should detect MD022 (blank lines around headings)");
     assert!(stdout.contains("MD025"), "Should detect MD025 (multiple H1)");
@@ -153,7 +153,7 @@ fn test_fixture_heading_errors_detected() {
 
 #[test]
 fn test_fixture_whitespace_errors_detected() {
-    let (code, stdout, _) = run_mdlint(&["--no-color", &fixture_path("whitespace_errors.md")]);
+    let (code, stdout, _) = run_mkdlint(&["--no-color", &fixture_path("whitespace_errors.md")]);
     assert_eq!(code, 1, "whitespace_errors.md should produce exit 1");
     assert!(stdout.contains("MD009"), "Should detect MD009 (trailing spaces)");
     assert!(stdout.contains("MD010"), "Should detect MD010 (hard tabs)");
@@ -161,7 +161,7 @@ fn test_fixture_whitespace_errors_detected() {
 
 #[test]
 fn test_fixture_link_errors_detected() {
-    let (code, stdout, _) = run_mdlint(&["--no-color", &fixture_path("link_errors.md")]);
+    let (code, stdout, _) = run_mkdlint(&["--no-color", &fixture_path("link_errors.md")]);
     assert_eq!(code, 1, "link_errors.md should produce exit 1");
     assert!(stdout.contains("MD034"), "Should detect MD034 (bare URLs)");
     assert!(stdout.contains("MD042"), "Should detect MD042 (empty links)");
@@ -169,7 +169,7 @@ fn test_fixture_link_errors_detected() {
 
 #[test]
 fn test_fixture_emphasis_errors_detected() {
-    let (code, stdout, _) = run_mdlint(&["--no-color", &fixture_path("emphasis_errors.md")]);
+    let (code, stdout, _) = run_mkdlint(&["--no-color", &fixture_path("emphasis_errors.md")]);
     assert_eq!(code, 1, "emphasis_errors.md should produce exit 1");
     // MD049/MD050 enforce consistent emphasis/strong style
     assert!(
@@ -181,7 +181,7 @@ fn test_fixture_emphasis_errors_detected() {
 
 #[test]
 fn test_fixture_json_output_format() {
-    let (code, stdout, _) = run_mdlint(&[
+    let (code, stdout, _) = run_mkdlint(&[
         "--output-format", "json",
         &fixture_path("whitespace_errors.md"),
     ]);
@@ -194,7 +194,7 @@ fn test_fixture_json_output_format() {
 
 #[test]
 fn test_fixture_sarif_output_format() {
-    let (code, stdout, _) = run_mdlint(&[
+    let (code, stdout, _) = run_mkdlint(&[
         "--output-format", "sarif",
         &fixture_path("whitespace_errors.md"),
     ]);
@@ -217,12 +217,12 @@ fn test_fixture_fix_roundtrip() {
     std::fs::copy(&src, &dest).unwrap();
 
     // Run with --fix
-    let (code, _, _) = run_mdlint(&["--fix", dest.to_str().unwrap()]);
+    let (code, _, _) = run_mkdlint(&["--fix", dest.to_str().unwrap()]);
     // --fix doesn't exit 1
     assert_eq!(code, 0, "--fix should exit 0");
 
     // Lint the fixed file — should have fewer errors
-    let (_, stdout_after, _) = run_mdlint(&["--no-color", dest.to_str().unwrap()]);
+    let (_, stdout_after, _) = run_mkdlint(&["--no-color", dest.to_str().unwrap()]);
     // Verify that specific fixable rules are gone
     assert!(
         !stdout_after.contains("MD009"),
@@ -243,7 +243,7 @@ fn test_fixture_directory_recursion() {
     std::fs::write(sub.join("b.md"), "# File B\n\nContent.\n").unwrap();
     std::fs::write(sub.join("not_markdown.txt"), "Ignored\n").unwrap();
 
-    let (code, stdout, _) = run_mdlint(&[dir.path().to_str().unwrap()]);
+    let (code, stdout, _) = run_mkdlint(&[dir.path().to_str().unwrap()]);
     // Should lint both .md files but not the .txt file
     assert!(code == 0 || code == 1, "Should exit cleanly");
     if code == 1 {
@@ -261,7 +261,7 @@ fn test_fixture_ignore_pattern() {
     std::fs::write(dir.path().join("bad.md"), "# Title\n\nTrailing   \n").unwrap();
 
     // Ignore bad.md
-    let (_code, stdout, _) = run_mdlint(&[
+    let (_code, stdout, _) = run_mkdlint(&[
         "--ignore", "**/bad.md",
         dir.path().to_str().unwrap(),
     ]);
@@ -275,7 +275,7 @@ fn test_fixture_source_context_in_output() {
     let file_path = dir.path().join("context_test.md");
     std::fs::write(&file_path, "# Title\n\nTrailing spaces   \n").unwrap();
 
-    let (code, stdout, _) = run_mdlint(&["--no-color", file_path.to_str().unwrap()]);
+    let (code, stdout, _) = run_mkdlint(&["--no-color", file_path.to_str().unwrap()]);
     assert_eq!(code, 1);
     // The output should contain the source line with the error
     assert!(

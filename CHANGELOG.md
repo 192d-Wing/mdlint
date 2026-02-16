@@ -19,7 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Enhanced CLI Features**:
-  - `mdlint init` subcommand to create configuration file templates (JSON/YAML/TOML)
+  - `mkdlint init` subcommand to create configuration file templates (JSON/YAML/TOML)
   - `--stdin` flag for reading input from standard input (Unix pipeline support)
   - `--list-rules` flag to display all available rules with descriptions
   - `--enable/--disable` flags for per-invocation rule overrides
@@ -126,6 +126,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Parallel file processing
 - Inline configuration comments support
 
-[Unreleased]: https://github.com/192d-Wing/mdlint/compare/v0.2.0...HEAD
-[0.2.0]: https://github.com/192d-Wing/mdlint/compare/v0.1.0...v0.2.0
-[0.1.0]: https://github.com/192d-Wing/mdlint/releases/tag/v0.1.0
+[Unreleased]: https://github.com/192d-Wing/mkdlint/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/192d-Wing/mkdlint/compare/v0.1.0...v0.2.0
+[0.1.0]: https://github.com/192d-Wing/mkdlint/releases/tag/v0.1.0

@@ -1,6 +1,6 @@
 # Release Checklist
 
-This document outlines the steps to release a new version of mdlint.
+This document outlines the steps to release a new version of mkdlint.
 
 ## Pre-Release Checklist
 
@@ -64,15 +64,15 @@ GitHub Actions will automatically:
 
 ### 5. Verify Release
 
-- [ ] GitHub release created: https://github.com/192d-Wing/mdlint/releases
+- [ ] GitHub release created: https://github.com/192d-Wing/mkdlint/releases
 - [ ] Binary artifacts uploaded (5 platforms)
-- [ ] crates.io updated: https://crates.io/crates/mdlint
-- [ ] Documentation updated: https://docs.rs/mdlint
+- [ ] crates.io updated: https://crates.io/crates/mkdlint
+- [ ] Documentation updated: https://docs.rs/mkdlint
 - [ ] CI badges showing passing status
 
 ## Post-Release
 
-- [ ] Test installation: `cargo install mdlint`
+- [ ] Test installation: `cargo install mkdlint`
 - [ ] Verify downloaded binary works
 - [ ] Announce release (if applicable):
   - GitHub Discussions

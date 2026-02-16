@@ -72,9 +72,9 @@ pub fn format_sarif(results: &LintResults) -> String {
         "runs": [{
             "tool": {
                 "driver": {
-                    "name": "mdlint",
+                    "name": "mkdlint",
                     "version": crate::VERSION,
-                    "informationUri": "https://github.com/1456055067/mdlint",
+                    "informationUri": "https://github.com/192d-Wing/mkdlint",
                     "rules": rules
                 }
             },
@@ -111,7 +111,7 @@ mod tests {
         let parsed: serde_json::Value = serde_json::from_str(&output).unwrap();
 
         assert_eq!(parsed["version"], "2.1.0");
-        assert_eq!(parsed["runs"][0]["tool"]["driver"]["name"], "mdlint");
+        assert_eq!(parsed["runs"][0]["tool"]["driver"]["name"], "mkdlint");
 
         let result = &parsed["runs"][0]["results"][0];
         assert_eq!(result["ruleId"], "MD001");

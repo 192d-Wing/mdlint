@@ -1,9 +1,9 @@
-//! Insta snapshot tests for mdlint
+//! Insta snapshot tests for mkdlint
 //!
 //! These tests lint fixture files and snapshot the error output so that
 //! any regressions in rule behavior are immediately visible as snapshot diffs.
 
-use mdlint::{lint_sync, LintOptions};
+use mkdlint::{lint_sync, LintOptions};
 use std::collections::HashMap;
 
 /// Helper: lint a markdown string and return a deterministic text representation of the errors.
