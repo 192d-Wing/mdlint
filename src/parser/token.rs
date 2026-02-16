@@ -133,11 +133,9 @@ mod tests {
 
     #[test]
     fn test_filter_by_type() {
-        let tokens = vec![
-            Token::new("heading"),
+        let tokens = [Token::new("heading"),
             Token::new("paragraph"),
-            Token::new("heading"),
-        ];
+            Token::new("heading")];
 
         let headings = tokens.filter_by_type("heading");
         assert_eq!(headings.len(), 2);

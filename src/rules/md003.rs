@@ -200,12 +200,10 @@ impl Rule for MD003 {
                             } else {
                                 None
                             }
+                        } else if style != HeadingStyle::Atx {
+                            Some(("atx", style))
                         } else {
-                            if style != HeadingStyle::Atx {
-                                Some(("atx", style))
-                            } else {
-                                None
-                            }
+                            None
                         }
                     }
                     "setext_with_atx_closed" => {
@@ -216,12 +214,10 @@ impl Rule for MD003 {
                             } else {
                                 None
                             }
+                        } else if style != HeadingStyle::AtxClosed {
+                            Some(("atx_closed", style))
                         } else {
-                            if style != HeadingStyle::AtxClosed {
-                                Some(("atx_closed", style))
-                            } else {
-                                None
-                            }
+                            None
                         }
                     }
                     _ => None,

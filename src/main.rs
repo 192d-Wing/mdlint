@@ -61,13 +61,11 @@ fn expand_paths(paths: &[String]) -> Vec<String> {
         if p.is_dir() {
             for entry in WalkDir::new(p).into_iter().filter_map(|e| e.ok()) {
                 let ep = entry.path();
-                if ep.is_file() {
-                    if let Some(ext) = ep.extension().and_then(|e| e.to_str()) {
-                        if ext == "md" || ext == "markdown" {
+                if ep.is_file()
+                    && let Some(ext) = ep.extension().and_then(|e| e.to_str())
+                        && (ext == "md" || ext == "markdown") {
                             expanded.push(ep.to_string_lossy().to_string());
                         }
-                    }
-                }
             }
         } else {
             expanded.push(path.clone());

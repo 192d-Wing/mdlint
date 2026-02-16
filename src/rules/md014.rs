@@ -35,11 +35,7 @@ impl Rule for MD014 {
             let trimmed = line.trim();
 
             if trimmed.starts_with("```") || trimmed.starts_with("~~~") {
-                if in_code_block {
-                    in_code_block = false;
-                } else {
-                    in_code_block = true;
-                }
+                in_code_block = !in_code_block;
             } else if in_code_block && trimmed.starts_with('$') {
                 errors.push(LintError {
                     line_number,

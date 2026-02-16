@@ -2,7 +2,6 @@ use criterion::{criterion_group, criterion_main, Criterion};
 use std::hint::black_box;
 use mdlint::{lint_sync, apply_fixes, Config, LintOptions};
 use std::collections::HashMap;
-use tempfile;
 
 fn generate_small_md() -> String {
     "# Title\n\nSome text here.\n\n## Section\n\nMore text.\n\n### Subsection\n\nFinal text.\n".to_string()

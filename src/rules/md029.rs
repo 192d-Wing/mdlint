@@ -58,8 +58,8 @@ fn get_ordered_list_value(line: &str) -> Option<(usize, usize, usize)> {
     }
 
     // Check if followed by a period and whitespace or end of line
-    if !num_str.is_empty() {
-        if let Some('.') = chars.next() {
+    if !num_str.is_empty()
+        && let Some('.') = chars.next() {
             // Valid ordered list marker
             if let Ok(value) = num_str.parse::<usize>() {
                 // Calculate column (1-based)
@@ -68,7 +68,6 @@ fn get_ordered_list_value(line: &str) -> Option<(usize, usize, usize)> {
                 return Some((value, column, num_str.len()));
             }
         }
-    }
 
     None
 }
@@ -77,14 +76,13 @@ fn get_ordered_list_value(line: &str) -> Option<(usize, usize, usize)> {
 fn is_ordered_list(tokens: &[crate::parser::Token], lines: &[String], list_token: &crate::parser::Token) -> bool {
     // Check if any child list items are ordered
     for &child_idx in &list_token.children {
-        if let Some(child) = tokens.get(child_idx) {
-            if child.token_type == "listItem"
+        if let Some(child) = tokens.get(child_idx)
+            && child.token_type == "listItem"
                 && child.start_line > 0
                 && child.start_line <= lines.len() {
                 let line = &lines[child.start_line - 1];
                 return get_ordered_list_value(line).is_some();
             }
-        }
     }
     false
 }
@@ -133,11 +131,10 @@ impl Rule for MD029 {
             // Get all list items for this ordered list
             let mut list_items = Vec::new();
             for &child_idx in &list.children {
-                if let Some(child) = params.tokens.get(child_idx) {
-                    if child.token_type == "listItem" {
+                if let Some(child) = params.tokens.get(child_idx)
+                    && child.token_type == "listItem" {
                         list_items.push(child);
                     }
-                }
             }
 
             if list_items.is_empty() {
@@ -159,15 +156,14 @@ impl Rule for MD029 {
                 let second_line = &params.lines[list_items[1].start_line - 1];
 
                 if let (Some((first_val, _, _)), Some((second_val, _, _))) =
-                    (get_ordered_list_value(first_line), get_ordered_list_value(second_line)) {
+                    (get_ordered_list_value(first_line), get_ordered_list_value(second_line))
 
-                    if second_val != 1 || first_val == 0 {
+                    && (second_val != 1 || first_val == 0) {
                         incrementing = true;
                         if first_val == 0 {
                             expected = 0;
                         }
                     }
-                }
             }
 
             // Determine effective style

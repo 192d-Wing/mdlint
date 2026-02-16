@@ -72,8 +72,8 @@ impl Rule for MD036 {
             .iter()
             .filter(|para| {
                 // Check parent is "content"
-                if let Some(parent_idx) = para.parent {
-                    if let Some(parent) = params.tokens.get(parent_idx) {
+                if let Some(parent_idx) = para.parent
+                    && let Some(parent) = params.tokens.get(parent_idx) {
                         if parent.token_type != "content" {
                             return false;
                         }
@@ -103,7 +103,6 @@ impl Rule for MD036 {
 
                         return meaningful_children.len() == 1;
                     }
-                }
                 false
             })
             .collect();
@@ -125,10 +124,10 @@ impl Rule for MD036 {
                     // 1. Has exactly one child
                     // 2. That child is of type "data"
                     // 3. Text doesn't end in punctuation
-                    if text_token.children.len() == 1 {
-                        if let Some(&child_idx) = text_token.children.first() {
-                            if let Some(child) = params.tokens.get(child_idx) {
-                                if child.token_type == "data"
+                    if text_token.children.len() == 1
+                        && let Some(&child_idx) = text_token.children.first()
+                            && let Some(child) = params.tokens.get(child_idx)
+                                && child.token_type == "data"
                                     && !punctuation_re.is_match(&text_token.text)
                                 {
                                     errors.push(LintError {
@@ -143,9 +142,6 @@ impl Rule for MD036 {
                                         severity: Severity::Error,
                                     });
                                 }
-                            }
-                        }
-                    }
                 }
             }
         }

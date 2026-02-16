@@ -20,8 +20,8 @@ struct HtmlTagInfo {
 }
 
 fn get_html_tag_info(text: &str) -> Option<HtmlTagInfo> {
-    if let Some(captures) = HTML_TAG_NAME_RE.captures(text) {
-        if let Some(name_match) = captures.get(1) {
+    if let Some(captures) = HTML_TAG_NAME_RE.captures(text)
+        && let Some(name_match) = captures.get(1) {
             let mut name = name_match.as_str();
             let close = name.starts_with('/');
 
@@ -38,37 +38,33 @@ fn get_html_tag_info(text: &str) -> Option<HtmlTagInfo> {
                 close,
             });
         }
-    }
     None
 }
 
 /// Check if a token has a parent of the specified type
 fn has_parent_of_type(tokens: &[crate::parser::Token], token_idx: usize, parent_type: &str) -> bool {
-    if let Some(token) = tokens.get(token_idx) {
-        if let Some(parent_idx) = token.parent {
-            if let Some(parent) = tokens.get(parent_idx) {
+    if let Some(token) = tokens.get(token_idx)
+        && let Some(parent_idx) = token.parent
+            && let Some(parent) = tokens.get(parent_idx) {
                 if parent.token_type == parent_type {
                     return true;
                 }
                 // Recursively check parent's parent
                 return has_parent_of_type(tokens, parent_idx, parent_type);
             }
-        }
-    }
     false
 }
 
 /// Convert config value to lowercase string array
 fn to_lowercase_string_array(value: Option<&serde_json::Value>) -> Vec<String> {
-    if let Some(val) = value {
-        if let Some(arr) = val.as_array() {
+    if let Some(val) = value
+        && let Some(arr) = val.as_array() {
             return arr
                 .iter()
                 .filter_map(|v| v.as_str())
                 .map(|s| s.to_lowercase())
                 .collect();
         }
-    }
     Vec::new()
 }
 

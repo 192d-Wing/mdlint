@@ -58,7 +58,7 @@ impl Rule for MD040 {
                             line_number,
                             rule_names: self.names().iter().map(|s| s.to_string()).collect(),
                             rule_description: self.description().to_string(),
-                            error_detail: Some(format!("Missing language specification")),
+                            error_detail: Some("Missing language specification".to_string()),
                             error_context: Some(trimmed.to_string()),
                             rule_information: self.information().map(|s| s.to_string()),
                             error_range: Some((leading_spaces + 1, trimmed.len())),

@@ -75,8 +75,8 @@ fn different_item_style(style: ListStyle) -> ListStyle {
 /// Extract the list marker character from a line
 fn get_list_marker(line: &str) -> Option<char> {
     let trimmed = line.trim_start();
-    if let Some(first_char) = trimmed.chars().next() {
-        if matches!(first_char, '*' | '-' | '+') {
+    if let Some(first_char) = trimmed.chars().next()
+        && matches!(first_char, '*' | '-' | '+') {
             // Make sure it's followed by whitespace (to distinguish from other uses of these chars)
             if trimmed.len() > 1 {
                 let second_char = trimmed.chars().nth(1)?;
@@ -85,7 +85,6 @@ fn get_list_marker(line: &str) -> Option<char> {
                 }
             }
         }
-    }
     None
 }
 

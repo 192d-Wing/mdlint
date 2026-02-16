@@ -96,11 +96,10 @@ impl Config {
         loop {
             for name in &Self::DISCOVERY_NAMES {
                 let candidate = dir.join(name);
-                if candidate.is_file() {
-                    if let Ok(config) = Self::from_file(&candidate) {
+                if candidate.is_file()
+                    && let Ok(config) = Self::from_file(&candidate) {
                         return Some(config);
                     }
-                }
             }
             if !dir.pop() {
                 break;

@@ -32,8 +32,7 @@ impl Rule for MD027 {
             let line_number = idx + 1;
             let trimmed = line.trim_start();
 
-            if trimmed.starts_with('>') {
-                let after_bracket = &trimmed[1..];
+            if let Some(after_bracket) = trimmed.strip_prefix('>') {
                 let space_count = after_bracket.chars().take_while(|&c| c == ' ').count();
 
                 if space_count > 1 {

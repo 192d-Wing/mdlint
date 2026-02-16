@@ -40,8 +40,8 @@ impl Rule for MD026 {
                     // Remove trailing # for closed ATX
                     let content = content.trim_end_matches('#').trim_end();
 
-                    if let Some(last_char) = content.chars().last() {
-                        if punctuation.contains(last_char) {
+                    if let Some(last_char) = content.chars().last()
+                        && punctuation.contains(last_char) {
                             // Compute 1-based column of the punctuation char in the original line
                             let leading_ws = line.len() - line.trim_start().len();
                             // content is a sub-slice of trimmed; find its end position
@@ -71,7 +71,6 @@ impl Rule for MD026 {
                                 severity: Severity::Error,
                             });
                         }
-                    }
                 }
             }
         }

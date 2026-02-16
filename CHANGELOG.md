@@ -7,7 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-02-15
+
 ### Added
+
+- **GitHub Actions CI/CD Pipeline**:
+  - Multi-platform testing (Ubuntu, macOS, Windows) on every push and PR
+  - Automated linting with rustfmt and clippy
+  - Benchmark comparison for pull requests
+  - Code coverage tracking with cargo-tarpaulin and Codecov integration
+  - Security auditing with cargo-audit and cargo-deny (runs daily)
+  - Automated binary releases for 5 platforms (Linux x86_64/aarch64, macOS x86_64/aarch64, Windows x86_64)
+  - Automatic crates.io publishing on version tags
 
 - **Auto-fix support** for 14 additional rules:
   - MD011: Reversed link syntax - automatically swaps text and URL
@@ -98,5 +109,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Parallel file processing
 - Inline configuration comments support
 
-[Unreleased]: https://github.com/192d-Wing/mdlint/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/192d-Wing/mdlint/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/192d-Wing/mdlint/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/192d-Wing/mdlint/releases/tag/v0.1.0

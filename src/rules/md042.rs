@@ -42,8 +42,8 @@ impl MD042 {
         }
 
         // Check for just # or # with title
-        if trimmed.starts_with('#') {
-            let after_hash = trimmed[1..].trim();
+        if let Some(after_hash) = trimmed.strip_prefix('#') {
+            let after_hash = after_hash.trim();
             // If nothing after # or if it starts with a quote (title), it's empty
             if after_hash.is_empty() || after_hash.starts_with('"') || after_hash.starts_with('\'') {
                 return true;
@@ -144,8 +144,8 @@ impl Rule for MD042 {
                 let ref_key = ref_name.trim().to_lowercase();
 
                 // Check if this reference exists and if it points to an empty URL
-                if let Some(url) = definitions.get(&ref_key) {
-                    if Self::is_empty_or_fragment_only(url) {
+                if let Some(url) = definitions.get(&ref_key)
+                    && Self::is_empty_or_fragment_only(url) {
                         errors.push(LintError {
                             line_number,
                             rule_names: self.names().iter().map(|s| s.to_string()).collect(),
@@ -158,7 +158,6 @@ impl Rule for MD042 {
                             severity: Severity::Error,
                         });
                     }
-                }
             }
         }
 

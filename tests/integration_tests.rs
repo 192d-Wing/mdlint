@@ -272,7 +272,7 @@ fn test_lint_file_from_disk() {
     };
 
     let results = lint_sync(&options).unwrap();
-    assert!(results.get(&file_path.to_string_lossy().to_string()).is_some());
+    assert!(results.get(file_path.to_string_lossy().as_ref()).is_some());
 }
 
 #[test]
@@ -332,7 +332,7 @@ fn test_config_file_option() {
     };
 
     let results = lint_sync(&options).unwrap();
-    let errors = results.get(&file_path.to_string_lossy().to_string()).unwrap_or(&[]);
+    let errors = results.get(file_path.to_string_lossy().as_ref()).unwrap_or(&[]);
     // All rules disabled, so no errors expected
     assert!(errors.is_empty(), "All rules disabled via config_file, expected 0 errors but got {}", errors.len());
 }

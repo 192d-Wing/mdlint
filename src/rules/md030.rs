@@ -94,12 +94,10 @@ impl Rule for MD030 {
                 } else {
                     ol_multi
                 }
+            } else if all_single_line {
+                ul_single
             } else {
-                if all_single_line {
-                    ul_single
-                } else {
-                    ul_multi
-                }
+                ul_multi
             };
 
             // Check each listItemPrefix for whitespace

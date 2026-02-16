@@ -35,7 +35,7 @@ fn is_in_list_context(lines: &[String], start_idx: usize) -> bool {
     let fence_indent = fence_line.len() - fence_line.trim_start().len();
 
     // Look back up to 10 lines
-    let start_search = if start_idx > 10 { start_idx - 10 } else { 0 };
+    let start_search = start_idx.saturating_sub(10);
 
     for i in (start_search..start_idx).rev() {
         let line = &lines[i];
@@ -45,7 +45,7 @@ fn is_in_list_context(lines: &[String], start_idx: usize) -> bool {
         if trimmed.starts_with("- ")
             || trimmed.starts_with("* ")
             || trimmed.starts_with("+ ")
-            || (trimmed.chars().next().map_or(false, |c| c.is_ascii_digit())
+            || (trimmed.chars().next().is_some_and(|c| c.is_ascii_digit())
                 && trimmed.contains(". "))
         {
             let line_indent = line.len() - trimmed.len();
