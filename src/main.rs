@@ -75,6 +75,14 @@ struct Args {
     /// Quiet mode - only show file names with errors
     #[arg(short, long, global = true)]
     quiet: bool,
+
+    /// Watch mode - re-lint files on changes
+    #[arg(short, long, global = true)]
+    watch: bool,
+
+    /// Watch specific paths (default: all input files/directories)
+    #[arg(long, action = clap::ArgAction::Append, global = true)]
+    watch_paths: Vec<String>,
 }
 
 #[cfg(feature = "cli")]
@@ -796,6 +804,216 @@ fn list_rules() {
     );
 }
 
+/// Run watch mode with file change detection
+#[cfg(feature = "cli")]
+fn run_watch_mode(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
+    use colored::Colorize;
+    use notify_debouncer_full::{new_debouncer, notify::*};
+    use std::path::Path;
+    use std::sync::mpsc::channel;
+    use std::time::Duration;
+
+    println!("{}", "Starting watch mode...".cyan().bold());
+    println!();
+
+    // Determine paths to watch
+    let watch_paths = if args.watch_paths.is_empty() {
+        &args.files
+    } else {
+        &args.watch_paths
+    };
+
+    // Initial lint
+    println!("{} Initial lint...", "▸".cyan());
+    if let Err(e) = lint_files_once(args) {
+        eprintln!("{} {}", "Error:".red().bold(), e);
+    }
+    println!();
+
+    // Set up file watcher with debouncing (300ms)
+    let (tx, rx) = channel();
+    let mut debouncer = new_debouncer(Duration::from_millis(300), None, tx)?;
+
+    // Watch all specified paths
+    for path in watch_paths {
+        let path_obj = Path::new(path);
+        if path_obj.exists() {
+            debouncer
+                .watcher()
+                .watch(path_obj, RecursiveMode::Recursive)?;
+            println!("{} Watching: {}", "✓".green(), path.cyan());
+        } else {
+            eprintln!(
+                "{} Path does not exist: {}",
+                "Warning:".yellow().bold(),
+                path
+            );
+        }
+    }
+
+    println!();
+    println!("{} Press {} to exit", "▸".cyan(), "Ctrl+C".yellow().bold());
+    println!();
+
+    // Main watch loop
+    loop {
+        match rx.recv() {
+            Ok(result) => match result {
+                Ok(events) => {
+                    // Filter for markdown file changes
+                    let has_markdown_changes = events.iter().any(|event| {
+                        event.paths.iter().any(|path| {
+                            path.extension()
+                                .and_then(|ext| ext.to_str())
+                                .map(|ext| ext == "md" || ext == "markdown")
+                                .unwrap_or(false)
+                        })
+                    });
+
+                    if has_markdown_changes {
+                        println!("{} File changed, re-linting...", "▸".cyan());
+                        if let Err(e) = lint_files_once(args) {
+                            eprintln!("{} {}", "Error:".red().bold(), e);
+                        }
+                        println!();
+                    }
+                }
+                Err(errors) => {
+                    for error in errors {
+                        eprintln!("{} Watch error: {:?}", "Error:".red().bold(), error);
+                    }
+                }
+            },
+            Err(e) => {
+                eprintln!("{} Channel error: {}", "Error:".red().bold(), e);
+                break;
+            }
+        }
+    }
+
+    Ok(())
+}
+
+/// Lint files once (used by watch mode and normal mode)
+#[cfg(feature = "cli")]
+fn lint_files_once(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
+    use colored::Colorize;
+
+    // Expand directories and filter ignored files
+    let files = expand_paths(&args.files);
+    let files = filter_ignored(files, &args.ignore)?;
+
+    if files.is_empty() {
+        if !args.quiet {
+            println!("No files to lint.");
+        }
+        return Ok(());
+    }
+
+    // Build configuration
+    let mut config = if let Some(ref config_path) = args.config {
+        mkdlint::Config::from_file(config_path)?
+    } else {
+        mkdlint::Config::default()
+    };
+
+    // Apply --enable and --disable flags
+    use mkdlint::RuleConfig;
+    for rule in &args.enable {
+        config
+            .rules
+            .insert(rule.to_uppercase(), RuleConfig::Enabled(true));
+    }
+    for rule in &args.disable {
+        config
+            .rules
+            .insert(rule.to_uppercase(), RuleConfig::Enabled(false));
+    }
+
+    let options = LintOptions {
+        files: files.clone(),
+        strings: std::collections::HashMap::new(),
+        config: Some(config),
+        no_inline_config: args.no_inline_config,
+        ..Default::default()
+    };
+
+    let results = lint_sync(&options)?;
+
+    // Handle auto-fix
+    if args.fix {
+        let mut fixed_count = 0;
+        for file_path in &files {
+            let errors = match results.get(file_path) {
+                Some(errors) if !errors.is_empty() => errors,
+                _ => continue,
+            };
+
+            let has_fixes = errors.iter().any(|e| e.fix_info.is_some());
+            if !has_fixes {
+                continue;
+            }
+
+            let content = std::fs::read_to_string(file_path)?;
+            let fixed = apply_fixes(&content, errors);
+            if fixed != content {
+                std::fs::write(file_path, &fixed)?;
+                fixed_count += 1;
+                if args.verbose || !args.quiet {
+                    println!("{} {}", "Fixed:".green().bold(), file_path);
+                }
+            }
+        }
+
+        if !args.quiet {
+            if fixed_count > 0 {
+                println!(
+                    "{} {} file(s) fixed.",
+                    "✓".green().bold(),
+                    fixed_count.to_string().green()
+                );
+            } else {
+                println!("{}", "No fixable issues found.".dimmed());
+            }
+        }
+    } else if results.is_empty() {
+        if !args.quiet {
+            println!("{} No errors found!", "✓".green().bold());
+        }
+    } else {
+        // Display errors
+        if args.quiet {
+            for (file, errors) in &results.results {
+                if !errors.is_empty() {
+                    println!("{}", file);
+                }
+            }
+        } else {
+            let output = match args.output_format {
+                OutputFormat::Text => {
+                    let mut sources = std::collections::HashMap::new();
+                    for file in &files {
+                        if let Ok(content) = std::fs::read_to_string(file) {
+                            sources.insert(file.clone(), content);
+                        }
+                    }
+                    formatters::format_text_with_context(&results, &sources)
+                }
+                OutputFormat::Json => formatters::format_json(&results),
+                OutputFormat::Sarif => formatters::format_sarif(&results),
+            };
+            print!("{}", output);
+        }
+
+        // In watch mode, don't return error - just continue watching
+        if args.watch {
+            return Ok(());
+        }
+    }
+
+    Ok(())
+}
+
 #[cfg(feature = "cli")]
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
@@ -824,6 +1042,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     if args.files.is_empty() && !args.stdin {
         eprintln!("error: FILES argument required (or use --stdin)");
         std::process::exit(1);
+    }
+
+    // Watch mode requires files, not stdin
+    if args.watch && args.stdin {
+        eprintln!("error: --watch cannot be used with --stdin");
+        std::process::exit(1);
+    }
+
+    // If watch mode, delegate to watch function
+    if args.watch {
+        return run_watch_mode(&args);
     }
 
     // Handle stdin input

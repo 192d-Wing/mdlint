@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Watch Mode** 👀
+  - `mkdlint --watch` - Auto-lint files on changes with real-time feedback
+  - Debounced file system notifications (300ms) to avoid excessive re-linting
+  - Automatically filters for .md and .markdown files
+  - Works with auto-fix: `mkdlint --watch --fix` for automatic fixing on save
+  - `--watch-paths` flag to watch specific directories/files
+  - Colorful output with status indicators (▸, ✓)
+  - Uses `notify` v6.1 and `notify-debouncer-full` v0.3 crates
+  - Perfect companion to the interactive wizard for smooth development workflow
+
+### Changed
+
+- Refactored main linting logic into `lint_files_once()` helper function
+  - Shared between normal mode and watch mode
+  - Cleaner code organization
+
 ## [0.7.0] - 2026-02-16
 
 ### Added
