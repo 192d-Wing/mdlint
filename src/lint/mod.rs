@@ -150,12 +150,14 @@ fn lint_content(content: &str, config: &Config, name: &str) -> Result<Vec<LintEr
     // Execute all enabled rules
     let mut all_errors = Vec::new();
 
-    for rule in rules::get_rules() {
-        // Check if rule is enabled in config
+    // Pre-filter to only enabled rules to avoid unnecessary work
+    let enabled_rules: Vec<_> = rules::get_rules()
+        .iter()
+        .filter(|rule| config.is_rule_enabled(rule.names()[0]))
+        .collect();
+
+    for rule in enabled_rules {
         let rule_name = rule.names()[0];
-        if !config.is_rule_enabled(rule_name) {
-            continue;
-        }
 
         // Extract per-rule config options
         let rule_config = match config.get_rule_config(rule_name) {

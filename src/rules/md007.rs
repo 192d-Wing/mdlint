@@ -5,7 +5,12 @@
 //! (default: 2).
 
 use crate::types::{FixInfo, LintError, ParserType, Rule, RuleParams, Severity};
+use once_cell::sync::Lazy;
 use regex::Regex;
+
+static UL_MARKER_RE: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(r"^(\s*)[*+\-]\s").unwrap()
+});
 
 pub struct MD007;
 
@@ -36,7 +41,6 @@ impl Rule for MD007 {
             .and_then(|v| v.as_u64())
             .unwrap_or(2) as usize;
 
-        let ul_marker_re = Regex::new(r"^(\s*)[*+\-]\s").unwrap();
         let mut in_code_block = false;
 
         for (idx, line) in params.lines.iter().enumerate() {
@@ -53,7 +57,7 @@ impl Rule for MD007 {
             }
 
             // Check for unordered list markers
-            if let Some(caps) = ul_marker_re.captures(trimmed) {
+            if let Some(caps) = UL_MARKER_RE.captures(trimmed) {
                 let leading_spaces = caps.get(1).unwrap().as_str().len();
 
                 // If there's indentation, check it's a multiple of `indent`

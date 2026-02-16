@@ -1,6 +1,6 @@
 //! MD044 - Proper names should have the correct capitalization
 
-use crate::types::{LintError, ParserType, Rule, RuleParams, Severity};
+use crate::types::{FixInfo, LintError, ParserType, Rule, RuleParams, Severity};
 
 pub struct MD044;
 
@@ -70,18 +70,34 @@ impl Rule for MD044 {
             let lower_line = line.to_lowercase();
 
             for (incorrect, correct) in &proper_names {
-                if lower_line.contains(incorrect.as_str()) && !line.contains(correct.as_str()) {
-                    errors.push(LintError {
-                        line_number,
-                        rule_names: self.names().iter().map(|s| s.to_string()).collect(),
-                        rule_description: self.description().to_string(),
-                        error_detail: Some(format!("Expected: {}; Actual: {}", correct, incorrect)),
-                        error_context: None,
-                        rule_information: self.information().map(|s| s.to_string()),
-                        error_range: None,
-                        fix_info: None,
-                        severity: Severity::Error,
-                    });
+                // Iterate over all occurrences of the lowercase name in the line
+                let mut search_start = 0;
+                while let Some(pos) = lower_line[search_start..].find(incorrect.as_str()) {
+                    let absolute_pos = search_start + pos;
+                    let end_pos = absolute_pos + correct.len();
+
+                    // Check if this particular occurrence is already correctly cased
+                    if end_pos <= line.len() && &line[absolute_pos..end_pos] != correct.as_str() {
+                        let actual = &line[absolute_pos..end_pos];
+                        errors.push(LintError {
+                            line_number,
+                            rule_names: self.names().iter().map(|s| s.to_string()).collect(),
+                            rule_description: self.description().to_string(),
+                            error_detail: Some(format!("Expected: {}; Actual: {}", correct, actual)),
+                            error_context: None,
+                            rule_information: self.information().map(|s| s.to_string()),
+                            error_range: Some((absolute_pos + 1, correct.len())),
+                            fix_info: Some(FixInfo {
+                                line_number: None,
+                                edit_column: Some(absolute_pos + 1), // 1-based
+                                delete_count: Some(correct.len() as i32),
+                                insert_text: Some(correct.clone()),
+                            }),
+                            severity: Severity::Error,
+                        });
+                    }
+
+                    search_start = absolute_pos + incorrect.len();
                 }
             }
         }
@@ -173,5 +189,100 @@ mod tests {
         let params = make_params(&lines, &config);
         let errors = rule.lint(&params);
         assert_eq!(errors.len(), 1); // code blocks checked when configured
+    }
+
+    #[test]
+    fn test_md044_fix_info_single_occurrence() {
+        let rule = MD044;
+        let lines = vec![
+            "I love javascript.\n".to_string(),
+        ];
+        let config = HashMap::new();
+        let params = make_params(&lines, &config);
+        let errors = rule.lint(&params);
+        assert_eq!(errors.len(), 1);
+
+        let fix = errors[0].fix_info.as_ref().expect("should have fix_info");
+        assert_eq!(fix.line_number, None);
+        // "I love javascript" -> "javascript" starts at index 7, 1-based = 8
+        assert_eq!(fix.edit_column, Some(8));
+        assert_eq!(fix.delete_count, Some(10)); // "JavaScript".len() == 10
+        assert_eq!(fix.insert_text, Some("JavaScript".to_string()));
+    }
+
+    #[test]
+    fn test_md044_fix_info_multiple_occurrences() {
+        let rule = MD044;
+        let lines = vec![
+            "javascript and javascript are great.\n".to_string(),
+        ];
+        let config = HashMap::new();
+        let params = make_params(&lines, &config);
+        let errors = rule.lint(&params);
+        assert_eq!(errors.len(), 2);
+
+        let fix0 = errors[0].fix_info.as_ref().expect("first fix_info");
+        assert_eq!(fix0.edit_column, Some(1)); // starts at position 0, 1-based = 1
+        assert_eq!(fix0.delete_count, Some(10));
+        assert_eq!(fix0.insert_text, Some("JavaScript".to_string()));
+
+        let fix1 = errors[1].fix_info.as_ref().expect("second fix_info");
+        assert_eq!(fix1.edit_column, Some(16)); // "javascript and " = 15 chars, 1-based = 16
+        assert_eq!(fix1.delete_count, Some(10));
+        assert_eq!(fix1.insert_text, Some("JavaScript".to_string()));
+    }
+
+    #[test]
+    fn test_md044_fix_info_mixed_correct_and_incorrect() {
+        let rule = MD044;
+        let lines = vec![
+            "JavaScript and javascript here.\n".to_string(),
+        ];
+        let config = HashMap::new();
+        let params = make_params(&lines, &config);
+        let errors = rule.lint(&params);
+        // Only the second occurrence is wrong
+        assert_eq!(errors.len(), 1);
+
+        let fix = errors[0].fix_info.as_ref().expect("should have fix_info");
+        // "JavaScript and javascript" -> second "javascript" starts at index 15, 1-based = 16
+        assert_eq!(fix.edit_column, Some(16));
+        assert_eq!(fix.delete_count, Some(10));
+        assert_eq!(fix.insert_text, Some("JavaScript".to_string()));
+    }
+
+    #[test]
+    fn test_md044_fix_info_custom_name() {
+        let rule = MD044;
+        let lines = vec![
+            "Use rust for everything.\n".to_string(),
+        ];
+        let mut config = HashMap::new();
+        config.insert("names".to_string(), serde_json::json!(["Rust"]));
+        let params = make_params(&lines, &config);
+        let errors = rule.lint(&params);
+        assert_eq!(errors.len(), 1);
+
+        let fix = errors[0].fix_info.as_ref().expect("should have fix_info");
+        // "Use rust" -> "rust" at index 4, 1-based = 5
+        assert_eq!(fix.edit_column, Some(5));
+        assert_eq!(fix.delete_count, Some(4)); // "Rust".len() == 4
+        assert_eq!(fix.insert_text, Some("Rust".to_string()));
+    }
+
+    #[test]
+    fn test_md044_fix_info_error_detail_shows_actual() {
+        let rule = MD044;
+        let lines = vec![
+            "I use Github daily.\n".to_string(),
+        ];
+        let config = HashMap::new();
+        let params = make_params(&lines, &config);
+        let errors = rule.lint(&params);
+        assert_eq!(errors.len(), 1);
+        assert_eq!(
+            errors[0].error_detail.as_deref(),
+            Some("Expected: GitHub; Actual: Github")
+        );
     }
 }

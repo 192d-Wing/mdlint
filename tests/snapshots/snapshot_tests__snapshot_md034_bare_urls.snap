@@ -1,0 +1,7 @@
+---
+source: tests/snapshot_tests.rs
+assertion_line: 118
+expression: output
+---
+test.md:3: MD034/no-bare-urls Bare URL used [Context: "http://example.com"] (col 7, len 18) [fixable]
+test.md:5: MD034/no-bare-urls Bare URL used [Context: "https://test.org/path"] (col 6, len 21) [fixable]

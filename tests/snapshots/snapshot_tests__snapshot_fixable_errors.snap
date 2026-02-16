@@ -1,0 +1,16 @@
+---
+source: tests/snapshot_tests.rs
+assertion_line: 90
+expression: output
+---
+test.md:3: MD009/no-trailing-spaces Trailing spaces [Expected: 0; Actual: 3] [Context: "   "] (col 16, len 3) [fixable]
+test.md:5: MD010/no-hard-tabs Hard tabs [Column: 1] (col 1, len 1) [fixable]
+test.md:7: MD023/heading-start-left Headings must start at the beginning of the line [Expected: 0; Actual: 2] [Context: "## Indented heading
+"] (col 1, len 2) [fixable]
+test.md:9: MD026/no-trailing-punctuation Trailing punctuation in heading [Punctuation: '!'] [Context: "Heading with punctuation\!"] [fixable]
+test.md:11: MD034/no-bare-urls Bare URL used [Context: "http://example.com"] (col 11, len 18) [fixable]
+test.md:13: MD011/no-reversed-links Reversed link syntax [Context: "(Click)[http://example.com]"] (col 1, len 27) [fixable]
+test.md:13: MD034/no-bare-urls Bare URL used [Context: "http://example.com]"] (col 9, len 19) [fixable]
+test.md:15: MD037/no-space-in-emphasis Spaces inside emphasis markers [Context: "* bold text *"] (col 21, len 13) [fixable]
+test.md:17: MD038/no-space-in-code Spaces inside code span elements [Context: "` code here `"] (col 17, len 13) [fixable]
+test.md:19: MD039/no-space-in-links Spaces inside link text [Context: "[ click me ]"] (col 17, len 12) [fixable]

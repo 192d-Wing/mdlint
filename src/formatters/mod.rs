@@ -6,4 +6,4 @@ mod text;
 
 pub use json::format_json;
 pub use sarif::format_sarif;
-pub use text::format_text;
+pub use text::{format_text, format_text_with_context};

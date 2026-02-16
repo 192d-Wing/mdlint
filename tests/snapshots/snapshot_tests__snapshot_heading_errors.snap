@@ -1,0 +1,14 @@
+---
+source: tests/snapshot_tests.rs
+assertion_line: 66
+expression: output
+---
+test.md:1: MD022/blanks-around-headings/blanks-around-headers Headings should be surrounded by blank lines [Expected blank line after heading]
+test.md:3: MD022/blanks-around-headings/blanks-around-headers Headings should be surrounded by blank lines [Expected blank line before heading] [fixable]
+test.md:3: MD022/blanks-around-headings/blanks-around-headers Headings should be surrounded by blank lines [Expected blank line after heading]
+test.md:5: MD022/blanks-around-headings/blanks-around-headers Headings should be surrounded by blank lines [Expected blank line before heading] [fixable]
+test.md:5: MD022/blanks-around-headings/blanks-around-headers Headings should be surrounded by blank lines [Expected blank line after heading]
+test.md:6: MD022/blanks-around-headings/blanks-around-headers Headings should be surrounded by blank lines [Expected blank line before heading] [fixable]
+test.md:6: MD022/blanks-around-headings/blanks-around-headers Headings should be surrounded by blank lines [Expected blank line after heading]
+test.md:7: MD022/blanks-around-headings/blanks-around-headers Headings should be surrounded by blank lines [Expected blank line before heading] [fixable]
+test.md:7: MD025/single-title/single-h1 Multiple top-level headings in the same document [Context: "Second Title"]

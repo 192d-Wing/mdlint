@@ -1,0 +1,8 @@
+---
+source: tests/snapshot_tests.rs
+assertion_line: 104
+expression: output
+---
+test.md:3: MD010/no-hard-tabs Hard tabs [Column: 1] (col 1, len 1) [fixable]
+test.md:4: MD010/no-hard-tabs Hard tabs [Column: 1] (col 1, len 1) [fixable]
+test.md:4: MD010/no-hard-tabs Hard tabs [Column: 2] (col 2, len 1) [fixable]

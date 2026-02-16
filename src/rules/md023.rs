@@ -1,6 +1,6 @@
 //! MD023 - Headings must start at the beginning of the line
 
-use crate::types::{LintError, ParserType, Rule, RuleParams, Severity};
+use crate::types::{FixInfo, LintError, ParserType, Rule, RuleParams, Severity};
 
 pub struct MD023;
 
@@ -44,7 +44,12 @@ impl Rule for MD023 {
                         error_context: Some(trimmed[..20.min(trimmed.len())].to_string()),
                         rule_information: self.information().map(|s| s.to_string()),
                         error_range: Some((1, indent_count)),
-                        fix_info: None,
+                        fix_info: Some(FixInfo {
+                            line_number: None,
+                            edit_column: Some(1),
+                            delete_count: Some(indent_count as i32),
+                            insert_text: None,
+                        }),
                         severity: Severity::Error,
                     });
                 }
@@ -102,5 +107,56 @@ mod tests {
         let rule = MD023;
         let errors = rule.lint(&params);
         assert_eq!(errors.len(), 1);
+    }
+
+    #[test]
+    fn test_md023_fix_info_spaces() {
+        let lines: Vec<String> = "  # Heading\n".lines().map(|l| l.to_string()).collect();
+        let tokens = vec![];
+        let config = HashMap::new();
+        let params = make_params(&lines, &tokens, &config);
+        let rule = MD023;
+        let errors = rule.lint(&params);
+        assert_eq!(errors.len(), 1);
+
+        let fix = errors[0].fix_info.as_ref().expect("fix_info should be present");
+        assert_eq!(fix.line_number, None);
+        assert_eq!(fix.edit_column, Some(1));
+        assert_eq!(fix.delete_count, Some(2)); // 2 leading spaces
+        assert_eq!(fix.insert_text, None);
+    }
+
+    #[test]
+    fn test_md023_fix_info_tab() {
+        let lines: Vec<String> = "\t# Heading\n".lines().map(|l| l.to_string()).collect();
+        let tokens = vec![];
+        let config = HashMap::new();
+        let params = make_params(&lines, &tokens, &config);
+        let rule = MD023;
+        let errors = rule.lint(&params);
+        assert_eq!(errors.len(), 1);
+
+        let fix = errors[0].fix_info.as_ref().expect("fix_info should be present");
+        assert_eq!(fix.line_number, None);
+        assert_eq!(fix.edit_column, Some(1));
+        assert_eq!(fix.delete_count, Some(1)); // 1 leading tab
+        assert_eq!(fix.insert_text, None);
+    }
+
+    #[test]
+    fn test_md023_fix_info_mixed_indent() {
+        let lines: Vec<String> = " \t  # Heading\n".lines().map(|l| l.to_string()).collect();
+        let tokens = vec![];
+        let config = HashMap::new();
+        let params = make_params(&lines, &tokens, &config);
+        let rule = MD023;
+        let errors = rule.lint(&params);
+        assert_eq!(errors.len(), 1);
+
+        let fix = errors[0].fix_info.as_ref().expect("fix_info should be present");
+        assert_eq!(fix.line_number, None);
+        assert_eq!(fix.edit_column, Some(1));
+        assert_eq!(fix.delete_count, Some(4)); // 4 leading whitespace chars
+        assert_eq!(fix.insert_text, None);
     }
 }

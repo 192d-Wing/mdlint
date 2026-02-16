@@ -1,7 +1,8 @@
 use criterion::{criterion_group, criterion_main, Criterion};
 use std::hint::black_box;
-use mdlint::{lint_sync, apply_fixes, LintOptions};
+use mdlint::{lint_sync, apply_fixes, Config, LintOptions};
 use std::collections::HashMap;
+use tempfile;
 
 fn generate_small_md() -> String {
     "# Title\n\nSome text here.\n\n## Section\n\nMore text.\n\n### Subsection\n\nFinal text.\n".to_string()
@@ -115,6 +116,29 @@ fn bench_parser_only(c: &mut Criterion) {
     });
 }
 
+fn bench_config_load_json(c: &mut Criterion) {
+    let dir = tempfile::tempdir().unwrap();
+    let config_path = dir.path().join(".markdownlint.json");
+    let config_json = r#"{
+        "default": true,
+        "MD001": true,
+        "MD003": { "style": "atx" },
+        "MD007": { "indent": 4 },
+        "MD009": { "br_spaces": 2 },
+        "MD013": { "line_length": 120 },
+        "MD024": false,
+        "MD033": { "allowed_elements": ["br", "hr"] },
+        "MD041": true
+    }"#;
+    std::fs::write(&config_path, config_json).unwrap();
+
+    c.bench_function("config_load_json", |b| {
+        b.iter(|| {
+            black_box(Config::from_file(&config_path).unwrap())
+        })
+    });
+}
+
 criterion_group!(
     benches,
     bench_parser_only,
@@ -122,5 +146,6 @@ criterion_group!(
     bench_lint_single_large,
     bench_lint_multi_files,
     bench_apply_fixes,
+    bench_config_load_json,
 );
 criterion_main!(benches);

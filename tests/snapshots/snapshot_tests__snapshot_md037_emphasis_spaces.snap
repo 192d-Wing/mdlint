@@ -1,0 +1,6 @@
+---
+source: tests/snapshot_tests.rs
+assertion_line: 124
+expression: output
+---
+test.md:3: MD037/no-space-in-emphasis Spaces inside emphasis markers [Context: "* spaced emphasis *"] (col 9, len 19) [fixable]

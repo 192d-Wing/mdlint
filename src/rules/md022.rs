@@ -78,3 +78,145 @@ impl Rule for MD022 {
         errors
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::parser::Token;
+    use std::collections::HashMap;
+
+    fn make_heading(line: usize, level: u8) -> Token {
+        let mut t = Token::new("heading");
+        t.start_line = line;
+        t.end_line = line;
+        t.text = format!("Heading {}", level);
+        t.metadata.insert("level".to_string(), level.to_string());
+        t
+    }
+
+    #[test]
+    fn test_md022_no_error_with_blank_lines() {
+        let lines = vec![
+            "# Title\n".to_string(),
+            "\n".to_string(),
+            "Some text\n".to_string(),
+            "\n".to_string(),
+            "## Section\n".to_string(),
+            "\n".to_string(),
+            "More text\n".to_string(),
+        ];
+        let tokens = vec![make_heading(1, 1), make_heading(5, 2)];
+        let params = RuleParams {
+            name: "test.md",
+            version: "0.1.0",
+            lines: &lines,
+            front_matter_lines: &[],
+            tokens: &tokens,
+            config: &HashMap::new(),
+        };
+
+        let errors = MD022.lint(&params);
+        assert_eq!(errors.len(), 0, "Properly spaced headings should have no errors");
+    }
+
+    #[test]
+    fn test_md022_missing_blank_before_heading() {
+        let lines = vec![
+            "# Title\n".to_string(),
+            "Some text\n".to_string(),
+            "## Section\n".to_string(),
+        ];
+        let tokens = vec![make_heading(1, 1), make_heading(3, 2)];
+        let params = RuleParams {
+            name: "test.md",
+            version: "0.1.0",
+            lines: &lines,
+            front_matter_lines: &[],
+            tokens: &tokens,
+            config: &HashMap::new(),
+        };
+
+        let errors = MD022.lint(&params);
+        let before_errors: Vec<_> = errors
+            .iter()
+            .filter(|e| e.error_detail.as_deref() == Some("Expected blank line before heading"))
+            .collect();
+        assert_eq!(before_errors.len(), 1);
+        assert_eq!(before_errors[0].line_number, 3);
+    }
+
+    #[test]
+    fn test_md022_missing_blank_after_heading() {
+        let lines = vec![
+            "# Title\n".to_string(),
+            "Some text\n".to_string(),
+        ];
+        let tokens = vec![make_heading(1, 1)];
+        let params = RuleParams {
+            name: "test.md",
+            version: "0.1.0",
+            lines: &lines,
+            front_matter_lines: &[],
+            tokens: &tokens,
+            config: &HashMap::new(),
+        };
+
+        let errors = MD022.lint(&params);
+        let after_errors: Vec<_> = errors
+            .iter()
+            .filter(|e| e.error_detail.as_deref() == Some("Expected blank line after heading"))
+            .collect();
+        assert_eq!(after_errors.len(), 1);
+        assert_eq!(after_errors[0].line_number, 1);
+    }
+
+    #[test]
+    fn test_md022_fix_info_inserts_blank_before() {
+        let lines = vec![
+            "# Title\n".to_string(),
+            "Some text\n".to_string(),
+            "## Section\n".to_string(),
+        ];
+        let tokens = vec![make_heading(1, 1), make_heading(3, 2)];
+        let params = RuleParams {
+            name: "test.md",
+            version: "0.1.0",
+            lines: &lines,
+            front_matter_lines: &[],
+            tokens: &tokens,
+            config: &HashMap::new(),
+        };
+
+        let errors = MD022.lint(&params);
+        let before_error = errors
+            .iter()
+            .find(|e| e.error_detail.as_deref() == Some("Expected blank line before heading"))
+            .expect("Should have a before-heading error");
+
+        let fix = before_error.fix_info.as_ref().expect("Should have fix_info");
+        assert_eq!(fix.edit_column, Some(1));
+        assert_eq!(fix.insert_text, Some("\n".to_string()));
+    }
+
+    #[test]
+    fn test_md022_heading_at_start_of_file() {
+        // First heading at line 1 should not complain about missing blank before
+        let lines = vec![
+            "# Title\n".to_string(),
+            "\n".to_string(),
+            "Content\n".to_string(),
+        ];
+        let tokens = vec![make_heading(1, 1)];
+        let params = RuleParams {
+            name: "test.md",
+            version: "0.1.0",
+            lines: &lines,
+            front_matter_lines: &[],
+            tokens: &tokens,
+            config: &HashMap::new(),
+        };
+
+        let errors = MD022.lint(&params);
+        assert_eq!(errors.len(), 0, "Heading at start of file with blank after should be fine");
+    }
+}

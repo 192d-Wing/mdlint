@@ -2,15 +2,27 @@
 
 use crate::types::{LintResults, Severity};
 use colored::Colorize;
+use std::collections::HashMap;
 
 /// Format lint results as colored text with summary
 pub fn format_text(results: &LintResults) -> String {
+    format_text_with_context(results, &HashMap::new())
+}
+
+/// Format lint results with source context lines and error underlines
+pub fn format_text_with_context(
+    results: &LintResults,
+    sources: &HashMap<String, String>,
+) -> String {
     let mut output = Vec::new();
     let mut files: Vec<_> = results.results.keys().collect();
     files.sort();
 
     for file in &files {
         if let Some(errors) = results.results.get(*file) {
+            let source_lines: Option<Vec<&str>> =
+                sources.get(*file).map(|s| s.lines().collect());
+
             for error in errors {
                 let rule_moniker = error.rule_names.join("/");
 
@@ -32,10 +44,48 @@ pub fn format_text(results: &LintResults) -> String {
                 }
 
                 if let Some(context) = &error.error_context {
-                    line.push_str(&format!(" {}", format!("[Context: \"{}\"]", context).dimmed()));
+                    line.push_str(
+                        &format!(" {}", format!("[Context: \"{}\"]", context).dimmed()),
+                    );
                 }
 
                 output.push(line);
+
+                // Show source line and underline if we have both source and error_range
+                if let (Some(lines), Some((col_start, col_len))) =
+                    (&source_lines, error.error_range)
+                {
+                    let line_idx = error.line_number.saturating_sub(1);
+                    if line_idx < lines.len() {
+                        let src = lines[line_idx];
+                        let line_num_width = error.line_number.to_string().len();
+                        let gutter = format!("{:>width$} |", "", width = line_num_width);
+                        let numbered = format!(
+                            "{:>width$} |  {}",
+                            error.line_number,
+                            src,
+                            width = line_num_width
+                        );
+                        output.push(format!("  {}", gutter.dimmed()));
+                        output.push(format!("  {}", numbered.dimmed()));
+
+                        // Build underline: spaces up to col_start, then carets for col_len
+                        let prefix_len = col_start.saturating_sub(1);
+                        let caret_len = col_len.max(1);
+                        let underline = format!(
+                            "{:>width$} |  {}{}",
+                            "",
+                            " ".repeat(prefix_len),
+                            "^".repeat(caret_len),
+                            width = line_num_width,
+                        );
+                        let colored_underline = match error.severity {
+                            Severity::Error => underline.red().to_string(),
+                            Severity::Warning => underline.yellow().to_string(),
+                        };
+                        output.push(format!("  {}", colored_underline));
+                    }
+                }
             }
         }
     }
@@ -112,5 +162,77 @@ mod tests {
         );
         let output = format_text(&results);
         assert!(output.contains("1 error(s), 1 warning(s) in 1 file(s)"));
+    }
+
+    #[test]
+    fn test_format_text_with_source_context() {
+        colored::control::set_override(false);
+        let mut results = LintResults::new();
+        results.add(
+            "test.md".to_string(),
+            vec![LintError {
+                line_number: 3,
+                rule_names: vec!["MD009".to_string()],
+                rule_description: "Trailing spaces".to_string(),
+                error_range: Some((12, 3)),
+                severity: Severity::Error,
+                ..Default::default()
+            }],
+        );
+
+        let mut sources = HashMap::new();
+        sources.insert(
+            "test.md".to_string(),
+            "# Title\n\nSome text   \n".to_string(),
+        );
+
+        let output = format_text_with_context(&results, &sources);
+        assert!(output.contains("Some text   "), "Should show source line");
+        assert!(output.contains("^^^"), "Should show underline carets");
+    }
+
+    #[test]
+    fn test_format_text_no_context_without_sources() {
+        colored::control::set_override(false);
+        let mut results = LintResults::new();
+        results.add(
+            "test.md".to_string(),
+            vec![LintError {
+                line_number: 1,
+                rule_names: vec!["MD009".to_string()],
+                rule_description: "Trailing spaces".to_string(),
+                error_range: Some((5, 3)),
+                severity: Severity::Error,
+                ..Default::default()
+            }],
+        );
+
+        // No sources provided — should fall back to no underline
+        let output = format_text(&results);
+        assert!(!output.contains("^^^"), "No context without sources");
+    }
+
+    #[test]
+    fn test_format_text_no_context_without_error_range() {
+        colored::control::set_override(false);
+        let mut results = LintResults::new();
+        results.add(
+            "test.md".to_string(),
+            vec![LintError {
+                line_number: 1,
+                rule_names: vec!["MD022".to_string()],
+                rule_description: "Headings should be surrounded by blank lines".to_string(),
+                error_range: None,
+                severity: Severity::Error,
+                ..Default::default()
+            }],
+        );
+
+        let mut sources = HashMap::new();
+        sources.insert("test.md".to_string(), "# Title\nSome text\n".to_string());
+
+        let output = format_text_with_context(&results, &sources);
+        // Has the error line but no underline (no error_range)
+        assert!(!output.contains("^^^"), "No carets without error_range");
     }
 }

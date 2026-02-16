@@ -1,0 +1,7 @@
+---
+source: tests/snapshot_tests.rs
+assertion_line: 130
+expression: output
+---
+test.md:3: MD044/proper-names Proper names should have the correct capitalization [Expected: JavaScript; Actual: javascript] (col 7, len 10) [fixable]
+test.md:3: MD044/proper-names Proper names should have the correct capitalization [Expected: GitHub; Actual: github] (col 22, len 6) [fixable]

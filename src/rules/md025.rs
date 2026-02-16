@@ -60,3 +60,126 @@ impl Rule for MD025 {
         errors
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::parser::Token;
+    use std::collections::HashMap;
+
+    fn make_heading(line: usize, text: &str, level: u8) -> Token {
+        let mut t = Token::new("heading");
+        t.start_line = line;
+        t.end_line = line;
+        t.text = text.to_string();
+        t.metadata.insert("level".to_string(), level.to_string());
+        t
+    }
+
+    #[test]
+    fn test_md025_single_h1() {
+        let tokens = vec![
+            make_heading(1, "Title", 1),
+            make_heading(3, "Section", 2),
+        ];
+        let lines = vec!["# Title\n".to_string(), "\n".to_string(), "## Section\n".to_string()];
+        let params = RuleParams {
+            name: "test.md",
+            version: "0.1.0",
+            lines: &lines,
+            front_matter_lines: &[],
+            tokens: &tokens,
+            config: &HashMap::new(),
+        };
+
+        let errors = MD025.lint(&params);
+        assert_eq!(errors.len(), 0, "Single H1 should not trigger MD025");
+    }
+
+    #[test]
+    fn test_md025_multiple_h1() {
+        let tokens = vec![
+            make_heading(1, "Title", 1),
+            make_heading(3, "Another Title", 1),
+        ];
+        let lines = vec!["# Title\n".to_string(), "\n".to_string(), "# Another Title\n".to_string()];
+        let params = RuleParams {
+            name: "test.md",
+            version: "0.1.0",
+            lines: &lines,
+            front_matter_lines: &[],
+            tokens: &tokens,
+            config: &HashMap::new(),
+        };
+
+        let errors = MD025.lint(&params);
+        assert_eq!(errors.len(), 1);
+        assert_eq!(errors[0].line_number, 3);
+        assert_eq!(errors[0].error_context, Some("Another Title".to_string()));
+    }
+
+    #[test]
+    fn test_md025_three_h1() {
+        let tokens = vec![
+            make_heading(1, "First", 1),
+            make_heading(3, "Second", 1),
+            make_heading(5, "Third", 1),
+        ];
+        let lines = vec![
+            "# First\n".to_string(), "\n".to_string(),
+            "# Second\n".to_string(), "\n".to_string(),
+            "# Third\n".to_string(),
+        ];
+        let params = RuleParams {
+            name: "test.md",
+            version: "0.1.0",
+            lines: &lines,
+            front_matter_lines: &[],
+            tokens: &tokens,
+            config: &HashMap::new(),
+        };
+
+        let errors = MD025.lint(&params);
+        assert_eq!(errors.len(), 2, "Second and third H1 should both error");
+    }
+
+    #[test]
+    fn test_md025_no_h1() {
+        let tokens = vec![
+            make_heading(1, "Section", 2),
+            make_heading(3, "Subsection", 3),
+        ];
+        let lines = vec!["## Section\n".to_string(), "\n".to_string(), "### Subsection\n".to_string()];
+        let params = RuleParams {
+            name: "test.md",
+            version: "0.1.0",
+            lines: &lines,
+            front_matter_lines: &[],
+            tokens: &tokens,
+            config: &HashMap::new(),
+        };
+
+        let errors = MD025.lint(&params);
+        assert_eq!(errors.len(), 0, "No H1 headings should not trigger MD025");
+    }
+
+    #[test]
+    fn test_md025_no_fix_info() {
+        let tokens = vec![
+            make_heading(1, "Title", 1),
+            make_heading(3, "Second", 1),
+        ];
+        let lines = vec!["# Title\n".to_string(), "\n".to_string(), "# Second\n".to_string()];
+        let params = RuleParams {
+            name: "test.md",
+            version: "0.1.0",
+            lines: &lines,
+            front_matter_lines: &[],
+            tokens: &tokens,
+            config: &HashMap::new(),
+        };
+
+        let errors = MD025.lint(&params);
+        assert!(errors[0].fix_info.is_none(), "MD025 should not have fix_info");
+    }
+}

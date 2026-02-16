@@ -1,0 +1,6 @@
+---
+source: tests/snapshot_tests.rs
+assertion_line: 112
+expression: output
+---
+test.md:3: MD013/line-length Line length [Expected: 80; Actual: 120] [Context: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa..."] (col 81, len 40)

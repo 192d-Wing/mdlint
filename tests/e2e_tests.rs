@@ -124,3 +124,169 @@ fn test_cli_output_format() {
         assert!(stdout.contains("MD"), "Output should contain a rule ID like MD009");
     }
 }
+
+// ---- E2E fixture tests ----
+
+/// Resolve fixture path relative to CARGO_MANIFEST_DIR
+fn fixture_path(name: &str) -> String {
+    format!("{}/tests/fixtures/{}", env!("CARGO_MANIFEST_DIR"), name)
+}
+
+#[test]
+fn test_fixture_clean_file_exits_zero() {
+    let (code, stdout, _) = run_mdlint(&[&fixture_path("clean.md")]);
+    assert_eq!(code, 0, "Clean fixture should produce exit 0. Output: {}", stdout);
+    assert!(
+        stdout.contains("No errors"),
+        "Clean fixture should report no errors. Output: {}",
+        stdout
+    );
+}
+
+#[test]
+fn test_fixture_heading_errors_detected() {
+    let (code, stdout, _) = run_mdlint(&["--no-color", &fixture_path("heading_errors.md")]);
+    assert_eq!(code, 1, "heading_errors.md should produce exit 1");
+    assert!(stdout.contains("MD022"), "Should detect MD022 (blank lines around headings)");
+    assert!(stdout.contains("MD025"), "Should detect MD025 (multiple H1)");
+}
+
+#[test]
+fn test_fixture_whitespace_errors_detected() {
+    let (code, stdout, _) = run_mdlint(&["--no-color", &fixture_path("whitespace_errors.md")]);
+    assert_eq!(code, 1, "whitespace_errors.md should produce exit 1");
+    assert!(stdout.contains("MD009"), "Should detect MD009 (trailing spaces)");
+    assert!(stdout.contains("MD010"), "Should detect MD010 (hard tabs)");
+}
+
+#[test]
+fn test_fixture_link_errors_detected() {
+    let (code, stdout, _) = run_mdlint(&["--no-color", &fixture_path("link_errors.md")]);
+    assert_eq!(code, 1, "link_errors.md should produce exit 1");
+    assert!(stdout.contains("MD034"), "Should detect MD034 (bare URLs)");
+    assert!(stdout.contains("MD042"), "Should detect MD042 (empty links)");
+}
+
+#[test]
+fn test_fixture_emphasis_errors_detected() {
+    let (code, stdout, _) = run_mdlint(&["--no-color", &fixture_path("emphasis_errors.md")]);
+    assert_eq!(code, 1, "emphasis_errors.md should produce exit 1");
+    // MD049/MD050 enforce consistent emphasis/strong style
+    assert!(
+        stdout.contains("MD049") || stdout.contains("MD050") || stdout.contains("MD037") || stdout.contains("MD038"),
+        "Should detect emphasis-related errors. Output: {}",
+        stdout,
+    );
+}
+
+#[test]
+fn test_fixture_json_output_format() {
+    let (code, stdout, _) = run_mdlint(&[
+        "--output-format", "json",
+        &fixture_path("whitespace_errors.md"),
+    ]);
+    assert_eq!(code, 1, "Should exit 1 with violations");
+    // Verify it's valid JSON
+    let parsed: serde_json::Value = serde_json::from_str(&stdout)
+        .unwrap_or_else(|e| panic!("JSON output should be valid JSON: {}\nOutput: {}", e, stdout));
+    assert!(parsed.is_object(), "JSON root should be an object");
+}
+
+#[test]
+fn test_fixture_sarif_output_format() {
+    let (code, stdout, _) = run_mdlint(&[
+        "--output-format", "sarif",
+        &fixture_path("whitespace_errors.md"),
+    ]);
+    assert_eq!(code, 1, "Should exit 1 with violations");
+    let parsed: serde_json::Value = serde_json::from_str(&stdout)
+        .unwrap_or_else(|e| panic!("SARIF output should be valid JSON: {}\nOutput: {}", e, stdout));
+    assert_eq!(
+        parsed["$schema"].as_str().unwrap_or(""),
+        "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/main/sarif-2.1/schema/sarif-schema-2.1.0.json",
+        "SARIF should have correct schema URL"
+    );
+}
+
+#[test]
+fn test_fixture_fix_roundtrip() {
+    // Copy a fixable fixture to a temp dir, run --fix, then lint again
+    let dir = tempfile::tempdir().unwrap();
+    let src = fixture_path("fixable_errors.md");
+    let dest = dir.path().join("fixable.md");
+    std::fs::copy(&src, &dest).unwrap();
+
+    // Run with --fix
+    let (code, _, _) = run_mdlint(&["--fix", dest.to_str().unwrap()]);
+    // --fix doesn't exit 1
+    assert_eq!(code, 0, "--fix should exit 0");
+
+    // Lint the fixed file — should have fewer errors
+    let (_, stdout_after, _) = run_mdlint(&["--no-color", dest.to_str().unwrap()]);
+    // Verify that specific fixable rules are gone
+    assert!(
+        !stdout_after.contains("MD009"),
+        "MD009 should be fixed after --fix"
+    );
+    assert!(
+        !stdout_after.contains("MD010"),
+        "MD010 should be fixed after --fix"
+    );
+}
+
+#[test]
+fn test_fixture_directory_recursion() {
+    let dir = tempfile::tempdir().unwrap();
+    let sub = dir.path().join("docs");
+    std::fs::create_dir(&sub).unwrap();
+    std::fs::write(sub.join("a.md"), "# File A\n\nContent.\n").unwrap();
+    std::fs::write(sub.join("b.md"), "# File B\n\nContent.\n").unwrap();
+    std::fs::write(sub.join("not_markdown.txt"), "Ignored\n").unwrap();
+
+    let (code, stdout, _) = run_mdlint(&[dir.path().to_str().unwrap()]);
+    // Should lint both .md files but not the .txt file
+    assert!(code == 0 || code == 1, "Should exit cleanly");
+    if code == 1 {
+        assert!(
+            stdout.contains("a.md") || stdout.contains("b.md"),
+            "Should lint .md files in subdirectory"
+        );
+    }
+}
+
+#[test]
+fn test_fixture_ignore_pattern() {
+    let dir = tempfile::tempdir().unwrap();
+    std::fs::write(dir.path().join("good.md"), "# Title\n\nContent.\n").unwrap();
+    std::fs::write(dir.path().join("bad.md"), "# Title\n\nTrailing   \n").unwrap();
+
+    // Ignore bad.md
+    let (_code, stdout, _) = run_mdlint(&[
+        "--ignore", "**/bad.md",
+        dir.path().to_str().unwrap(),
+    ]);
+    // Only good.md should be linted
+    assert!(!stdout.contains("bad.md"), "bad.md should be ignored");
+}
+
+#[test]
+fn test_fixture_source_context_in_output() {
+    let dir = tempfile::tempdir().unwrap();
+    let file_path = dir.path().join("context_test.md");
+    std::fs::write(&file_path, "# Title\n\nTrailing spaces   \n").unwrap();
+
+    let (code, stdout, _) = run_mdlint(&["--no-color", file_path.to_str().unwrap()]);
+    assert_eq!(code, 1);
+    // The output should contain the source line with the error
+    assert!(
+        stdout.contains("Trailing spaces"),
+        "Output should show source line context. Output: {}",
+        stdout
+    );
+    // Should contain the underline carets
+    assert!(
+        stdout.contains("^^^"),
+        "Output should show underline carets. Output: {}",
+        stdout
+    );
+}

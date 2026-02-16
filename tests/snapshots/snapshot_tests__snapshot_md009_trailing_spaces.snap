@@ -1,0 +1,7 @@
+---
+source: tests/snapshot_tests.rs
+assertion_line: 98
+expression: output
+---
+test.md:3: MD009/no-trailing-spaces Trailing spaces [Expected: 0; Actual: 3] [Context: "   "] (col 17, len 3) [fixable]
+test.md:5: MD009/no-trailing-spaces Trailing spaces [Expected: 0; Actual: 2] [Context: "  "] (col 12, len 2) [fixable]

@@ -152,7 +152,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("No errors found!");
     } else {
         let output = match args.output_format {
-            OutputFormat::Text => formatters::format_text(&results),
+            OutputFormat::Text => {
+                // Read source files for context display
+                let mut sources = std::collections::HashMap::new();
+                for file_path in &files {
+                    if let Ok(content) = std::fs::read_to_string(file_path) {
+                        sources.insert(file_path.clone(), content);
+                    }
+                }
+                formatters::format_text_with_context(&results, &sources)
+            }
             OutputFormat::Json => formatters::format_json(&results),
             OutputFormat::Sarif => formatters::format_sarif(&results),
         };

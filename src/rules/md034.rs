@@ -1,6 +1,6 @@
 //! MD034 - Bare URL used
 
-use crate::types::{LintError, ParserType, Rule, RuleParams, Severity};
+use crate::types::{FixInfo, LintError, ParserType, Rule, RuleParams, Severity};
 use regex::Regex;
 use once_cell::sync::Lazy;
 
@@ -43,15 +43,21 @@ impl Rule for MD034 {
             }
 
             for mat in URL_RE.find_iter(line) {
+                let url = mat.as_str();
                 errors.push(LintError {
                     line_number,
                     rule_names: self.names().iter().map(|s| s.to_string()).collect(),
                     rule_description: self.description().to_string(),
                     error_detail: None,
-                    error_context: Some(mat.as_str().to_string()),
+                    error_context: Some(url.to_string()),
                     rule_information: self.information().map(|s| s.to_string()),
                     error_range: Some((mat.start() + 1, mat.len())),
-                    fix_info: None,
+                    fix_info: Some(FixInfo {
+                        line_number: None,
+                        edit_column: Some(mat.start() + 1),
+                        delete_count: Some(mat.len() as i32),
+                        insert_text: Some(format!("<{}>", url)),
+                    }),
                     severity: Severity::Error,
                 });
             }
@@ -100,5 +106,55 @@ mod tests {
         let rule = MD034;
         let errors = rule.lint(&params);
         assert_eq!(errors.len(), 1);
+    }
+
+    #[test]
+    fn test_md034_fix_info() {
+        let lines = vec!["Visit https://example.com for more\n".to_string()];
+
+        let params = RuleParams {
+            name: "test.md",
+            version: "0.1.0",
+            lines: &lines,
+            front_matter_lines: &[],
+            tokens: &[],
+            config: &HashMap::new(),
+        };
+
+        let rule = MD034;
+        let errors = rule.lint(&params);
+        assert_eq!(errors.len(), 1);
+
+        let fix = errors[0].fix_info.as_ref().expect("fix_info should be present");
+        assert_eq!(fix.line_number, None);
+        // "Visit https://example.com for more" -> URL starts at column 7 (1-based)
+        assert_eq!(fix.edit_column, Some(7));
+        // "https://example.com" is 19 chars
+        assert_eq!(fix.delete_count, Some(19));
+        assert_eq!(fix.insert_text, Some("<https://example.com>".to_string()));
+    }
+
+    #[test]
+    fn test_md034_fix_info_at_start() {
+        let lines = vec!["http://test.org/path\n".to_string()];
+
+        let params = RuleParams {
+            name: "test.md",
+            version: "0.1.0",
+            lines: &lines,
+            front_matter_lines: &[],
+            tokens: &[],
+            config: &HashMap::new(),
+        };
+
+        let rule = MD034;
+        let errors = rule.lint(&params);
+        assert_eq!(errors.len(), 1);
+
+        let fix = errors[0].fix_info.as_ref().expect("fix_info should be present");
+        assert_eq!(fix.line_number, None);
+        assert_eq!(fix.edit_column, Some(1));
+        assert_eq!(fix.delete_count, Some(20)); // "http://test.org/path" is 20 chars
+        assert_eq!(fix.insert_text, Some("<http://test.org/path>".to_string()));
     }
 }

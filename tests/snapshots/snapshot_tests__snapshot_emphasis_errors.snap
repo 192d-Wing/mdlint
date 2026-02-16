@@ -1,0 +1,12 @@
+---
+source: tests/snapshot_tests.rs
+assertion_line: 84
+expression: output
+---
+test.md:3: MD037/no-space-in-emphasis Spaces inside emphasis markers [Context: "* and _"] (col 19, len 7) [fixable]
+test.md:3: MD049/emphasis-style Emphasis style should be consistent [Expected: asterisk; Actual: underscore] [Context: "_underscore_"] (col 25, len 12) [fixable]
+test.md:5: MD037/no-space-in-emphasis Spaces inside emphasis markers [Context: "* and _"] (col 28, len 7) [fixable]
+test.md:5: MD050/strong-style Strong style should be consistent [Expected: asterisk; Actual: underscore] [Context: "__strong underscore__"] (col 34, len 21) [fixable]
+test.md:7: MD037/no-space-in-emphasis Spaces inside emphasis markers [Context: "* text *"] (col 25, len 8) [fixable]
+test.md:7: MD037/no-space-in-emphasis Spaces inside emphasis markers [Context: "_ text _"] (col 38, len 8) [fixable]
+test.md:9: MD038/no-space-in-code Spaces inside code span elements [Context: "` code `"] (col 21, len 8) [fixable]
