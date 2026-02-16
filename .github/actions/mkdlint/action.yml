@@ -1,0 +1,235 @@
+name: 'mkdlint'
+description: 'Fast Markdown linter with auto-fix support and SARIF Code Scanning integration'
+author: '192d-Wing'
+branding:
+  icon: 'check-circle'
+  color: 'blue'
+
+inputs:
+  files:
+    description: 'Files or directories to lint (space-separated patterns)'
+    required: false
+    default: '.'
+
+  version:
+    description: 'mkdlint version to use (e.g., "v0.3.2" or "latest")'
+    required: false
+    default: 'latest'
+
+  use-binary:
+    description: 'Use pre-built binary (true) or build from source (false)'
+    required: false
+    default: 'true'
+
+  config:
+    description: 'Path to configuration file (.markdownlint.json, .markdownlint.yaml, etc.)'
+    required: false
+    default: ''
+
+  output-format:
+    description: 'Output format: "text", "json", or "sarif"'
+    required: false
+    default: 'sarif'
+
+  sarif-file:
+    description: 'Path to SARIF output file (relative to working-directory)'
+    required: false
+    default: 'mkdlint.sarif'
+
+  fix:
+    description: 'Apply auto-fixes to files'
+    required: false
+    default: 'false'
+
+  ignore:
+    description: 'Glob patterns to ignore (space-separated)'
+    required: false
+    default: ''
+
+  enable:
+    description: 'Rules to enable (space-separated rule IDs, e.g., "MD001 MD002")'
+    required: false
+    default: ''
+
+  disable:
+    description: 'Rules to disable (space-separated rule IDs, e.g., "MD013 MD033")'
+    required: false
+    default: ''
+
+  no-color:
+    description: 'Disable colored output'
+    required: false
+    default: 'false'
+
+  verbose:
+    description: 'Enable verbose output'
+    required: false
+    default: 'false'
+
+  quiet:
+    description: 'Suppress output except errors'
+    required: false
+    default: 'false'
+
+  fail-on-error:
+    description: 'Fail the workflow if linting errors are found'
+    required: false
+    default: 'true'
+
+  upload-sarif:
+    description: 'Upload SARIF results to GitHub Code Scanning'
+    required: false
+    default: 'true'
+
+  working-directory:
+    description: 'Working directory for running mkdlint'
+    required: false
+    default: '.'
+
+  cache-binary:
+    description: 'Cache the downloaded binary for faster subsequent runs'
+    required: false
+    default: 'true'
+
+  github-token:
+    description: 'GitHub token for SARIF upload (defaults to automatic token)'
+    required: false
+    default: ${{ github.token }}
+
+  custom-args:
+    description: 'Additional custom arguments to pass to mkdlint'
+    required: false
+    default: ''
+
+outputs:
+  exit-code:
+    description: 'Exit code from mkdlint execution'
+    value: ${{ steps.run.outputs.exit-code }}
+
+  error-count:
+    description: 'Number of linting errors found'
+    value: ${{ steps.run.outputs.error-count }}
+
+  file-count:
+    description: 'Number of files with errors'
+    value: ${{ steps.run.outputs.file-count }}
+
+  sarif-file:
+    description: 'Path to generated SARIF file'
+    value: ${{ steps.run.outputs.sarif-file }}
+
+  binary-path:
+    description: 'Path to the mkdlint binary used'
+    value: ${{ steps.setup.outputs.binary-path }}
+
+  cache-hit:
+    description: 'Whether the binary was retrieved from cache'
+    value: ${{ steps.cache.outputs.cache-hit }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Detect platform
+      id: platform
+      shell: bash
+      run: |
+        case "$(uname -s)" in
+          Linux*)
+            case "$(uname -m)" in
+              x86_64) echo "platform=linux-x86_64" >> $GITHUB_OUTPUT ;;
+              aarch64|arm64) echo "platform=linux-aarch64" >> $GITHUB_OUTPUT ;;
+              *) echo "::error::Unsupported Linux architecture: $(uname -m)"; exit 1 ;;
+            esac
+            ;;
+          Darwin*)
+            case "$(uname -m)" in
+              x86_64) echo "platform=macos-x86_64" >> $GITHUB_OUTPUT ;;
+              arm64) echo "platform=macos-aarch64" >> $GITHUB_OUTPUT ;;
+              *) echo "::error::Unsupported macOS architecture: $(uname -m)"; exit 1 ;;
+            esac
+            ;;
+          MINGW*|MSYS*|CYGWIN*)
+            echo "platform=windows-x86_64" >> $GITHUB_OUTPUT
+            ;;
+          *)
+            echo "::error::Unsupported operating system: $(uname -s)"
+            exit 1
+            ;;
+        esac
+
+    - name: Cache binary
+      id: cache
+      if: inputs.use-binary == 'true' && inputs.cache-binary == 'true'
+      uses: actions/cache@v4
+      with:
+        path: ${{ runner.temp }}/mkdlint-bin
+        key: mkdlint-${{ steps.platform.outputs.platform }}-${{ inputs.version }}
+
+    - name: Setup mkdlint
+      id: setup
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        INPUT_VERSION: ${{ inputs.version }}
+        INPUT_USE_BINARY: ${{ inputs.use-binary }}
+        PLATFORM: ${{ steps.platform.outputs.platform }}
+        CACHE_HIT: ${{ steps.cache.outputs.cache-hit }}
+        TEMP_DIR: ${{ runner.temp }}
+      run: |
+        # Source the action script
+        ACTION_DIR="${{ github.action_path }}"
+        source "${ACTION_DIR}/action.sh"
+
+        # Run setup
+        setup_mkdlint
+
+    - name: Run mkdlint
+      id: run
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        INPUT_FILES: ${{ inputs.files }}
+        INPUT_CONFIG: ${{ inputs.config }}
+        INPUT_OUTPUT_FORMAT: ${{ inputs.output-format }}
+        INPUT_SARIF_FILE: ${{ inputs.sarif-file }}
+        INPUT_FIX: ${{ inputs.fix }}
+        INPUT_IGNORE: ${{ inputs.ignore }}
+        INPUT_ENABLE: ${{ inputs.enable }}
+        INPUT_DISABLE: ${{ inputs.disable }}
+        INPUT_NO_COLOR: ${{ inputs.no-color }}
+        INPUT_VERBOSE: ${{ inputs.verbose }}
+        INPUT_QUIET: ${{ inputs.quiet }}
+        INPUT_CUSTOM_ARGS: ${{ inputs.custom-args }}
+        BINARY_PATH: ${{ steps.setup.outputs.binary-path }}
+      run: |
+        # Source the action script
+        ACTION_DIR="${{ github.action_path }}"
+        source "${ACTION_DIR}/action.sh"
+
+        # Run mkdlint
+        run_mkdlint
+
+    - name: Upload SARIF results
+      if: |
+        always() &&
+        inputs.output-format == 'sarif' &&
+        inputs.upload-sarif == 'true' &&
+        steps.run.outputs.sarif-file != ''
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: ${{ inputs.working-directory }}/${{ steps.run.outputs.sarif-file }}
+        category: mkdlint
+        token: ${{ inputs.github-token }}
+        wait-for-processing: true
+
+    - name: Check results
+      if: inputs.fail-on-error == 'true'
+      shell: bash
+      run: |
+        EXIT_CODE="${{ steps.run.outputs.exit-code }}"
+        ERROR_COUNT="${{ steps.run.outputs.error-count }}"
+
+        if [ "$EXIT_CODE" != "0" ] || [ "$ERROR_COUNT" != "0" ]; then
+          echo "::error::mkdlint found $ERROR_COUNT error(s)"
+          exit 1
+        fi
