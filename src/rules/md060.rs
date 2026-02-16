@@ -1,6 +1,6 @@
 //! MD060 - Dollar signs used before code fence
 
-use crate::types::{LintError, ParserType, Rule, RuleParams, Severity};
+use crate::types::{FixInfo, LintError, ParserType, Rule, RuleParams, Severity};
 
 pub struct MD060;
 
@@ -14,7 +14,7 @@ impl Rule for MD060 {
     }
 
     fn tags(&self) -> &[&'static str] {
-        &["code"]
+        &["code", "fixable"]
     }
 
     fn parser_type(&self) -> ParserType {
@@ -35,6 +35,17 @@ impl Rule for MD060 {
             if trimmed.starts_with("```") || trimmed.starts_with("~~~") {
                 in_code_block = !in_code_block;
             } else if in_code_block && trimmed.starts_with('$') {
+                // Calculate the column where the $ appears
+                let leading_ws = line.len() - line.trim_start().len();
+                let dollar_col = leading_ws + 1; // 1-based column
+
+                // Delete "$ " if there's a space after, otherwise just "$"
+                let delete_count = if trimmed.len() > 1 && trimmed.chars().nth(1) == Some(' ') {
+                    2 // Delete "$ "
+                } else {
+                    1 // Delete "$"
+                };
+
                 errors.push(LintError {
                     line_number,
                     rule_names: self.names().iter().map(|s| s.to_string()).collect(),
@@ -43,8 +54,13 @@ impl Rule for MD060 {
                     error_context: Some(trimmed.to_string()),
                     rule_information: self.information().map(|s| s.to_string()),
                     error_range: None,
-                    fix_info: None,
-                    suggestion: None,
+                    fix_info: Some(FixInfo {
+                        line_number: None,
+                        edit_column: Some(dollar_col),
+                        delete_count: Some(delete_count),
+                        insert_text: None,
+                    }),
+                    suggestion: Some("Remove the $ prefix from this command".to_string()),
                     severity: Severity::Error,
                 });
             }
@@ -146,5 +162,71 @@ mod tests {
         let params = make_params(&lines, &tokens, &config);
         let errors = rule.lint(&params);
         assert_eq!(errors.len(), 1);
+    }
+
+    #[test]
+    fn test_md060_fix_dollar_with_space() {
+        let rule = MD060;
+        let lines: Vec<String> = vec![
+            "```bash\n".to_string(),
+            "$ echo hello\n".to_string(),
+            "```\n".to_string(),
+        ];
+        let tokens = vec![];
+        let config = HashMap::new();
+        let params = make_params(&lines, &tokens, &config);
+        let errors = rule.lint(&params);
+
+        assert_eq!(errors.len(), 1);
+        assert!(errors[0].fix_info.is_some());
+
+        let fix = errors[0].fix_info.as_ref().unwrap();
+        assert_eq!(fix.edit_column, Some(1));
+        assert_eq!(fix.delete_count, Some(2)); // Delete "$ "
+        assert_eq!(fix.insert_text, None);
+    }
+
+    #[test]
+    fn test_md060_fix_dollar_without_space() {
+        let rule = MD060;
+        let lines: Vec<String> = vec![
+            "```bash\n".to_string(),
+            "$echo\n".to_string(),
+            "```\n".to_string(),
+        ];
+        let tokens = vec![];
+        let config = HashMap::new();
+        let params = make_params(&lines, &tokens, &config);
+        let errors = rule.lint(&params);
+
+        assert_eq!(errors.len(), 1);
+        assert!(errors[0].fix_info.is_some());
+
+        let fix = errors[0].fix_info.as_ref().unwrap();
+        assert_eq!(fix.edit_column, Some(1));
+        assert_eq!(fix.delete_count, Some(1)); // Delete "$" only
+        assert_eq!(fix.insert_text, None);
+    }
+
+    #[test]
+    fn test_md060_fix_indented_dollar() {
+        let rule = MD060;
+        let lines: Vec<String> = vec![
+            "```bash\n".to_string(),
+            "  $ echo hello\n".to_string(),
+            "```\n".to_string(),
+        ];
+        let tokens = vec![];
+        let config = HashMap::new();
+        let params = make_params(&lines, &tokens, &config);
+        let errors = rule.lint(&params);
+
+        assert_eq!(errors.len(), 1);
+        assert!(errors[0].fix_info.is_some());
+
+        let fix = errors[0].fix_info.as_ref().unwrap();
+        assert_eq!(fix.edit_column, Some(3)); // Column after 2 spaces
+        assert_eq!(fix.delete_count, Some(2)); // Delete "$ "
+        assert_eq!(fix.insert_text, None);
     }
 }
