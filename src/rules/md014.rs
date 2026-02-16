@@ -79,11 +79,7 @@ mod tests {
 
     #[test]
     fn test_md014_no_dollar_signs() {
-        let lines = vec![
-            "```bash\n",
-            "echo hello\n",
-            "```\n",
-        ];
+        let lines = vec!["```bash\n", "echo hello\n", "```\n"];
 
         let params = RuleParams {
             name: "test.md",
@@ -101,11 +97,7 @@ mod tests {
 
     #[test]
     fn test_md014_with_dollar_signs() {
-        let lines = vec![
-            "```bash\n",
-            "$ echo hello\n",
-            "```\n",
-        ];
+        let lines = vec!["```bash\n", "$ echo hello\n", "```\n"];
 
         let params = RuleParams {
             name: "test.md",
@@ -123,11 +115,7 @@ mod tests {
 
     #[test]
     fn test_md014_fix_dollar_with_space() {
-        let lines = vec![
-            "```bash\n",
-            "$ echo hello\n",
-            "```\n",
-        ];
+        let lines = vec!["```bash\n", "$ echo hello\n", "```\n"];
 
         let params = RuleParams {
             name: "test.md",
@@ -149,11 +137,7 @@ mod tests {
 
     #[test]
     fn test_md014_fix_dollar_without_space() {
-        let lines = vec![
-            "```bash\n",
-            "$echo hello\n",
-            "```\n",
-        ];
+        let lines = vec!["```bash\n", "$echo hello\n", "```\n"];
 
         let params = RuleParams {
             name: "test.md",
@@ -175,11 +159,7 @@ mod tests {
 
     #[test]
     fn test_md014_fix_indented_dollar() {
-        let lines = vec![
-            "```bash\n",
-            "  $ echo hello\n",
-            "```\n",
-        ];
+        let lines = vec!["```bash\n", "  $ echo hello\n", "```\n"];
 
         let params = RuleParams {
             name: "test.md",

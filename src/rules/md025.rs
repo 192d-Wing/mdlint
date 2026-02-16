@@ -109,11 +109,7 @@ mod tests {
     #[test]
     fn test_md025_single_h1() {
         let tokens = vec![make_heading(1, "Title", 1), make_heading(3, "Section", 2)];
-        let lines = vec![
-            "# Title\n",
-            "\n",
-            "## Section\n",
-        ];
+        let lines = vec!["# Title\n", "\n", "## Section\n"];
         let params = RuleParams {
             name: "test.md",
             version: "0.1.0",
@@ -133,11 +129,7 @@ mod tests {
             make_heading(1, "Title", 1),
             make_heading(3, "Another Title", 1),
         ];
-        let lines = vec![
-            "# Title\n",
-            "\n",
-            "# Another Title\n",
-        ];
+        let lines = vec!["# Title\n", "\n", "# Another Title\n"];
         let params = RuleParams {
             name: "test.md",
             version: "0.1.0",
@@ -160,13 +152,7 @@ mod tests {
             make_heading(3, "Second", 1),
             make_heading(5, "Third", 1),
         ];
-        let lines = vec![
-            "# First\n",
-            "\n",
-            "# Second\n",
-            "\n",
-            "# Third\n",
-        ];
+        let lines = vec!["# First\n", "\n", "# Second\n", "\n", "# Third\n"];
         let params = RuleParams {
             name: "test.md",
             version: "0.1.0",
@@ -186,11 +172,7 @@ mod tests {
             make_heading(1, "Section", 2),
             make_heading(3, "Subsection", 3),
         ];
-        let lines = vec![
-            "## Section\n",
-            "\n",
-            "### Subsection\n",
-        ];
+        let lines = vec!["## Section\n", "\n", "### Subsection\n"];
         let params = RuleParams {
             name: "test.md",
             version: "0.1.0",
@@ -207,11 +189,7 @@ mod tests {
     #[test]
     fn test_md025_no_fix_info() {
         let tokens = vec![make_heading(1, "Title", 1), make_heading(3, "Second", 1)];
-        let lines = vec![
-            "# Title\n",
-            "\n",
-            "# Second\n",
-        ];
+        let lines = vec!["# Title\n", "\n", "# Second\n"];
         let params = RuleParams {
             name: "test.md",
             version: "0.1.0",

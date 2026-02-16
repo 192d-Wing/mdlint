@@ -174,11 +174,7 @@ mod tests {
     #[test]
     fn test_md044_code_block_excluded() {
         let rule = MD044;
-        let lines = vec![
-            "```\n",
-            "javascript code\n",
-            "```\n",
-        ];
+        let lines = vec!["```\n", "javascript code\n", "```\n"];
         let config = HashMap::new();
         let params = make_params(&lines, &config);
         let errors = rule.lint(&params);
@@ -188,11 +184,7 @@ mod tests {
     #[test]
     fn test_md044_code_block_included() {
         let rule = MD044;
-        let lines = vec![
-            "```\n",
-            "javascript code\n",
-            "```\n",
-        ];
+        let lines = vec!["```\n", "javascript code\n", "```\n"];
         let mut config = HashMap::new();
         config.insert("code_blocks".to_string(), serde_json::json!(true));
         let params = make_params(&lines, &config);

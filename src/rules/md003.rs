@@ -456,12 +456,7 @@ mod tests {
     fn test_md003_consistent_mixed_styles() {
         let tokens = vec![create_heading_token(1, 1), create_heading_token(3, 4)];
 
-        let lines = vec![
-            "# Heading 1\n",
-            "\n",
-            "Heading 2\n",
-            "---------\n",
-        ];
+        let lines = vec!["# Heading 1\n", "\n", "Heading 2\n", "---------\n"];
 
         let mut config = HashMap::new();
         config.insert("style".to_string(), Value::String("consistent".to_string()));
@@ -492,12 +487,7 @@ mod tests {
     fn test_md003_atx_style() {
         let tokens = vec![create_heading_token(1, 1), create_heading_token(3, 4)];
 
-        let lines = vec![
-            "# Heading 1\n",
-            "\n",
-            "Heading 2\n",
-            "---------\n",
-        ];
+        let lines = vec!["# Heading 1\n", "\n", "Heading 2\n", "---------\n"];
 
         let mut config = HashMap::new();
         config.insert("style".to_string(), Value::String("atx".to_string()));
@@ -526,12 +516,7 @@ mod tests {
     fn test_md003_setext_style() {
         let tokens = vec![create_heading_token(1, 2), create_heading_token(4, 4)];
 
-        let lines = vec![
-            "Heading 1\n",
-            "=========\n",
-            "\n",
-            "# Heading 2\n",
-        ];
+        let lines = vec!["Heading 1\n", "=========\n", "\n", "# Heading 2\n"];
 
         let mut config = HashMap::new();
         config.insert("style".to_string(), Value::String("setext".to_string()));
@@ -555,11 +540,7 @@ mod tests {
     fn test_md003_atx_closed_style() {
         let tokens = vec![create_heading_token(1, 1), create_heading_token(3, 3)];
 
-        let lines = vec![
-            "# Heading 1 #\n",
-            "\n",
-            "## Heading 2\n",
-        ];
+        let lines = vec!["# Heading 1 #\n", "\n", "## Heading 2\n"];
 
         let mut config = HashMap::new();
         config.insert("style".to_string(), Value::String("atx_closed".to_string()));
@@ -626,12 +607,7 @@ mod tests {
     fn test_md003_setext_with_atx_closed() {
         let tokens = vec![create_heading_token(1, 2), create_heading_token(4, 4)];
 
-        let lines = vec![
-            "Heading 1\n",
-            "=========\n",
-            "\n",
-            "### Heading 3 ###\n",
-        ];
+        let lines = vec!["Heading 1\n", "=========\n", "\n", "### Heading 3 ###\n"];
 
         let mut config = HashMap::new();
         config.insert(
@@ -673,11 +649,7 @@ mod tests {
 
     #[test]
     fn test_get_heading_level_atx() {
-        let lines = vec![
-            "# H1\n",
-            "## H2\n",
-            "### H3\n",
-        ];
+        let lines = vec!["# H1\n", "## H2\n", "### H3\n"];
         assert_eq!(get_heading_level(&lines, 1, 1), 1);
         assert_eq!(get_heading_level(&lines, 2, 2), 2);
         assert_eq!(get_heading_level(&lines, 3, 3), 3);
@@ -685,12 +657,7 @@ mod tests {
 
     #[test]
     fn test_get_heading_level_setext() {
-        let lines = vec![
-            "Heading 1\n",
-            "=========\n",
-            "Heading 2\n",
-            "---------\n",
-        ];
+        let lines = vec!["Heading 1\n", "=========\n", "Heading 2\n", "---------\n"];
         assert_eq!(get_heading_level(&lines, 1, 2), 1);
         assert_eq!(get_heading_level(&lines, 3, 4), 2);
     }

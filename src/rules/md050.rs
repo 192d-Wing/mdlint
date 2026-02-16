@@ -339,10 +339,7 @@ mod tests {
     #[test]
     fn test_md050_multiline() {
         let rule = MD050;
-        let lines: Vec<&str> = vec![
-            "**first** line\n",
-            "__second__ line\n",
-        ];
+        let lines: Vec<&str> = vec!["**first** line\n", "__second__ line\n"];
         let tokens = vec![];
         let config = HashMap::new();
         let params = make_params(&lines, &tokens, &config);

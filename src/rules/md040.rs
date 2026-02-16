@@ -93,11 +93,7 @@ mod tests {
 
     #[test]
     fn test_md040_with_language() {
-        let lines = vec![
-            "```rust\n",
-            "let x = 5;\n",
-            "```\n",
-        ];
+        let lines = vec!["```rust\n", "let x = 5;\n", "```\n"];
 
         let params = RuleParams {
             name: "test.md",
@@ -115,11 +111,7 @@ mod tests {
 
     #[test]
     fn test_md040_no_language() {
-        let lines = vec![
-            "```\n",
-            "code\n",
-            "```\n",
-        ];
+        let lines = vec!["```\n", "code\n", "```\n"];
 
         let params = RuleParams {
             name: "test.md",
@@ -138,11 +130,7 @@ mod tests {
 
     #[test]
     fn test_md040_fix_info() {
-        let lines = vec![
-            "```\n",
-            "code here\n",
-            "```\n",
-        ];
+        let lines = vec!["```\n", "code here\n", "```\n"];
 
         let params = RuleParams {
             name: "test.md",
@@ -166,11 +154,7 @@ mod tests {
 
     #[test]
     fn test_md040_custom_default_language() {
-        let lines = vec![
-            "~~~\n",
-            "code here\n",
-            "~~~\n",
-        ];
+        let lines = vec!["~~~\n", "code here\n", "~~~\n"];
 
         let mut config = HashMap::new();
         config.insert(

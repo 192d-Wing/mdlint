@@ -184,11 +184,7 @@ mod tests {
             create_heading(3, 3, false),
         ];
 
-        let lines = vec![
-            "# Heading 1\n",
-            "## Heading 2\n",
-            "### Heading 3\n",
-        ];
+        let lines = vec!["# Heading 1\n", "## Heading 2\n", "### Heading 3\n"];
 
         let params = RuleParams {
             name: "test.md",
@@ -326,11 +322,7 @@ mod tests {
             create_heading(3, 6, false), // Skip from h4 to h6
         ];
 
-        let lines = vec![
-            "# Heading 1\n",
-            "#### Heading 4\n",
-            "###### Heading 6\n",
-        ];
+        let lines = vec!["# Heading 1\n", "#### Heading 4\n", "###### Heading 6\n"];
 
         let params = RuleParams {
             name: "test.md",
@@ -385,11 +377,7 @@ mod tests {
             create_heading(2, 2, true), // Setext h2 after h1 is ok, no error
         ];
 
-        let lines = vec![
-            "# Heading 1\n",
-            "Heading 2\n",
-            "---------\n",
-        ];
+        let lines = vec!["# Heading 1\n", "Heading 2\n", "---------\n"];
 
         let params = RuleParams {
             name: "test.md",

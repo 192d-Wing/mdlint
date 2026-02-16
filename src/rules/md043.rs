@@ -200,11 +200,7 @@ mod tests {
     #[test]
     fn test_md043_matching_structure() {
         let rule = MD043;
-        let lines = vec![
-            "# Title\n",
-            "\n",
-            "## Section\n",
-        ];
+        let lines = vec!["# Title\n", "\n", "## Section\n"];
         let mut config = HashMap::new();
         config.insert(
             "headings".to_string(),
@@ -238,13 +234,7 @@ mod tests {
     #[test]
     fn test_md043_extra_heading() {
         let rule = MD043;
-        let lines = vec![
-            "# Title\n",
-            "\n",
-            "## Section\n",
-            "\n",
-            "## Extra\n",
-        ];
+        let lines = vec!["# Title\n", "\n", "## Section\n", "\n", "## Extra\n"];
         let mut config = HashMap::new();
         config.insert("headings".to_string(), serde_json::json!(["# Title"]));
         let params = make_params(&lines, &config);
@@ -255,11 +245,7 @@ mod tests {
     #[test]
     fn test_md043_wildcard() {
         let rule = MD043;
-        let lines = vec![
-            "# Any Title\n",
-            "\n",
-            "## Anything\n",
-        ];
+        let lines = vec!["# Any Title\n", "\n", "## Anything\n"];
         let mut config = HashMap::new();
         config.insert("headings".to_string(), serde_json::json!(["# *", "## *"]));
         let params = make_params(&lines, &config);
@@ -269,11 +255,7 @@ mod tests {
     #[test]
     fn test_md043_any_heading_pattern() {
         let rule = MD043;
-        let lines = vec![
-            "# Title\n",
-            "\n",
-            "### Deep heading\n",
-        ];
+        let lines = vec!["# Title\n", "\n", "### Deep heading\n"];
         let mut config = HashMap::new();
         config.insert("headings".to_string(), serde_json::json!(["#+", "#+"]));
         let params = make_params(&lines, &config);

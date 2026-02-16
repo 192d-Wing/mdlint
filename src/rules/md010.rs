@@ -75,10 +75,7 @@ mod tests {
 
     #[test]
     fn test_md010_no_tabs() {
-        let lines = vec![
-            "# Heading\n",
-            "    Indented with spaces\n",
-        ];
+        let lines = vec!["# Heading\n", "    Indented with spaces\n"];
 
         let params = RuleParams {
             name: "test.md",
@@ -96,10 +93,7 @@ mod tests {
 
     #[test]
     fn test_md010_with_tabs() {
-        let lines = vec![
-            "\tTabbed line\n",
-            "Normal\tline with tab\n",
-        ];
+        let lines = vec!["\tTabbed line\n", "Normal\tline with tab\n"];
 
         let params = RuleParams {
             name: "test.md",

@@ -98,9 +98,7 @@ mod tests {
 
     #[test]
     fn test_md038_with_spaces() {
-        let lines: Vec<&str> = "Use ` code ` here\n"
-            .lines()
-            .collect();
+        let lines: Vec<&str> = "Use ` code ` here\n".lines().collect();
         let tokens = vec![];
         let config = HashMap::new();
         let params = make_params(&lines, &tokens, &config);

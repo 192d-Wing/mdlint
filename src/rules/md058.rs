@@ -190,12 +190,7 @@ mod tests {
     #[test]
     fn test_md058_fix_info_before() {
         let rule = MD058;
-        let lines: Vec<&str> = vec![
-            "# Heading\n",
-            "| Header |\n",
-            "| ------ |\n",
-            "\n",
-        ];
+        let lines: Vec<&str> = vec!["# Heading\n", "| Header |\n", "| ------ |\n", "\n"];
         let tokens = vec![];
         let config = HashMap::new();
         let params = make_params(&lines, &tokens, &config);
@@ -212,12 +207,7 @@ mod tests {
     #[test]
     fn test_md058_fix_info_after() {
         let rule = MD058;
-        let lines: Vec<&str> = vec![
-            "\n",
-            "| Header |\n",
-            "| ------ |\n",
-            "Text here\n",
-        ];
+        let lines: Vec<&str> = vec!["\n", "| Header |\n", "| ------ |\n", "Text here\n"];
         let tokens = vec![];
         let config = HashMap::new();
         let params = make_params(&lines, &tokens, &config);

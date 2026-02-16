@@ -273,11 +273,7 @@ mod tests {
 
     #[test]
     fn test_md029_consistent_one() {
-        let lines = vec![
-            "1. Item 1\n",
-            "1. Item 2\n",
-            "1. Item 3\n",
-        ];
+        let lines = vec!["1. Item 1\n", "1. Item 2\n", "1. Item 3\n"];
 
         let tokens = vec![
             create_list_token(1, vec![1, 2, 3]),
@@ -302,11 +298,7 @@ mod tests {
 
     #[test]
     fn test_md029_consistent_ordered() {
-        let lines = vec![
-            "1. Item 1\n",
-            "2. Item 2\n",
-            "3. Item 3\n",
-        ];
+        let lines = vec!["1. Item 1\n", "2. Item 2\n", "3. Item 3\n"];
 
         let tokens = vec![
             create_list_token(1, vec![1, 2, 3]),
@@ -436,11 +428,7 @@ mod tests {
 
     #[test]
     fn test_md029_style_zero() {
-        let lines = vec![
-            "0. Item 1\n",
-            "0. Item 2\n",
-            "0. Item 3\n",
-        ];
+        let lines = vec!["0. Item 1\n", "0. Item 2\n", "0. Item 3\n"];
 
         let mut config = HashMap::new();
         config.insert("style".to_string(), serde_json::json!("zero"));
@@ -468,11 +456,7 @@ mod tests {
 
     #[test]
     fn test_md029_auto_detect_zero_increment() {
-        let lines = vec![
-            "0. Item 1\n",
-            "1. Item 2\n",
-            "2. Item 3\n",
-        ];
+        let lines = vec!["0. Item 1\n", "1. Item 2\n", "2. Item 3\n"];
 
         let tokens = vec![
             create_list_token(1, vec![1, 2, 3]),

@@ -257,13 +257,7 @@ mod tests {
 
     #[test]
     fn test_md031_missing_blank_before() {
-        let lines = vec![
-            "# Heading\n",
-            "```rust\n",
-            "let x = 5;\n",
-            "```\n",
-            "\n",
-        ];
+        let lines = vec!["# Heading\n", "```rust\n", "let x = 5;\n", "```\n", "\n"];
 
         let params = RuleParams {
             name: "test.md",
@@ -334,13 +328,7 @@ mod tests {
 
     #[test]
     fn test_md031_tilde_fences() {
-        let lines = vec![
-            "Text\n",
-            "~~~\n",
-            "code\n",
-            "~~~\n",
-            "Text\n",
-        ];
+        let lines = vec!["Text\n", "~~~\n", "code\n", "~~~\n", "Text\n"];
 
         let params = RuleParams {
             name: "test.md",
@@ -358,12 +346,7 @@ mod tests {
 
     #[test]
     fn test_md031_start_of_file() {
-        let lines = vec![
-            "```rust\n",
-            "let x = 5;\n",
-            "```\n",
-            "\n",
-        ];
+        let lines = vec!["```rust\n", "let x = 5;\n", "```\n", "\n"];
 
         let params = RuleParams {
             name: "test.md",
@@ -382,12 +365,7 @@ mod tests {
 
     #[test]
     fn test_md031_end_of_file() {
-        let lines = vec![
-            "\n",
-            "```rust\n",
-            "let x = 5;\n",
-            "```\n",
-        ];
+        let lines = vec!["\n", "```rust\n", "let x = 5;\n", "```\n"];
 
         let params = RuleParams {
             name: "test.md",

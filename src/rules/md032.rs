@@ -355,12 +355,7 @@ mod tests {
 
     #[test]
     fn test_md032_missing_blank_before() {
-        let lines = vec![
-            "# Heading\n",
-            "- Item 1\n",
-            "- Item 2\n",
-            "\n",
-        ];
+        let lines = vec!["# Heading\n", "- Item 1\n", "- Item 2\n", "\n"];
 
         let tokens = vec![
             create_list_token("listUnordered", 2, 3, vec![1, 2]),
@@ -385,12 +380,7 @@ mod tests {
 
     #[test]
     fn test_md032_missing_blank_after() {
-        let lines = vec![
-            "\n",
-            "- Item 1\n",
-            "- Item 2\n",
-            "Paragraph\n",
-        ];
+        let lines = vec!["\n", "- Item 1\n", "- Item 2\n", "Paragraph\n"];
 
         let tokens = vec![
             create_list_token("listUnordered", 2, 3, vec![1, 2]),
@@ -415,12 +405,7 @@ mod tests {
 
     #[test]
     fn test_md032_ordered_list() {
-        let lines = vec![
-            "Paragraph\n",
-            "1. Item 1\n",
-            "2. Item 2\n",
-            "More text\n",
-        ];
+        let lines = vec!["Paragraph\n", "1. Item 1\n", "2. Item 2\n", "More text\n"];
 
         let tokens = vec![
             create_list_token("listOrdered", 2, 3, vec![1, 2]),
@@ -445,11 +430,7 @@ mod tests {
 
     #[test]
     fn test_md032_at_start_of_file() {
-        let lines = vec![
-            "- Item 1\n",
-            "- Item 2\n",
-            "\n",
-        ];
+        let lines = vec!["- Item 1\n", "- Item 2\n", "\n"];
 
         let tokens = vec![
             create_list_token("listUnordered", 1, 2, vec![1, 2]),
@@ -474,11 +455,7 @@ mod tests {
 
     #[test]
     fn test_md032_at_end_of_file() {
-        let lines = vec![
-            "\n",
-            "- Item 1\n",
-            "- Item 2\n",
-        ];
+        let lines = vec!["\n", "- Item 1\n", "- Item 2\n"];
 
         let tokens = vec![
             create_list_token("listUnordered", 2, 3, vec![1, 2]),

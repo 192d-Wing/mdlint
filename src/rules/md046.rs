@@ -71,13 +71,7 @@ mod tests {
 
     #[test]
     fn test_md046_fenced_only() {
-        let lines = vec![
-            "# Title\n",
-            "\n",
-            "```\n",
-            "code\n",
-            "```\n",
-        ];
+        let lines = vec!["# Title\n", "\n", "```\n", "code\n", "```\n"];
         let params = RuleParams {
             name: "test.md",
             version: "0.1.0",
@@ -93,12 +87,7 @@ mod tests {
 
     #[test]
     fn test_md046_indented_only() {
-        let lines = vec![
-            "# Title\n",
-            "\n",
-            "    code block\n",
-            "    more code\n",
-        ];
+        let lines = vec!["# Title\n", "\n", "    code block\n", "    more code\n"];
         let params = RuleParams {
             name: "test.md",
             version: "0.1.0",
@@ -143,13 +132,7 @@ mod tests {
 
     #[test]
     fn test_md046_tilde_fenced() {
-        let lines = vec![
-            "~~~\n",
-            "code\n",
-            "~~~\n",
-            "\n",
-            "    indented\n",
-        ];
+        let lines = vec!["~~~\n", "code\n", "~~~\n", "\n", "    indented\n"];
         let params = RuleParams {
             name: "test.md",
             version: "0.1.0",
@@ -169,11 +152,7 @@ mod tests {
 
     #[test]
     fn test_md046_no_code_blocks() {
-        let lines = vec![
-            "# Title\n",
-            "\n",
-            "Just a paragraph.\n",
-        ];
+        let lines = vec!["# Title\n", "\n", "Just a paragraph.\n"];
         let params = RuleParams {
             name: "test.md",
             version: "0.1.0",
@@ -189,12 +168,7 @@ mod tests {
 
     #[test]
     fn test_md046_no_fix_info() {
-        let lines = vec![
-            "```\n",
-            "code\n",
-            "```\n",
-            "    indented\n",
-        ];
+        let lines = vec!["```\n", "code\n", "```\n", "    indented\n"];
         let params = RuleParams {
             name: "test.md",
             version: "0.1.0",

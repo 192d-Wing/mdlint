@@ -93,12 +93,7 @@ mod tests {
     #[test]
     fn test_md060_no_dollar_signs() {
         let rule = MD060;
-        let lines: Vec<&str> = vec![
-            "```bash\n",
-            "echo hello\n",
-            "ls -la\n",
-            "```\n",
-        ];
+        let lines: Vec<&str> = vec!["```bash\n", "echo hello\n", "ls -la\n", "```\n"];
         let tokens = vec![];
         let config = HashMap::new();
         let params = make_params(&lines, &tokens, &config);
@@ -109,12 +104,7 @@ mod tests {
     #[test]
     fn test_md060_dollar_sign_in_code_block() {
         let rule = MD060;
-        let lines: Vec<&str> = vec![
-            "```bash\n",
-            "$ echo hello\n",
-            "$ ls -la\n",
-            "```\n",
-        ];
+        let lines: Vec<&str> = vec!["```bash\n", "$ echo hello\n", "$ ls -la\n", "```\n"];
         let tokens = vec![];
         let config = HashMap::new();
         let params = make_params(&lines, &tokens, &config);
@@ -136,11 +126,7 @@ mod tests {
     #[test]
     fn test_md060_tilde_code_fence() {
         let rule = MD060;
-        let lines: Vec<&str> = vec![
-            "~~~\n",
-            "$ npm install\n",
-            "~~~\n",
-        ];
+        let lines: Vec<&str> = vec!["~~~\n", "$ npm install\n", "~~~\n"];
         let tokens = vec![];
         let config = HashMap::new();
         let params = make_params(&lines, &tokens, &config);
@@ -151,12 +137,7 @@ mod tests {
     #[test]
     fn test_md060_mixed_dollar_and_non_dollar() {
         let rule = MD060;
-        let lines: Vec<&str> = vec![
-            "```\n",
-            "$ echo hello\n",
-            "hello\n",
-            "```\n",
-        ];
+        let lines: Vec<&str> = vec!["```\n", "$ echo hello\n", "hello\n", "```\n"];
         let tokens = vec![];
         let config = HashMap::new();
         let params = make_params(&lines, &tokens, &config);
@@ -167,11 +148,7 @@ mod tests {
     #[test]
     fn test_md060_fix_dollar_with_space() {
         let rule = MD060;
-        let lines: Vec<&str> = vec![
-            "```bash\n",
-            "$ echo hello\n",
-            "```\n",
-        ];
+        let lines: Vec<&str> = vec!["```bash\n", "$ echo hello\n", "```\n"];
         let tokens = vec![];
         let config = HashMap::new();
         let params = make_params(&lines, &tokens, &config);
@@ -189,11 +166,7 @@ mod tests {
     #[test]
     fn test_md060_fix_dollar_without_space() {
         let rule = MD060;
-        let lines: Vec<&str> = vec![
-            "```bash\n",
-            "$echo\n",
-            "```\n",
-        ];
+        let lines: Vec<&str> = vec!["```bash\n", "$echo\n", "```\n"];
         let tokens = vec![];
         let config = HashMap::new();
         let params = make_params(&lines, &tokens, &config);
@@ -211,11 +184,7 @@ mod tests {
     #[test]
     fn test_md060_fix_indented_dollar() {
         let rule = MD060;
-        let lines: Vec<&str> = vec![
-            "```bash\n",
-            "  $ echo hello\n",
-            "```\n",
-        ];
+        let lines: Vec<&str> = vec!["```bash\n", "  $ echo hello\n", "```\n"];
         let tokens = vec![];
         let config = HashMap::new();
         let params = make_params(&lines, &tokens, &config);

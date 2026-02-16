@@ -90,9 +90,7 @@ mod tests {
 
     #[test]
     fn test_md037_no_spaces() {
-        let lines: Vec<&str> = "This is *emphasis* text\n"
-            .lines()
-            .collect();
+        let lines: Vec<&str> = "This is *emphasis* text\n".lines().collect();
         let tokens = vec![];
         let config = HashMap::new();
         let params = make_params(&lines, &tokens, &config);
@@ -103,9 +101,7 @@ mod tests {
 
     #[test]
     fn test_md037_with_spaces() {
-        let lines: Vec<&str> = "This is * emphasis * text\n"
-            .lines()
-            .collect();
+        let lines: Vec<&str> = "This is * emphasis * text\n".lines().collect();
         let tokens = vec![];
         let config = HashMap::new();
         let params = make_params(&lines, &tokens, &config);

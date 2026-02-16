@@ -136,11 +136,7 @@ mod tests {
 
     #[test]
     fn test_md022_missing_blank_before_heading() {
-        let lines = vec![
-            "# Title\n",
-            "Some text\n",
-            "## Section\n",
-        ];
+        let lines = vec!["# Title\n", "Some text\n", "## Section\n"];
         let tokens = vec![make_heading(1, 1), make_heading(3, 2)];
         let params = RuleParams {
             name: "test.md",
@@ -184,11 +180,7 @@ mod tests {
 
     #[test]
     fn test_md022_fix_info_inserts_blank_before() {
-        let lines = vec![
-            "# Title\n",
-            "Some text\n",
-            "## Section\n",
-        ];
+        let lines = vec!["# Title\n", "Some text\n", "## Section\n"];
         let tokens = vec![make_heading(1, 1), make_heading(3, 2)];
         let params = RuleParams {
             name: "test.md",
@@ -216,11 +208,7 @@ mod tests {
     #[test]
     fn test_md022_heading_at_start_of_file() {
         // First heading at line 1 should not complain about missing blank before
-        let lines = vec![
-            "# Title\n",
-            "\n",
-            "Content\n",
-        ];
+        let lines = vec!["# Title\n", "\n", "Content\n"];
         let tokens = vec![make_heading(1, 1)];
         let params = RuleParams {
             name: "test.md",

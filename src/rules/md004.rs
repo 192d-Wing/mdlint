@@ -261,11 +261,7 @@ mod tests {
             create_list_item_token(3),
         ];
 
-        let lines = vec![
-            "* Item 1\n",
-            "* Item 2\n",
-            "* Item 3\n",
-        ];
+        let lines = vec!["* Item 1\n", "* Item 2\n", "* Item 3\n"];
 
         let params = RuleParams {
             name: "test.md",
@@ -289,11 +285,7 @@ mod tests {
             create_list_item_token(3),
         ];
 
-        let lines = vec![
-            "- Item 1\n",
-            "- Item 2\n",
-            "- Item 3\n",
-        ];
+        let lines = vec!["- Item 1\n", "- Item 2\n", "- Item 3\n"];
 
         let params = RuleParams {
             name: "test.md",
@@ -317,11 +309,7 @@ mod tests {
             create_list_item_token(3),
         ];
 
-        let lines = vec![
-            "* Item 1\n",
-            "- Item 2\n",
-            "+ Item 3\n",
-        ];
+        let lines = vec!["* Item 1\n", "- Item 2\n", "+ Item 3\n"];
 
         let params = RuleParams {
             name: "test.md",

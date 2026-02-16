@@ -164,11 +164,7 @@ mod tests {
             metadata: HashMap::new(),
         }];
 
-        let lines = vec![
-            "Some text\n",
-            "\n",
-            "# Heading\n",
-        ];
+        let lines = vec!["Some text\n", "\n", "# Heading\n"];
 
         let params = RuleParams {
             name: "test.md",
@@ -221,11 +217,7 @@ mod tests {
             metadata: HashMap::new(),
         }];
 
-        let lines = vec![
-            "Some text\n",
-            "\n",
-            "# Heading\n",
-        ];
+        let lines = vec!["Some text\n", "\n", "# Heading\n"];
 
         let params = RuleParams {
             name: "test.md",

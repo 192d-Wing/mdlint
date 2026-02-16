@@ -180,12 +180,7 @@ mod tests {
 
     #[test]
     fn test_collect_heading_ids_duplicates() {
-        let lines = vec![
-            "# Title\n",
-            "## Section\n",
-            "## Section\n",
-            "## Section\n",
-        ];
+        let lines = vec!["# Title\n", "## Section\n", "## Section\n", "## Section\n"];
         let ids = collect_heading_ids(&lines);
         assert_eq!(ids, vec!["title", "section", "section-1", "section-2"]);
     }
@@ -209,11 +204,7 @@ mod tests {
     #[test]
     fn test_md051_invalid_fragment() {
         let rule = MD051;
-        let lines = vec![
-            "# Title\n",
-            "\n",
-            "See [missing](#nonexistent).\n",
-        ];
+        let lines = vec!["# Title\n", "\n", "See [missing](#nonexistent).\n"];
         let config = HashMap::new();
         let params = make_params(&lines, &config);
         let errors = rule.lint(&params);
@@ -246,12 +237,7 @@ mod tests {
     #[test]
     fn test_md051_fragment_in_code_block_ignored() {
         let rule = MD051;
-        let lines = vec![
-            "# Title\n",
-            "```\n",
-            "[link](#nonexistent)\n",
-            "```\n",
-        ];
+        let lines = vec!["# Title\n", "```\n", "[link](#nonexistent)\n", "```\n"];
         let config = HashMap::new();
         let params = make_params(&lines, &config);
         let errors = rule.lint(&params);

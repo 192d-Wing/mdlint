@@ -112,11 +112,7 @@ mod tests {
 
     #[test]
     fn test_md007_correct_indentation() {
-        let lines: Vec<&str> = vec![
-            "* Item 1\n",
-            "  * Nested item\n",
-            "    * Deep nested\n",
-        ];
+        let lines: Vec<&str> = vec!["* Item 1\n", "  * Nested item\n", "    * Deep nested\n"];
         let config = HashMap::new();
         let params = make_params(&lines, &config);
 
@@ -161,11 +157,7 @@ mod tests {
 
     #[test]
     fn test_md007_top_level_no_error() {
-        let lines: Vec<&str> = vec![
-            "* Item 1\n",
-            "* Item 2\n",
-            "- Item 3\n",
-        ];
+        let lines: Vec<&str> = vec!["* Item 1\n", "* Item 2\n", "- Item 3\n"];
         let config = HashMap::new();
         let params = make_params(&lines, &config);
 
@@ -176,11 +168,7 @@ mod tests {
 
     #[test]
     fn test_md007_in_code_block_ignored() {
-        let lines: Vec<&str> = vec![
-            "```\n",
-            "   * not a list\n",
-            "```\n",
-        ];
+        let lines: Vec<&str> = vec!["```\n", "   * not a list\n", "```\n"];
         let config = HashMap::new();
         let params = make_params(&lines, &config);
 

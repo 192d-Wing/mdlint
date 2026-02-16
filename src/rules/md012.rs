@@ -99,11 +99,7 @@ mod tests {
 
     #[test]
     fn test_md012_single_blank_lines() {
-        let lines = vec![
-            "# Heading\n",
-            "\n",
-            "Content\n",
-        ];
+        let lines = vec!["# Heading\n", "\n", "Content\n"];
 
         let params = RuleParams {
             name: "test.md",
@@ -121,13 +117,7 @@ mod tests {
 
     #[test]
     fn test_md012_multiple_blank_lines() {
-        let lines = vec![
-            "# Heading\n",
-            "\n",
-            "\n",
-            "\n",
-            "Content\n",
-        ];
+        let lines = vec!["# Heading\n", "\n", "\n", "\n", "Content\n"];
 
         let params = RuleParams {
             name: "test.md",

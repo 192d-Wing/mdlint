@@ -132,13 +132,7 @@ mod tests {
             make_heading(3, "Usage", 2),
             make_heading(5, "Setup", 2),
         ];
-        let lines = vec![
-            "## Setup\n",
-            "\n",
-            "## Usage\n",
-            "\n",
-            "## Setup\n",
-        ];
+        let lines = vec!["## Setup\n", "\n", "## Usage\n", "\n", "## Setup\n"];
         let params = RuleParams {
             name: "test.md",
             version: "0.1.0",
@@ -161,13 +155,7 @@ mod tests {
             make_heading(3, "FAQ", 2),
             make_heading(5, "FAQ", 2),
         ];
-        let lines = vec![
-            "## FAQ\n",
-            "\n",
-            "## FAQ\n",
-            "\n",
-            "## FAQ\n",
-        ];
+        let lines = vec!["## FAQ\n", "\n", "## FAQ\n", "\n", "## FAQ\n"];
         let params = RuleParams {
             name: "test.md",
             version: "0.1.0",
@@ -187,11 +175,7 @@ mod tests {
             make_heading(1, "Overview", 1),
             make_heading(3, "Overview", 2),
         ];
-        let lines = vec![
-            "# Overview\n",
-            "\n",
-            "## Overview\n",
-        ];
+        let lines = vec!["# Overview\n", "\n", "## Overview\n"];
         let params = RuleParams {
             name: "test.md",
             version: "0.1.0",
@@ -212,11 +196,7 @@ mod tests {
     #[test]
     fn test_md024_fix_info() {
         let tokens = vec![make_heading(1, "Title", 1), make_heading(3, "Title", 2)];
-        let lines = vec![
-            "# Title\n",
-            "\n",
-            "## Title\n",
-        ];
+        let lines = vec!["# Title\n", "\n", "## Title\n"];
         let params = RuleParams {
             name: "test.md",
             version: "0.1.0",
@@ -240,13 +220,7 @@ mod tests {
             make_heading(3, "FAQ", 2),
             make_heading(5, "FAQ", 2),
         ];
-        let lines = vec![
-            "## FAQ\n",
-            "\n",
-            "## FAQ\n",
-            "\n",
-            "## FAQ\n",
-        ];
+        let lines = vec!["## FAQ\n", "\n", "## FAQ\n", "\n", "## FAQ\n"];
         let params = RuleParams {
             name: "test.md",
             version: "0.1.0",
@@ -273,11 +247,7 @@ mod tests {
     #[test]
     fn test_md024_fix_column_calculation() {
         let tokens = vec![make_heading(1, "Setup", 2), make_heading(3, "Setup", 2)];
-        let lines = vec![
-            "## Setup\n",
-            "\n",
-            "## Setup\n",
-        ];
+        let lines = vec!["## Setup\n", "\n", "## Setup\n"];
         let params = RuleParams {
             name: "test.md",
             version: "0.1.0",

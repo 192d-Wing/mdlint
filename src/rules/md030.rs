@@ -365,11 +365,7 @@ mod tests {
             create_whitespace_token(3, 2, 5, Some(5)),            // 6: whitespace (3 spaces)
         ];
 
-        let lines = vec![
-            "-   Item 1\n",
-            "    Paragraph 2\n",
-            "-   Item 2\n",
-        ];
+        let lines = vec!["-   Item 1\n", "    Paragraph 2\n", "-   Item 2\n"];
 
         let mut config = HashMap::new();
         config.insert("ul_multi".to_string(), serde_json::json!(3));

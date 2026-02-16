@@ -186,11 +186,7 @@ mod tests {
 
     #[test]
     fn test_md053_unused_definition() {
-        let lines: Vec<&str> = vec![
-            "This is some text.\n",
-            "\n",
-            "[foo]: https://example.com\n",
-        ];
+        let lines: Vec<&str> = vec!["This is some text.\n", "\n", "[foo]: https://example.com\n"];
         let config = HashMap::new();
         let params = make_params(&lines, &config);
 
@@ -202,11 +198,7 @@ mod tests {
 
     #[test]
     fn test_md053_ignored_definition() {
-        let lines: Vec<&str> = vec![
-            "This is some text.\n",
-            "\n",
-            "[//]: https://example.com\n",
-        ];
+        let lines: Vec<&str> = vec!["This is some text.\n", "\n", "[//]: https://example.com\n"];
         let config = HashMap::new();
         let params = make_params(&lines, &config);
 
@@ -217,11 +209,7 @@ mod tests {
 
     #[test]
     fn test_md053_fix_unused_definition() {
-        let lines: Vec<&str> = vec![
-            "This is some text.\n",
-            "\n",
-            "[foo]: https://example.com\n",
-        ];
+        let lines: Vec<&str> = vec!["This is some text.\n", "\n", "[foo]: https://example.com\n"];
         let config = HashMap::new();
         let params = make_params(&lines, &config);
 

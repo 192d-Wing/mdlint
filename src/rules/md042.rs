@@ -298,11 +298,7 @@ mod tests {
 
     #[test]
     fn test_md042_reference_link_with_empty_definition() {
-        let lines = vec![
-            "[text][frag]\n",
-            "\n",
-            "[frag]: #\n",
-        ];
+        let lines = vec!["[text][frag]\n", "\n", "[frag]: #\n"];
 
         let params = RuleParams {
             name: "test.md",
@@ -321,11 +317,7 @@ mod tests {
 
     #[test]
     fn test_md042_reference_link_shorthand() {
-        let lines = vec![
-            "[frag][]\n",
-            "\n",
-            "[frag]: #\n",
-        ];
+        let lines = vec!["[frag][]\n", "\n", "[frag]: #\n"];
 
         let params = RuleParams {
             name: "test.md",
@@ -343,11 +335,7 @@ mod tests {
 
     #[test]
     fn test_md042_reference_link_implicit() {
-        let lines = vec![
-            "[frag]\n",
-            "\n",
-            "[frag]: #\n",
-        ];
+        let lines = vec!["[frag]\n", "\n", "[frag]: #\n"];
 
         let params = RuleParams {
             name: "test.md",
@@ -365,11 +353,7 @@ mod tests {
 
     #[test]
     fn test_md042_reference_link_with_valid_definition() {
-        let lines = vec![
-            "[text][ref]\n",
-            "\n",
-            "[ref]: https://example.com\n",
-        ];
+        let lines = vec!["[text][ref]\n", "\n", "[ref]: https://example.com\n"];
 
         let params = RuleParams {
             name: "test.md",
@@ -456,11 +440,7 @@ mod tests {
 
     #[test]
     fn test_md042_no_fix_reference_link() {
-        let lines = vec![
-            "[text][frag]\n",
-            "\n",
-            "[frag]: #\n",
-        ];
+        let lines = vec!["[text][frag]\n", "\n", "[frag]: #\n"];
 
         let params = RuleParams {
             name: "test.md",

@@ -95,11 +95,7 @@ impl Rule for MD052 {
                     } else {
                         params.lines.len() // Target the actual last line
                     };
-                    let target_line = params
-                        .lines
-                        .get(insert_line - 1)
-                        .copied()
-                        .unwrap_or("");
+                    let target_line = params.lines.get(insert_line - 1).copied().unwrap_or("");
                     let target_stripped = target_line.trim_end_matches('\n').trim_end_matches('\r');
                     let insert_col = target_stripped.len() + 1;
 
@@ -146,11 +142,7 @@ impl Rule for MD052 {
                     } else {
                         params.lines.len() // Target the actual last line
                     };
-                    let target_line = params
-                        .lines
-                        .get(insert_line - 1)
-                        .copied()
-                        .unwrap_or("");
+                    let target_line = params.lines.get(insert_line - 1).copied().unwrap_or("");
                     let target_stripped = target_line.trim_end_matches('\n').trim_end_matches('\r');
                     let insert_col = target_stripped.len() + 1;
 
@@ -303,10 +295,7 @@ mod tests {
 
     #[test]
     fn test_md052_fix_multiple_undefined() {
-        let lines: Vec<&str> = vec![
-            "This has [link1][ref1] and [link2][ref2].\n",
-            "\n",
-        ];
+        let lines: Vec<&str> = vec!["This has [link1][ref1] and [link2][ref2].\n", "\n"];
         let config = HashMap::new();
         let params = make_params(&lines, &config);
 

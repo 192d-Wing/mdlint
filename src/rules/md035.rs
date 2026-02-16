@@ -265,13 +265,7 @@ mod tests {
             },
         ];
 
-        let lines = vec![
-            "---\n",
-            "\n",
-            "***\n",
-            "\n",
-            "* * *\n",
-        ];
+        let lines = vec!["---\n", "\n", "***\n", "\n", "* * *\n"];
 
         let params = RuleParams {
             name: "test.md",

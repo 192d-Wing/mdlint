@@ -92,9 +92,7 @@ mod tests {
 
     #[test]
     fn test_md028_no_blank_in_quote() {
-        let lines: Vec<&str> = "> line 1\n> line 2\n"
-            .lines()
-            .collect();
+        let lines: Vec<&str> = "> line 1\n> line 2\n".lines().collect();
         let tokens = vec![];
         let config = HashMap::new();
         let params = make_params(&lines, &tokens, &config);
@@ -105,9 +103,7 @@ mod tests {
 
     #[test]
     fn test_md028_blank_in_quote() {
-        let lines: Vec<&str> = "> line 1\n\n> line 2\n"
-            .lines()
-            .collect();
+        let lines: Vec<&str> = "> line 1\n\n> line 2\n".lines().collect();
         let tokens = vec![];
         let config = HashMap::new();
         let params = make_params(&lines, &tokens, &config);
@@ -119,9 +115,7 @@ mod tests {
 
     #[test]
     fn test_md028_not_blockquote() {
-        let lines: Vec<&str> = "normal text\n\nmore text\n"
-            .lines()
-            .collect();
+        let lines: Vec<&str> = "normal text\n\nmore text\n".lines().collect();
         let tokens = vec![];
         let config = HashMap::new();
         let params = make_params(&lines, &tokens, &config);
@@ -132,9 +126,7 @@ mod tests {
 
     #[test]
     fn test_md028_fix_blank_line() {
-        let lines: Vec<&str> = "> line 1\n\n> line 2\n"
-            .lines()
-            .collect();
+        let lines: Vec<&str> = "> line 1\n\n> line 2\n".lines().collect();
         let tokens = vec![];
         let config = HashMap::new();
         let params = make_params(&lines, &tokens, &config);
@@ -150,12 +142,7 @@ mod tests {
 
     #[test]
     fn test_md028_fix_multiple_blank_lines() {
-        let lines: Vec<&str> = vec![
-            "> line 1\n",
-            "\n",
-            "\n",
-            "> line 2\n",
-        ];
+        let lines: Vec<&str> = vec!["> line 1\n", "\n", "\n", "> line 2\n"];
         let tokens = vec![];
         let config = HashMap::new();
         let params = make_params(&lines, &tokens, &config);
@@ -168,11 +155,7 @@ mod tests {
 
     #[test]
     fn test_md028_fix_whitespace_line() {
-        let lines: Vec<&str> = vec![
-            "> line 1\n",
-            "   \n",
-            "> line 2\n",
-        ];
+        let lines: Vec<&str> = vec!["> line 1\n", "   \n", "> line 2\n"];
         let tokens = vec![];
         let config = HashMap::new();
         let params = make_params(&lines, &tokens, &config);

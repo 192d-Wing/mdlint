@@ -90,10 +90,7 @@ mod tests {
 
     #[test]
     fn test_md009_with_trailing_spaces() {
-        let lines = vec![
-            "# Heading  \n",
-            "This is content   \n",
-        ];
+        let lines = vec!["# Heading  \n", "This is content   \n"];
 
         let params = RuleParams {
             name: "test.md",
