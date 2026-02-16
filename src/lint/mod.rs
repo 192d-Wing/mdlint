@@ -109,13 +109,26 @@ pub async fn lint_async(options: &LintOptions) -> Result<LintResults> {
 
 /// Load configuration from options
 fn load_config(options: &LintOptions) -> Result<Config> {
-    if let Some(config) = &options.config {
-        Ok(config.clone())
+    let config = if let Some(config) = &options.config {
+        config.clone()
     } else if let Some(config_file) = &options.config_file {
-        Config::from_file(config_file)
+        Config::from_file(config_file)?
     } else {
-        Ok(Config::default())
-    }
+        // Auto-discover from first file's parent directory or CWD
+        let start = options
+            .files
+            .first()
+            .and_then(|f| {
+                std::path::Path::new(f)
+                    .parent()
+                    .map(|p| p.to_path_buf())
+            })
+            .unwrap_or_else(|| std::path::PathBuf::from("."));
+        Config::discover(&start).unwrap_or_default()
+    };
+
+    // Resolve extends chain
+    config.resolve_extends()
 }
 
 /// Lint a single piece of content

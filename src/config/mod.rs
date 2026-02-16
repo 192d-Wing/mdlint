@@ -81,6 +81,47 @@ impl Config {
         }
     }
 
+    /// Config file names to search for during auto-discovery
+    const DISCOVERY_NAMES: [&'static str; 5] = [
+        ".markdownlint.json",
+        ".markdownlint.yaml",
+        ".markdownlint.yml",
+        ".markdownlint.toml",
+        ".markdownlintrc",
+    ];
+
+    /// Walk up from `start_dir` looking for a config file
+    pub fn discover(start_dir: impl AsRef<Path>) -> Option<Self> {
+        let mut dir = start_dir.as_ref().to_path_buf();
+        loop {
+            for name in &Self::DISCOVERY_NAMES {
+                let candidate = dir.join(name);
+                if candidate.is_file() {
+                    if let Ok(config) = Self::from_file(&candidate) {
+                        return Some(config);
+                    }
+                }
+            }
+            if !dir.pop() {
+                break;
+            }
+        }
+        None
+    }
+
+    /// Resolve the `extends` chain: load the parent config and merge self on top
+    pub fn resolve_extends(&self) -> Result<Self> {
+        if let Some(ref extends_path) = self.extends {
+            let parent = Config::from_file(extends_path)?;
+            let mut resolved = parent.resolve_extends()?;
+            resolved.merge(self.clone());
+            resolved.extends = None;
+            Ok(resolved)
+        } else {
+            Ok(self.clone())
+        }
+    }
+
     /// Merge another configuration into this one
     pub fn merge(&mut self, other: Config) {
         if other.default.is_some() {
@@ -131,5 +172,69 @@ mod tests {
         let config: Config = serde_json::from_str(json).unwrap();
         assert_eq!(config.default, Some(true));
         assert!(!config.is_rule_enabled("MD001"));
+    }
+
+    #[test]
+    fn test_discover_json() {
+        let dir = tempfile::tempdir().unwrap();
+        let config_path = dir.path().join(".markdownlint.json");
+        std::fs::write(&config_path, r#"{"default": false}"#).unwrap();
+
+        let config = Config::discover(dir.path()).unwrap();
+        assert_eq!(config.default, Some(false));
+    }
+
+    #[test]
+    fn test_discover_walks_up() {
+        let dir = tempfile::tempdir().unwrap();
+        let sub = dir.path().join("sub").join("deep");
+        std::fs::create_dir_all(&sub).unwrap();
+        let config_path = dir.path().join(".markdownlint.json");
+        std::fs::write(&config_path, r#"{"MD001": false}"#).unwrap();
+
+        let config = Config::discover(&sub).unwrap();
+        assert!(!config.is_rule_enabled("MD001"));
+    }
+
+    #[test]
+    fn test_discover_none_when_missing() {
+        let dir = tempfile::tempdir().unwrap();
+        assert!(Config::discover(dir.path()).is_none());
+    }
+
+    #[test]
+    fn test_discover_yaml() {
+        let dir = tempfile::tempdir().unwrap();
+        let config_path = dir.path().join(".markdownlint.yaml");
+        std::fs::write(&config_path, "default: false\n").unwrap();
+
+        let config = Config::discover(dir.path()).unwrap();
+        assert_eq!(config.default, Some(false));
+    }
+
+    #[test]
+    fn test_resolve_extends() {
+        let dir = tempfile::tempdir().unwrap();
+        let base_path = dir.path().join("base.json");
+        std::fs::write(&base_path, r#"{"default": true, "MD001": false}"#).unwrap();
+
+        let child_json = format!(
+            r#"{{"extends": "{}", "MD013": false}}"#,
+            base_path.to_str().unwrap().replace('\\', "\\\\")
+        );
+        let child: Config = serde_json::from_str(&child_json).unwrap();
+        let resolved = child.resolve_extends().unwrap();
+
+        assert_eq!(resolved.default, Some(true));
+        assert!(!resolved.is_rule_enabled("MD001"));
+        assert!(!resolved.is_rule_enabled("MD013"));
+        assert!(resolved.extends.is_none());
+    }
+
+    #[test]
+    fn test_resolve_extends_no_extends() {
+        let config = Config::new();
+        let resolved = config.resolve_extends().unwrap();
+        assert!(resolved.extends.is_none());
     }
 }
