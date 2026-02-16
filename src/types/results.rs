@@ -83,7 +83,7 @@ impl LintResults {
             if let Some(errors) = self.results.get(file) {
                 for error in errors {
                     let rule_moniker = if use_alias && error.rule_names.len() > 1 {
-                        error.rule_names[1].clone()
+                        error.rule_names[1].to_string()
                     } else {
                         error.rule_names.join("/")
                     };
@@ -147,8 +147,8 @@ mod tests {
             "file1.md".to_string(),
             vec![LintError {
                 line_number: 1,
-                rule_names: vec!["MD001".to_string()],
-                rule_description: "Test error".to_string(),
+                rule_names: &["MD001"],
+                rule_description: "Test error",
                 severity: Severity::Error,
                 ..Default::default()
             }],
@@ -158,8 +158,8 @@ mod tests {
             "file2.md".to_string(),
             vec![LintError {
                 line_number: 5,
-                rule_names: vec!["MD003".to_string()],
-                rule_description: "Test warning".to_string(),
+                rule_names: &["MD003"],
+                rule_description: "Test warning",
                 severity: Severity::Warning,
                 ..Default::default()
             }],

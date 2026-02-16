@@ -82,8 +82,8 @@ mod tests {
     ) -> LintError {
         LintError {
             line_number: line,
-            rule_names: vec!["MD001".to_string()],
-            rule_description: "Test rule".to_string(),
+            rule_names: &["MD001"],
+            rule_description: "Test rule",
             error_detail: Some("Detail".to_string()),
             error_context: Some("Context".to_string()),
             rule_information: None,

@@ -127,8 +127,8 @@ mod tests {
     fn create_test_error_with_fix(fix_info: FixInfo) -> LintError {
         LintError {
             line_number: 1,
-            rule_names: vec!["MD001".to_string()],
-            rule_description: "Test rule".to_string(),
+            rule_names: &["MD001"],
+            rule_description: "Test rule",
             error_detail: None,
             error_context: None,
             rule_information: None,

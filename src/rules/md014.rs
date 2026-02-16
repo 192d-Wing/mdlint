@@ -7,7 +7,7 @@ use crate::types::{FixInfo, LintError, ParserType, Rule, RuleParams, Severity};
 pub struct MD014;
 
 impl Rule for MD014 {
-    fn names(&self) -> &[&'static str] {
+    fn names(&self) -> &'static [&'static str] {
         &["MD014", "commands-show-output"]
     }
 
@@ -50,11 +50,11 @@ impl Rule for MD014 {
 
                 errors.push(LintError {
                     line_number,
-                    rule_names: self.names().iter().map(|s| s.to_string()).collect(),
-                    rule_description: self.description().to_string(),
+                    rule_names: self.names(),
+                    rule_description: self.description(),
                     error_detail: None,
                     error_context: Some(trimmed.to_string()),
-                    rule_information: self.information().map(|s| s.to_string()),
+                    rule_information: self.information(),
                     error_range: Some((1, line.len())),
                     fix_info: Some(FixInfo {
                         line_number: None,
@@ -80,9 +80,9 @@ mod tests {
     #[test]
     fn test_md014_no_dollar_signs() {
         let lines = vec![
-            "```bash\n".to_string(),
-            "echo hello\n".to_string(),
-            "```\n".to_string(),
+            "```bash\n",
+            "echo hello\n",
+            "```\n",
         ];
 
         let params = RuleParams {
@@ -102,9 +102,9 @@ mod tests {
     #[test]
     fn test_md014_with_dollar_signs() {
         let lines = vec![
-            "```bash\n".to_string(),
-            "$ echo hello\n".to_string(),
-            "```\n".to_string(),
+            "```bash\n",
+            "$ echo hello\n",
+            "```\n",
         ];
 
         let params = RuleParams {
@@ -124,9 +124,9 @@ mod tests {
     #[test]
     fn test_md014_fix_dollar_with_space() {
         let lines = vec![
-            "```bash\n".to_string(),
-            "$ echo hello\n".to_string(),
-            "```\n".to_string(),
+            "```bash\n",
+            "$ echo hello\n",
+            "```\n",
         ];
 
         let params = RuleParams {
@@ -150,9 +150,9 @@ mod tests {
     #[test]
     fn test_md014_fix_dollar_without_space() {
         let lines = vec![
-            "```bash\n".to_string(),
-            "$echo hello\n".to_string(),
-            "```\n".to_string(),
+            "```bash\n",
+            "$echo hello\n",
+            "```\n",
         ];
 
         let params = RuleParams {
@@ -176,9 +176,9 @@ mod tests {
     #[test]
     fn test_md014_fix_indented_dollar() {
         let lines = vec![
-            "```bash\n".to_string(),
-            "  $ echo hello\n".to_string(),
-            "```\n".to_string(),
+            "```bash\n",
+            "  $ echo hello\n",
+            "```\n",
         ];
 
         let params = RuleParams {

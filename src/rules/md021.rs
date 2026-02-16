@@ -5,7 +5,7 @@ use crate::types::{FixInfo, LintError, ParserType, Rule, RuleParams, Severity};
 pub struct MD021;
 
 impl Rule for MD021 {
-    fn names(&self) -> &[&'static str] {
+    fn names(&self) -> &'static [&'static str] {
         &["MD021", "no-multiple-space-closed-atx"]
     }
 
@@ -46,11 +46,11 @@ impl Rule for MD021 {
                     if start_spaces > 1 {
                         errors.push(LintError {
                             line_number,
-                            rule_names: self.names().iter().map(|s| s.to_string()).collect(),
-                            rule_description: self.description().to_string(),
+                            rule_names: self.names(),
+                            rule_description: self.description(),
                             error_detail: Some(format!("Expected: 1; Actual: {}", start_spaces)),
                             error_context: Some(trimmed.to_string()),
-                            rule_information: self.information().map(|s| s.to_string()),
+                            rule_information: self.information(),
                             error_range: None,
                             fix_info: Some(FixInfo {
                                 line_number: None,
@@ -67,11 +67,11 @@ impl Rule for MD021 {
                         let content_end = trimmed.len() - trailing_hashes;
                         errors.push(LintError {
                             line_number,
-                            rule_names: self.names().iter().map(|s| s.to_string()).collect(),
-                            rule_description: self.description().to_string(),
+                            rule_names: self.names(),
+                            rule_description: self.description(),
                             error_detail: Some(format!("Expected: 1; Actual: {}", end_spaces)),
                             error_context: Some(trimmed.to_string()),
-                            rule_information: self.information().map(|s| s.to_string()),
+                            rule_information: self.information(),
                             error_range: None,
                             fix_info: Some(FixInfo {
                                 line_number: None,
@@ -97,7 +97,7 @@ mod tests {
     use std::collections::HashMap;
 
     fn make_params<'a>(
-        lines: &'a [String],
+        lines: &'a [&'a str],
         tokens: &'a [crate::parser::Token],
         config: &'a HashMap<String, serde_json::Value>,
     ) -> crate::types::RuleParams<'a> {
@@ -113,7 +113,7 @@ mod tests {
 
     #[test]
     fn test_md021_single_space() {
-        let lines: Vec<String> = "# Heading #\n".lines().map(|l| l.to_string()).collect();
+        let lines: Vec<&str> = "# Heading #\n".lines().collect();
         let tokens = vec![];
         let config = HashMap::new();
         let params = make_params(&lines, &tokens, &config);
@@ -124,7 +124,7 @@ mod tests {
 
     #[test]
     fn test_md021_multiple_start_spaces() {
-        let lines: Vec<String> = "#  Heading #\n".lines().map(|l| l.to_string()).collect();
+        let lines: Vec<&str> = "#  Heading #\n".lines().collect();
         let tokens = vec![];
         let config = HashMap::new();
         let params = make_params(&lines, &tokens, &config);
@@ -135,7 +135,7 @@ mod tests {
 
     #[test]
     fn test_md021_multiple_end_spaces() {
-        let lines: Vec<String> = "# Heading  #\n".lines().map(|l| l.to_string()).collect();
+        let lines: Vec<&str> = "# Heading  #\n".lines().collect();
         let tokens = vec![];
         let config = HashMap::new();
         let params = make_params(&lines, &tokens, &config);
@@ -146,7 +146,7 @@ mod tests {
 
     #[test]
     fn test_md021_fix_multiple_start_spaces() {
-        let lines: Vec<String> = "#  Heading #\n".lines().map(|l| l.to_string()).collect();
+        let lines: Vec<&str> = "#  Heading #\n".lines().collect();
         let tokens = vec![];
         let config = HashMap::new();
         let params = make_params(&lines, &tokens, &config);
@@ -161,7 +161,7 @@ mod tests {
 
     #[test]
     fn test_md021_fix_multiple_end_spaces() {
-        let lines: Vec<String> = "# Heading  #\n".lines().map(|l| l.to_string()).collect();
+        let lines: Vec<&str> = "# Heading  #\n".lines().collect();
         let tokens = vec![];
         let config = HashMap::new();
         let params = make_params(&lines, &tokens, &config);
@@ -175,7 +175,7 @@ mod tests {
 
     #[test]
     fn test_md021_fix_many_spaces() {
-        let lines: Vec<String> = "#     Heading #\n".lines().map(|l| l.to_string()).collect();
+        let lines: Vec<&str> = "#     Heading #\n".lines().collect();
         let tokens = vec![];
         let config = HashMap::new();
         let params = make_params(&lines, &tokens, &config);

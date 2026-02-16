@@ -99,7 +99,7 @@ fn find_emphasis_matches(line: &str) -> Vec<EmphasisMatch> {
 }
 
 impl Rule for MD049 {
-    fn names(&self) -> &[&'static str] {
+    fn names(&self) -> &'static [&'static str] {
         &["MD049", "emphasis-style"]
     }
 
@@ -167,14 +167,14 @@ impl Rule for MD049 {
 
                 errors.push(LintError {
                     line_number: *line_number,
-                    rule_names: self.names().iter().map(|s| s.to_string()).collect(),
-                    rule_description: self.description().to_string(),
+                    rule_names: self.names(),
+                    rule_description: self.description(),
                     error_detail: Some(format!(
                         "Expected: {}; Actual: {}",
                         preferred_style, em.style
                     )),
                     error_context: Some(em.full_match.clone()),
-                    rule_information: self.information().map(|s| s.to_string()),
+                    rule_information: self.information(),
                     error_range: Some((em.start + 1, em.full_match.len())),
                     fix_info: Some(FixInfo {
                         line_number: None,
@@ -198,7 +198,7 @@ mod tests {
     use std::collections::HashMap;
 
     fn make_params<'a>(
-        lines: &'a [String],
+        lines: &'a [&'a str],
         tokens: &'a [crate::parser::Token],
         config: &'a HashMap<String, serde_json::Value>,
     ) -> crate::types::RuleParams<'a> {
@@ -215,7 +215,7 @@ mod tests {
     #[test]
     fn test_md049_consistent_asterisks() {
         let rule = MD049;
-        let lines: Vec<String> = vec!["*one* and *two* and *three*\n".to_string()];
+        let lines: Vec<&str> = vec!["*one* and *two* and *three*\n"];
         let tokens = vec![];
         let config = HashMap::new();
         let params = make_params(&lines, &tokens, &config);
@@ -226,7 +226,7 @@ mod tests {
     #[test]
     fn test_md049_consistent_underscores() {
         let rule = MD049;
-        let lines: Vec<String> = vec!["_one_ and _two_ and _three_\n".to_string()];
+        let lines: Vec<&str> = vec!["_one_ and _two_ and _three_\n"];
         let tokens = vec![];
         let config = HashMap::new();
         let params = make_params(&lines, &tokens, &config);
@@ -238,7 +238,7 @@ mod tests {
     fn test_md049_mixed_styles_consistent_mode() {
         let rule = MD049;
         // First emphasis is asterisk, so underscore ones should be flagged
-        let lines: Vec<String> = vec!["*one* and _two_\n".to_string()];
+        let lines: Vec<&str> = vec!["*one* and _two_\n"];
         let tokens = vec![];
         let config = HashMap::new();
         let params = make_params(&lines, &tokens, &config);
@@ -253,7 +253,7 @@ mod tests {
     #[test]
     fn test_md049_configured_asterisk_style() {
         let rule = MD049;
-        let lines: Vec<String> = vec!["_one_ and _two_\n".to_string()];
+        let lines: Vec<&str> = vec!["_one_ and _two_\n"];
         let tokens = vec![];
         let mut config = HashMap::new();
         config.insert("style".to_string(), serde_json::json!("asterisk"));
@@ -265,7 +265,7 @@ mod tests {
     #[test]
     fn test_md049_configured_underscore_style() {
         let rule = MD049;
-        let lines: Vec<String> = vec!["*one* and *two*\n".to_string()];
+        let lines: Vec<&str> = vec!["*one* and *two*\n"];
         let tokens = vec![];
         let mut config = HashMap::new();
         config.insert("style".to_string(), serde_json::json!("underscore"));
@@ -278,7 +278,7 @@ mod tests {
     fn test_md049_fix_info_underscore_to_asterisk() {
         let rule = MD049;
         // First is asterisk, so underscore should get fix_info to convert to asterisk
-        let lines: Vec<String> = vec!["*one* and _two_\n".to_string()];
+        let lines: Vec<&str> = vec!["*one* and _two_\n"];
         let tokens = vec![];
         let config = HashMap::new();
         let params = make_params(&lines, &tokens, &config);
@@ -297,7 +297,7 @@ mod tests {
     fn test_md049_fix_info_asterisk_to_underscore() {
         let rule = MD049;
         // First is underscore, so asterisk should get fix_info to convert to underscore
-        let lines: Vec<String> = vec!["_one_ and *two*\n".to_string()];
+        let lines: Vec<&str> = vec!["_one_ and *two*\n"];
         let tokens = vec![];
         let config = HashMap::new();
         let params = make_params(&lines, &tokens, &config);
@@ -314,7 +314,7 @@ mod tests {
     #[test]
     fn test_md049_fix_info_multiple_errors() {
         let rule = MD049;
-        let lines: Vec<String> = vec!["*ok* and _bad1_ and _bad2_\n".to_string()];
+        let lines: Vec<&str> = vec!["*ok* and _bad1_ and _bad2_\n"];
         let tokens = vec![];
         let config = HashMap::new();
         let params = make_params(&lines, &tokens, &config);
@@ -331,7 +331,7 @@ mod tests {
     #[test]
     fn test_md049_no_emphasis() {
         let rule = MD049;
-        let lines: Vec<String> = vec!["Just plain text.\n".to_string()];
+        let lines: Vec<&str> = vec!["Just plain text.\n"];
         let tokens = vec![];
         let config = HashMap::new();
         let params = make_params(&lines, &tokens, &config);
@@ -343,7 +343,7 @@ mod tests {
     fn test_md049_does_not_match_strong() {
         let rule = MD049;
         // **bold** should NOT be treated as emphasis
-        let lines: Vec<String> = vec!["**bold** and __also bold__\n".to_string()];
+        let lines: Vec<&str> = vec!["**bold** and __also bold__\n"];
         let tokens = vec![];
         let config = HashMap::new();
         let params = make_params(&lines, &tokens, &config);

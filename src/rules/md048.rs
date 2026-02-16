@@ -5,7 +5,7 @@ use crate::types::{FixInfo, LintError, ParserType, Rule, RuleParams, Severity};
 pub struct MD048;
 
 impl Rule for MD048 {
-    fn names(&self) -> &[&'static str] {
+    fn names(&self) -> &'static [&'static str] {
         &["MD048", "code-fence-style"]
     }
 
@@ -78,11 +78,11 @@ impl Rule for MD048 {
 
                 errors.push(LintError {
                     line_number: line_num,
-                    rule_names: self.names().iter().map(|s| s.to_string()).collect(),
-                    rule_description: self.description().to_string(),
+                    rule_names: self.names(),
+                    rule_description: self.description(),
                     error_detail: Some(format!("Expected: {}; Actual: {}", first_style, old_fence)),
                     error_context: Some(trimmed.to_string()),
-                    rule_information: self.information().map(|s| s.to_string()),
+                    rule_information: self.information(),
                     error_range: Some((leading_spaces + 1, fence_len)),
                     fix_info: Some(FixInfo {
                         line_number: Some(line_num),
@@ -106,7 +106,7 @@ mod tests {
     use std::collections::HashMap;
 
     fn make_params<'a>(
-        lines: &'a [String],
+        lines: &'a [&'a str],
         tokens: &'a [crate::parser::Token],
         config: &'a HashMap<String, serde_json::Value>,
     ) -> crate::types::RuleParams<'a> {
@@ -123,14 +123,14 @@ mod tests {
     #[test]
     fn test_md048_consistent_backticks() {
         let rule = MD048;
-        let lines: Vec<String> = vec![
-            "```\n".to_string(),
-            "code block 1\n".to_string(),
-            "```\n".to_string(),
-            "\n".to_string(),
-            "```\n".to_string(),
-            "code block 2\n".to_string(),
-            "```\n".to_string(),
+        let lines: Vec<&str> = vec![
+            "```\n",
+            "code block 1\n",
+            "```\n",
+            "\n",
+            "```\n",
+            "code block 2\n",
+            "```\n",
         ];
         let tokens = vec![];
         let config = HashMap::new();
@@ -142,14 +142,14 @@ mod tests {
     #[test]
     fn test_md048_consistent_tildes() {
         let rule = MD048;
-        let lines: Vec<String> = vec![
-            "~~~\n".to_string(),
-            "code block 1\n".to_string(),
-            "~~~\n".to_string(),
-            "\n".to_string(),
-            "~~~\n".to_string(),
-            "code block 2\n".to_string(),
-            "~~~\n".to_string(),
+        let lines: Vec<&str> = vec![
+            "~~~\n",
+            "code block 1\n",
+            "~~~\n",
+            "\n",
+            "~~~\n",
+            "code block 2\n",
+            "~~~\n",
         ];
         let tokens = vec![];
         let config = HashMap::new();
@@ -161,14 +161,14 @@ mod tests {
     #[test]
     fn test_md048_mixed_styles() {
         let rule = MD048;
-        let lines: Vec<String> = vec![
-            "```\n".to_string(),
-            "code block 1\n".to_string(),
-            "```\n".to_string(),
-            "\n".to_string(),
-            "~~~\n".to_string(),
-            "code block 2\n".to_string(),
-            "~~~\n".to_string(),
+        let lines: Vec<&str> = vec![
+            "```\n",
+            "code block 1\n",
+            "```\n",
+            "\n",
+            "~~~\n",
+            "code block 2\n",
+            "~~~\n",
         ];
         let tokens = vec![];
         let config = HashMap::new();
@@ -183,14 +183,14 @@ mod tests {
     #[test]
     fn test_md048_fix_info() {
         let rule = MD048;
-        let lines: Vec<String> = vec![
-            "```rust\n".to_string(),
-            "let x = 5;\n".to_string(),
-            "```\n".to_string(),
-            "\n".to_string(),
-            "~~~python\n".to_string(),
-            "y = 10\n".to_string(),
-            "~~~\n".to_string(),
+        let lines: Vec<&str> = vec![
+            "```rust\n",
+            "let x = 5;\n",
+            "```\n",
+            "\n",
+            "~~~python\n",
+            "y = 10\n",
+            "~~~\n",
         ];
         let tokens = vec![];
         let config = HashMap::new();

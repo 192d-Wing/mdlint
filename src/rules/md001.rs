@@ -21,7 +21,7 @@ impl MD001 {
 
     /// Check if front matter has a title field
     fn front_matter_has_title(
-        front_matter_lines: &[String],
+        front_matter_lines: &[&str],
         config: &std::collections::HashMap<String, serde_json::Value>,
     ) -> bool {
         // Get front_matter_title pattern from config, default to checking for "title:"
@@ -41,7 +41,7 @@ impl MD001 {
 }
 
 impl Rule for MD001 {
-    fn names(&self) -> &[&'static str] {
+    fn names(&self) -> &'static [&'static str] {
         &["MD001", "heading-increment"]
     }
 
@@ -93,7 +93,7 @@ impl Rule for MD001 {
                     let line = params
                         .lines
                         .get(heading.start_line - 1)
-                        .map(|s| s.as_str())
+                        .copied()
                         .unwrap_or("");
 
                     // Find where the heading text starts (after leading # and spaces)
@@ -128,14 +128,14 @@ impl Rule for MD001 {
 
                 errors.push(LintError {
                     line_number: heading.start_line,
-                    rule_names: self.names().iter().map(|s| s.to_string()).collect(),
-                    rule_description: self.description().to_string(),
+                    rule_names: self.names(),
+                    rule_description: self.description(),
                     error_detail: Some(format!(
                         "Expected: h{}; Actual: h{}",
                         expected_level, level
                     )),
                     error_context: None,
-                    rule_information: self.information().map(|s| s.to_string()),
+                    rule_information: self.information(),
                     error_range: None,
                     fix_info,
                     suggestion: Some(
@@ -185,9 +185,9 @@ mod tests {
         ];
 
         let lines = vec![
-            "# Heading 1\n".to_string(),
-            "## Heading 2\n".to_string(),
-            "### Heading 3\n".to_string(),
+            "# Heading 1\n",
+            "## Heading 2\n",
+            "### Heading 3\n",
         ];
 
         let params = RuleParams {
@@ -211,7 +211,7 @@ mod tests {
             create_heading(2, 3, false), // Skip from h1 to h3
         ];
 
-        let lines = vec!["# Heading 1\n".to_string(), "### Heading 3\n".to_string()];
+        let lines = vec!["# Heading 1\n", "### Heading 3\n"];
 
         let params = RuleParams {
             name: "test.md",
@@ -243,10 +243,10 @@ mod tests {
         ];
 
         let lines = vec![
-            "# Heading 1\n".to_string(),
-            "## Heading 2\n".to_string(),
-            "### Heading 3\n".to_string(),
-            "# Heading 1 again\n".to_string(),
+            "# Heading 1\n",
+            "## Heading 2\n",
+            "### Heading 3\n",
+            "# Heading 1 again\n",
         ];
 
         let params = RuleParams {
@@ -270,13 +270,13 @@ mod tests {
         ];
 
         let lines = vec![
-            "---\n".to_string(),
-            "title: Document Title\n".to_string(),
-            "---\n".to_string(),
-            "## Heading 2\n".to_string(),
+            "---\n",
+            "title: Document Title\n",
+            "---\n",
+            "## Heading 2\n",
         ];
 
-        let front_matter = vec!["title: Document Title\n".to_string()];
+        let front_matter = vec!["title: Document Title\n"];
 
         let params = RuleParams {
             name: "test.md",
@@ -297,11 +297,11 @@ mod tests {
         let tokens = vec![create_heading(1, 1, true), create_heading(4, 2, true)];
 
         let lines = vec![
-            "Heading 1\n".to_string(),
-            "=========\n".to_string(),
-            "\n".to_string(),
-            "Heading 2\n".to_string(),
-            "---------\n".to_string(),
+            "Heading 1\n",
+            "=========\n",
+            "\n",
+            "Heading 2\n",
+            "---------\n",
         ];
 
         let params = RuleParams {
@@ -327,9 +327,9 @@ mod tests {
         ];
 
         let lines = vec![
-            "# Heading 1\n".to_string(),
-            "#### Heading 4\n".to_string(),
-            "###### Heading 6\n".to_string(),
+            "# Heading 1\n",
+            "#### Heading 4\n",
+            "###### Heading 6\n",
         ];
 
         let params = RuleParams {
@@ -356,7 +356,7 @@ mod tests {
             create_heading(2, 3, false), // Skip from h1 to h3
         ];
 
-        let lines = vec!["# Heading 1\n".to_string(), "### Heading 3\n".to_string()];
+        let lines = vec!["# Heading 1\n", "### Heading 3\n"];
 
         let params = RuleParams {
             name: "test.md",
@@ -386,9 +386,9 @@ mod tests {
         ];
 
         let lines = vec![
-            "# Heading 1\n".to_string(),
-            "Heading 2\n".to_string(),
-            "---------\n".to_string(),
+            "# Heading 1\n",
+            "Heading 2\n",
+            "---------\n",
         ];
 
         let params = RuleParams {

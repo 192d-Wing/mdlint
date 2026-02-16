@@ -5,7 +5,7 @@ use crate::types::{FixInfo, LintError, ParserType, Rule, RuleParams, Severity};
 pub struct MD026;
 
 impl Rule for MD026 {
-    fn names(&self) -> &[&'static str] {
+    fn names(&self) -> &'static [&'static str] {
         &["MD026", "no-trailing-punctuation"]
     }
 
@@ -56,11 +56,11 @@ impl Rule for MD026 {
 
                         errors.push(LintError {
                             line_number,
-                            rule_names: self.names().iter().map(|s| s.to_string()).collect(),
-                            rule_description: self.description().to_string(),
+                            rule_names: self.names(),
+                            rule_description: self.description(),
                             error_detail: Some(format!("Punctuation: '{}'", last_char)),
                             error_context: Some(content.to_string()),
-                            rule_information: self.information().map(|s| s.to_string()),
+                            rule_information: self.information(),
                             error_range: None,
                             fix_info: Some(FixInfo {
                                 line_number: None,
@@ -89,7 +89,7 @@ mod tests {
 
     #[test]
     fn test_md026_no_punctuation() {
-        let lines = vec!["# Heading\n".to_string()];
+        let lines = vec!["# Heading\n"];
 
         let params = RuleParams {
             name: "test.md",
@@ -107,7 +107,7 @@ mod tests {
 
     #[test]
     fn test_md026_with_punctuation() {
-        let lines = vec!["# Heading!\n".to_string(), "## Question?\n".to_string()];
+        let lines = vec!["# Heading!\n", "## Question?\n"];
 
         let params = RuleParams {
             name: "test.md",
@@ -125,7 +125,7 @@ mod tests {
 
     #[test]
     fn test_md026_fix_info_exclamation() {
-        let lines = vec!["# Heading!\n".to_string()];
+        let lines = vec!["# Heading!\n"];
 
         let params = RuleParams {
             name: "test.md",
@@ -153,7 +153,7 @@ mod tests {
 
     #[test]
     fn test_md026_fix_info_question() {
-        let lines = vec!["## Question?\n".to_string()];
+        let lines = vec!["## Question?\n"];
 
         let params = RuleParams {
             name: "test.md",
@@ -181,7 +181,7 @@ mod tests {
 
     #[test]
     fn test_md026_fix_info_closed_atx() {
-        let lines = vec!["# Heading! ##\n".to_string()];
+        let lines = vec!["# Heading! ##\n"];
 
         let params = RuleParams {
             name: "test.md",

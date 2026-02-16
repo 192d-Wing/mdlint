@@ -5,7 +5,7 @@ use crate::types::{FixInfo, LintError, ParserType, Rule, RuleParams, Severity};
 pub struct MD027;
 
 impl Rule for MD027 {
-    fn names(&self) -> &[&'static str] {
+    fn names(&self) -> &'static [&'static str] {
         &["MD027", "no-multiple-space-blockquote"]
     }
 
@@ -38,11 +38,11 @@ impl Rule for MD027 {
                 if space_count > 1 {
                     errors.push(LintError {
                         line_number,
-                        rule_names: self.names().iter().map(|s| s.to_string()).collect(),
-                        rule_description: self.description().to_string(),
+                        rule_names: self.names(),
+                        rule_description: self.description(),
                         error_detail: Some(format!("Expected: 1; Actual: {}", space_count)),
                         error_context: None,
-                        rule_information: self.information().map(|s| s.to_string()),
+                        rule_information: self.information(),
                         error_range: Some((2, space_count)),
                         fix_info: Some(FixInfo {
                             line_number: None,
@@ -70,7 +70,7 @@ mod tests {
 
     #[test]
     fn test_md027_single_space() {
-        let lines = vec!["> Blockquote\n".to_string()];
+        let lines = vec!["> Blockquote\n"];
 
         let params = RuleParams {
             name: "test.md",
@@ -88,7 +88,7 @@ mod tests {
 
     #[test]
     fn test_md027_multiple_spaces() {
-        let lines = vec![">  Blockquote\n".to_string()];
+        let lines = vec![">  Blockquote\n"];
 
         let params = RuleParams {
             name: "test.md",

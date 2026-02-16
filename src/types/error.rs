@@ -59,10 +59,10 @@ pub struct LintError {
     pub line_number: usize,
 
     /// Rule names (e.g., ["MD001", "heading-increment"])
-    pub rule_names: Vec<String>,
+    pub rule_names: &'static [&'static str],
 
     /// Rule description
-    pub rule_description: String,
+    pub rule_description: &'static str,
 
     /// Additional detail about the error
     pub error_detail: Option<String>,
@@ -71,7 +71,7 @@ pub struct LintError {
     pub error_context: Option<String>,
 
     /// URL with more information about the rule
-    pub rule_information: Option<String>,
+    pub rule_information: Option<&'static str>,
 
     /// Column range for the error [start, length]
     pub error_range: Option<(usize, usize)>,
@@ -124,8 +124,8 @@ impl Default for LintError {
     fn default() -> Self {
         Self {
             line_number: 0,
-            rule_names: Vec::new(),
-            rule_description: String::new(),
+            rule_names: &[],
+            rule_description: "",
             error_detail: None,
             error_context: None,
             rule_information: None,

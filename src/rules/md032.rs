@@ -119,7 +119,7 @@ fn is_list(token: &crate::parser::Token) -> bool {
 }
 
 impl Rule for MD032 {
-    fn names(&self) -> &[&'static str] {
+    fn names(&self) -> &'static [&'static str] {
         &["MD032", "blanks-around-lists"]
     }
 
@@ -181,11 +181,11 @@ impl Rule for MD032 {
 
                         errors.push(LintError {
                             line_number: first_line_number,
-                            rule_names: self.names().iter().map(|s| s.to_string()).collect(),
-                            rule_description: self.description().to_string(),
+                            rule_names: self.names(),
+                            rule_description: self.description(),
                             error_detail: None,
                             error_context: Some(context),
-                            rule_information: self.information().map(|s| s.to_string()),
+                            rule_information: self.information(),
                             error_range: None,
                             fix_info: Some(FixInfo {
                                 line_number: Some(first_line_number),
@@ -245,11 +245,11 @@ impl Rule for MD032 {
 
                     errors.push(LintError {
                         line_number: last_line_number,
-                        rule_names: self.names().iter().map(|s| s.to_string()).collect(),
-                        rule_description: self.description().to_string(),
+                        rule_names: self.names(),
+                        rule_description: self.description(),
                         error_detail: None,
                         error_context: Some(context),
-                        rule_information: self.information().map(|s| s.to_string()),
+                        rule_information: self.information(),
                         error_range: None,
                         fix_info: Some(FixInfo {
                             line_number: Some(last_line_number + 1),
@@ -325,12 +325,12 @@ mod tests {
     #[test]
     fn test_md032_valid_blank_lines() {
         let lines = vec![
-            "# Heading\n".to_string(),
-            "\n".to_string(),
-            "- Item 1\n".to_string(),
-            "- Item 2\n".to_string(),
-            "\n".to_string(),
-            "Paragraph\n".to_string(),
+            "# Heading\n",
+            "\n",
+            "- Item 1\n",
+            "- Item 2\n",
+            "\n",
+            "Paragraph\n",
         ];
 
         let tokens = vec![
@@ -356,10 +356,10 @@ mod tests {
     #[test]
     fn test_md032_missing_blank_before() {
         let lines = vec![
-            "# Heading\n".to_string(),
-            "- Item 1\n".to_string(),
-            "- Item 2\n".to_string(),
-            "\n".to_string(),
+            "# Heading\n",
+            "- Item 1\n",
+            "- Item 2\n",
+            "\n",
         ];
 
         let tokens = vec![
@@ -386,10 +386,10 @@ mod tests {
     #[test]
     fn test_md032_missing_blank_after() {
         let lines = vec![
-            "\n".to_string(),
-            "- Item 1\n".to_string(),
-            "- Item 2\n".to_string(),
-            "Paragraph\n".to_string(),
+            "\n",
+            "- Item 1\n",
+            "- Item 2\n",
+            "Paragraph\n",
         ];
 
         let tokens = vec![
@@ -416,10 +416,10 @@ mod tests {
     #[test]
     fn test_md032_ordered_list() {
         let lines = vec![
-            "Paragraph\n".to_string(),
-            "1. Item 1\n".to_string(),
-            "2. Item 2\n".to_string(),
-            "More text\n".to_string(),
+            "Paragraph\n",
+            "1. Item 1\n",
+            "2. Item 2\n",
+            "More text\n",
         ];
 
         let tokens = vec![
@@ -446,9 +446,9 @@ mod tests {
     #[test]
     fn test_md032_at_start_of_file() {
         let lines = vec![
-            "- Item 1\n".to_string(),
-            "- Item 2\n".to_string(),
-            "\n".to_string(),
+            "- Item 1\n",
+            "- Item 2\n",
+            "\n",
         ];
 
         let tokens = vec![
@@ -475,9 +475,9 @@ mod tests {
     #[test]
     fn test_md032_at_end_of_file() {
         let lines = vec![
-            "\n".to_string(),
-            "- Item 1\n".to_string(),
-            "- Item 2\n".to_string(),
+            "\n",
+            "- Item 1\n",
+            "- Item 2\n",
         ];
 
         let tokens = vec![

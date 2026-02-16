@@ -4,7 +4,7 @@
 
 use mkdlint::lsp::MkdlintLanguageServer;
 use tower_lsp::lsp_types::*;
-use tower_lsp::{LspService, LanguageServer};
+use tower_lsp::{LanguageServer, LspService};
 
 /// Helper to create a test LSP server
 async fn create_test_server() -> MkdlintLanguageServer {

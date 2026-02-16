@@ -9,7 +9,7 @@ static URL_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"https?://[^\s<>]+").unwra
 pub struct MD034;
 
 impl Rule for MD034 {
-    fn names(&self) -> &[&'static str] {
+    fn names(&self) -> &'static [&'static str] {
         &["MD034", "no-bare-urls"]
     }
 
@@ -44,11 +44,11 @@ impl Rule for MD034 {
                 let url = mat.as_str();
                 errors.push(LintError {
                     line_number,
-                    rule_names: self.names().iter().map(|s| s.to_string()).collect(),
-                    rule_description: self.description().to_string(),
+                    rule_names: self.names(),
+                    rule_description: self.description(),
                     error_detail: None,
                     error_context: Some(url.to_string()),
-                    rule_information: self.information().map(|s| s.to_string()),
+                    rule_information: self.information(),
                     error_range: Some((mat.start() + 1, mat.len())),
                     fix_info: Some(FixInfo {
                         line_number: None,
@@ -75,7 +75,7 @@ mod tests {
 
     #[test]
     fn test_md034_with_markdown_link() {
-        let lines = vec!["[link](https://example.com)\n".to_string()];
+        let lines = vec!["[link](https://example.com)\n"];
 
         let params = RuleParams {
             name: "test.md",
@@ -93,7 +93,7 @@ mod tests {
 
     #[test]
     fn test_md034_bare_url() {
-        let lines = vec!["Visit https://example.com for more\n".to_string()];
+        let lines = vec!["Visit https://example.com for more\n"];
 
         let params = RuleParams {
             name: "test.md",
@@ -111,7 +111,7 @@ mod tests {
 
     #[test]
     fn test_md034_fix_info() {
-        let lines = vec!["Visit https://example.com for more\n".to_string()];
+        let lines = vec!["Visit https://example.com for more\n"];
 
         let params = RuleParams {
             name: "test.md",
@@ -140,7 +140,7 @@ mod tests {
 
     #[test]
     fn test_md034_fix_info_at_start() {
-        let lines = vec!["http://test.org/path\n".to_string()];
+        let lines = vec!["http://test.org/path\n"];
 
         let params = RuleParams {
             name: "test.md",

@@ -47,7 +47,7 @@ fn heading_matches(actual_level: usize, actual_text: &str, pattern: &str) -> boo
 }
 
 impl Rule for MD043 {
-    fn names(&self) -> &[&'static str] {
+    fn names(&self) -> &'static [&'static str] {
         &["MD043", "required-headings", "required-headers"]
     }
 
@@ -111,11 +111,11 @@ impl Rule for MD043 {
                 let last_line = params.lines.len();
                 errors.push(LintError {
                     line_number: last_line,
-                    rule_names: self.names().iter().map(|s| s.to_string()).collect(),
-                    rule_description: self.description().to_string(),
+                    rule_names: self.names(),
+                    rule_description: self.description(),
                     error_detail: Some(format!("Expected: {}", expected)),
                     error_context: None,
-                    rule_information: self.information().map(|s| s.to_string()),
+                    rule_information: self.information(),
                     error_range: None,
                     fix_info: None,
                     suggestion: Some("Follow the required heading structure".to_string()),
@@ -128,8 +128,8 @@ impl Rule for MD043 {
             if !heading_matches(level, text, expected) {
                 errors.push(LintError {
                     line_number: line_num,
-                    rule_names: self.names().iter().map(|s| s.to_string()).collect(),
-                    rule_description: self.description().to_string(),
+                    rule_names: self.names(),
+                    rule_description: self.description(),
                     error_detail: Some(format!(
                         "Expected: {}; Actual: {} {}",
                         expected,
@@ -137,7 +137,7 @@ impl Rule for MD043 {
                         text
                     )),
                     error_context: None,
-                    rule_information: self.information().map(|s| s.to_string()),
+                    rule_information: self.information(),
                     error_range: None,
                     fix_info: None,
                     suggestion: Some("Follow the required heading structure".to_string()),
@@ -152,11 +152,11 @@ impl Rule for MD043 {
             let (line_num, level, ref text) = actual_headings[actual_idx];
             errors.push(LintError {
                 line_number: line_num,
-                rule_names: self.names().iter().map(|s| s.to_string()).collect(),
-                rule_description: self.description().to_string(),
+                rule_names: self.names(),
+                rule_description: self.description(),
                 error_detail: Some(format!("Extra heading: {} {}", "#".repeat(level), text)),
                 error_context: None,
-                rule_information: self.information().map(|s| s.to_string()),
+                rule_information: self.information(),
                 error_range: None,
                 fix_info: None,
                 suggestion: Some("Follow the required heading structure".to_string()),
@@ -175,7 +175,7 @@ mod tests {
     use std::collections::HashMap;
 
     fn make_params<'a>(
-        lines: &'a [String],
+        lines: &'a [&'a str],
         config: &'a HashMap<String, serde_json::Value>,
     ) -> crate::types::RuleParams<'a> {
         crate::types::RuleParams {
@@ -191,7 +191,7 @@ mod tests {
     #[test]
     fn test_md043_no_config() {
         let rule = MD043;
-        let lines = vec!["# Title\n".to_string()];
+        let lines = vec!["# Title\n"];
         let config = HashMap::new();
         let params = make_params(&lines, &config);
         assert_eq!(rule.lint(&params).len(), 0);
@@ -201,9 +201,9 @@ mod tests {
     fn test_md043_matching_structure() {
         let rule = MD043;
         let lines = vec![
-            "# Title\n".to_string(),
-            "\n".to_string(),
-            "## Section\n".to_string(),
+            "# Title\n",
+            "\n",
+            "## Section\n",
         ];
         let mut config = HashMap::new();
         config.insert(
@@ -217,7 +217,7 @@ mod tests {
     #[test]
     fn test_md043_missing_heading() {
         let rule = MD043;
-        let lines = vec!["# Title\n".to_string()];
+        let lines = vec!["# Title\n"];
         let mut config = HashMap::new();
         config.insert(
             "headings".to_string(),
@@ -239,11 +239,11 @@ mod tests {
     fn test_md043_extra_heading() {
         let rule = MD043;
         let lines = vec![
-            "# Title\n".to_string(),
-            "\n".to_string(),
-            "## Section\n".to_string(),
-            "\n".to_string(),
-            "## Extra\n".to_string(),
+            "# Title\n",
+            "\n",
+            "## Section\n",
+            "\n",
+            "## Extra\n",
         ];
         let mut config = HashMap::new();
         config.insert("headings".to_string(), serde_json::json!(["# Title"]));
@@ -256,9 +256,9 @@ mod tests {
     fn test_md043_wildcard() {
         let rule = MD043;
         let lines = vec![
-            "# Any Title\n".to_string(),
-            "\n".to_string(),
-            "## Anything\n".to_string(),
+            "# Any Title\n",
+            "\n",
+            "## Anything\n",
         ];
         let mut config = HashMap::new();
         config.insert("headings".to_string(), serde_json::json!(["# *", "## *"]));
@@ -270,9 +270,9 @@ mod tests {
     fn test_md043_any_heading_pattern() {
         let rule = MD043;
         let lines = vec![
-            "# Title\n".to_string(),
-            "\n".to_string(),
-            "### Deep heading\n".to_string(),
+            "# Title\n",
+            "\n",
+            "### Deep heading\n",
         ];
         let mut config = HashMap::new();
         config.insert("headings".to_string(), serde_json::json!(["#+", "#+"]));
@@ -283,7 +283,7 @@ mod tests {
     #[test]
     fn test_md043_wrong_level() {
         let rule = MD043;
-        let lines = vec!["## Not Title\n".to_string()];
+        let lines = vec!["## Not Title\n"];
         let mut config = HashMap::new();
         config.insert("headings".to_string(), serde_json::json!(["# Title"]));
         let params = make_params(&lines, &config);

@@ -5,7 +5,7 @@ use crate::types::{FixInfo, LintError, ParserType, Rule, RuleParams, Severity};
 pub struct MD023;
 
 impl Rule for MD023 {
-    fn names(&self) -> &[&'static str] {
+    fn names(&self) -> &'static [&'static str] {
         &["MD023", "heading-start-left"]
     }
 
@@ -40,13 +40,13 @@ impl Rule for MD023 {
                     let trimmed_no_newline = trimmed.trim_end_matches('\n').trim_end_matches('\r');
                     errors.push(LintError {
                         line_number,
-                        rule_names: self.names().iter().map(|s| s.to_string()).collect(),
-                        rule_description: self.description().to_string(),
+                        rule_names: self.names(),
+                        rule_description: self.description(),
                         error_detail: Some(format!("Expected: 0; Actual: {}", indent_count)),
                         error_context: Some(
                             trimmed_no_newline[..20.min(trimmed_no_newline.len())].to_string(),
                         ),
-                        rule_information: self.information().map(|s| s.to_string()),
+                        rule_information: self.information(),
                         error_range: Some((1, indent_count)),
                         fix_info: Some(FixInfo {
                             line_number: None,
@@ -73,7 +73,7 @@ mod tests {
     use std::collections::HashMap;
 
     fn make_params<'a>(
-        lines: &'a [String],
+        lines: &'a [&'a str],
         tokens: &'a [crate::parser::Token],
         config: &'a HashMap<String, serde_json::Value>,
     ) -> crate::types::RuleParams<'a> {
@@ -89,7 +89,7 @@ mod tests {
 
     #[test]
     fn test_md023_no_indent() {
-        let lines: Vec<String> = "# Heading\n".lines().map(|l| l.to_string()).collect();
+        let lines: Vec<&str> = "# Heading\n".lines().collect();
         let tokens = vec![];
         let config = HashMap::new();
         let params = make_params(&lines, &tokens, &config);
@@ -100,7 +100,7 @@ mod tests {
 
     #[test]
     fn test_md023_space_indent() {
-        let lines: Vec<String> = "  # Heading\n".lines().map(|l| l.to_string()).collect();
+        let lines: Vec<&str> = "  # Heading\n".lines().collect();
         let tokens = vec![];
         let config = HashMap::new();
         let params = make_params(&lines, &tokens, &config);
@@ -111,7 +111,7 @@ mod tests {
 
     #[test]
     fn test_md023_tab_indent() {
-        let lines: Vec<String> = "\t# Heading\n".lines().map(|l| l.to_string()).collect();
+        let lines: Vec<&str> = "\t# Heading\n".lines().collect();
         let tokens = vec![];
         let config = HashMap::new();
         let params = make_params(&lines, &tokens, &config);
@@ -122,7 +122,7 @@ mod tests {
 
     #[test]
     fn test_md023_fix_info_spaces() {
-        let lines: Vec<String> = "  # Heading\n".lines().map(|l| l.to_string()).collect();
+        let lines: Vec<&str> = "  # Heading\n".lines().collect();
         let tokens = vec![];
         let config = HashMap::new();
         let params = make_params(&lines, &tokens, &config);
@@ -142,7 +142,7 @@ mod tests {
 
     #[test]
     fn test_md023_fix_info_tab() {
-        let lines: Vec<String> = "\t# Heading\n".lines().map(|l| l.to_string()).collect();
+        let lines: Vec<&str> = "\t# Heading\n".lines().collect();
         let tokens = vec![];
         let config = HashMap::new();
         let params = make_params(&lines, &tokens, &config);
@@ -162,7 +162,7 @@ mod tests {
 
     #[test]
     fn test_md023_fix_info_mixed_indent() {
-        let lines: Vec<String> = " \t  # Heading\n".lines().map(|l| l.to_string()).collect();
+        let lines: Vec<&str> = " \t  # Heading\n".lines().collect();
         let tokens = vec![];
         let config = HashMap::new();
         let params = make_params(&lines, &tokens, &config);

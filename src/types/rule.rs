@@ -27,10 +27,10 @@ pub struct RuleParams<'a> {
     pub version: &'a str,
 
     /// Lines of the markdown content (including line endings)
-    pub lines: &'a [String],
+    pub lines: &'a [&'a str],
 
     /// Front matter lines (if present)
-    pub front_matter_lines: &'a [String],
+    pub front_matter_lines: &'a [&'a str],
 
     /// Parsed tokens from the markdown content
     pub tokens: &'a [Token],
@@ -47,7 +47,7 @@ pub trait Rule: Send + Sync {
     /// Get the rule names (first is primary, rest are aliases)
     ///
     /// Example: `["MD001", "heading-increment"]`
-    fn names(&self) -> &[&'static str];
+    fn names(&self) -> &'static [&'static str];
 
     /// Get the rule description
     ///
@@ -125,7 +125,7 @@ mod tests {
     struct TestRule;
 
     impl Rule for TestRule {
-        fn names(&self) -> &[&'static str] {
+        fn names(&self) -> &'static [&'static str] {
             &["TEST001", "test-rule"]
         }
 

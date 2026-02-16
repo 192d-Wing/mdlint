@@ -5,7 +5,7 @@ use crate::types::{FixInfo, LintError, ParserType, Rule, RuleParams, Severity};
 pub struct MD058;
 
 impl Rule for MD058 {
-    fn names(&self) -> &[&'static str] {
+    fn names(&self) -> &'static [&'static str] {
         &["MD058", "blanks-around-tables"]
     }
 
@@ -42,11 +42,11 @@ impl Rule for MD058 {
                     if !prev_line.trim().is_empty() {
                         errors.push(LintError {
                             line_number,
-                            rule_names: self.names().iter().map(|s| s.to_string()).collect(),
-                            rule_description: self.description().to_string(),
+                            rule_names: self.names(),
+                            rule_description: self.description(),
                             error_detail: Some("Expected blank line before table".to_string()),
                             error_context: None,
-                            rule_information: self.information().map(|s| s.to_string()),
+                            rule_information: self.information(),
                             error_range: None,
                             fix_info: Some(FixInfo {
                                 line_number: Some(line_number),
@@ -67,11 +67,11 @@ impl Rule for MD058 {
                     let table_end_line = line_number - 1;
                     errors.push(LintError {
                         line_number: table_end_line,
-                        rule_names: self.names().iter().map(|s| s.to_string()).collect(),
-                        rule_description: self.description().to_string(),
+                        rule_names: self.names(),
+                        rule_description: self.description(),
                         error_detail: Some("Expected blank line after table".to_string()),
                         error_context: None,
-                        rule_information: self.information().map(|s| s.to_string()),
+                        rule_information: self.information(),
                         error_range: None,
                         fix_info: Some(FixInfo {
                             line_number: Some(line_number),
@@ -97,7 +97,7 @@ mod tests {
     use std::collections::HashMap;
 
     fn make_params<'a>(
-        lines: &'a [String],
+        lines: &'a [&'a str],
         tokens: &'a [crate::parser::Token],
         config: &'a HashMap<String, serde_json::Value>,
     ) -> crate::types::RuleParams<'a> {
@@ -114,14 +114,14 @@ mod tests {
     #[test]
     fn test_md058_table_with_blank_lines() {
         let rule = MD058;
-        let lines: Vec<String> = vec![
-            "Some text\n".to_string(),
-            "\n".to_string(),
-            "| Header 1 | Header 2 |\n".to_string(),
-            "| -------- | -------- |\n".to_string(),
-            "| Cell 1   | Cell 2   |\n".to_string(),
-            "\n".to_string(),
-            "More text\n".to_string(),
+        let lines: Vec<&str> = vec![
+            "Some text\n",
+            "\n",
+            "| Header 1 | Header 2 |\n",
+            "| -------- | -------- |\n",
+            "| Cell 1   | Cell 2   |\n",
+            "\n",
+            "More text\n",
         ];
         let tokens = vec![];
         let config = HashMap::new();
@@ -133,12 +133,12 @@ mod tests {
     #[test]
     fn test_md058_table_without_blank_line_before() {
         let rule = MD058;
-        let lines: Vec<String> = vec![
-            "Some text\n".to_string(),
-            "| Header 1 | Header 2 |\n".to_string(),
-            "| -------- | -------- |\n".to_string(),
-            "| Cell 1   | Cell 2   |\n".to_string(),
-            "\n".to_string(),
+        let lines: Vec<&str> = vec![
+            "Some text\n",
+            "| Header 1 | Header 2 |\n",
+            "| -------- | -------- |\n",
+            "| Cell 1   | Cell 2   |\n",
+            "\n",
         ];
         let tokens = vec![];
         let config = HashMap::new();
@@ -154,12 +154,12 @@ mod tests {
     #[test]
     fn test_md058_table_without_blank_line_after() {
         let rule = MD058;
-        let lines: Vec<String> = vec![
-            "\n".to_string(),
-            "| Header 1 | Header 2 |\n".to_string(),
-            "| -------- | -------- |\n".to_string(),
-            "| Cell 1   | Cell 2   |\n".to_string(),
-            "More text\n".to_string(),
+        let lines: Vec<&str> = vec![
+            "\n",
+            "| Header 1 | Header 2 |\n",
+            "| -------- | -------- |\n",
+            "| Cell 1   | Cell 2   |\n",
+            "More text\n",
         ];
         let tokens = vec![];
         let config = HashMap::new();
@@ -175,10 +175,10 @@ mod tests {
     #[test]
     fn test_md058_table_at_start_of_file() {
         let rule = MD058;
-        let lines: Vec<String> = vec![
-            "| Header 1 | Header 2 |\n".to_string(),
-            "| -------- | -------- |\n".to_string(),
-            "\n".to_string(),
+        let lines: Vec<&str> = vec![
+            "| Header 1 | Header 2 |\n",
+            "| -------- | -------- |\n",
+            "\n",
         ];
         let tokens = vec![];
         let config = HashMap::new();
@@ -190,11 +190,11 @@ mod tests {
     #[test]
     fn test_md058_fix_info_before() {
         let rule = MD058;
-        let lines: Vec<String> = vec![
-            "# Heading\n".to_string(),
-            "| Header |\n".to_string(),
-            "| ------ |\n".to_string(),
-            "\n".to_string(),
+        let lines: Vec<&str> = vec![
+            "# Heading\n",
+            "| Header |\n",
+            "| ------ |\n",
+            "\n",
         ];
         let tokens = vec![];
         let config = HashMap::new();
@@ -212,11 +212,11 @@ mod tests {
     #[test]
     fn test_md058_fix_info_after() {
         let rule = MD058;
-        let lines: Vec<String> = vec![
-            "\n".to_string(),
-            "| Header |\n".to_string(),
-            "| ------ |\n".to_string(),
-            "Text here\n".to_string(),
+        let lines: Vec<&str> = vec![
+            "\n",
+            "| Header |\n",
+            "| ------ |\n",
+            "Text here\n",
         ];
         let tokens = vec![];
         let config = HashMap::new();

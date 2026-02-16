@@ -7,7 +7,7 @@ use crate::types::{FixInfo, LintError, ParserType, Rule, RuleParams, Severity};
 pub struct MD010;
 
 impl Rule for MD010 {
-    fn names(&self) -> &[&'static str] {
+    fn names(&self) -> &'static [&'static str] {
         &["MD010", "no-hard-tabs"]
     }
 
@@ -39,11 +39,11 @@ impl Rule for MD010 {
                 if ch == '\t' {
                     errors.push(LintError {
                         line_number,
-                        rule_names: self.names().iter().map(|s| s.to_string()).collect(),
-                        rule_description: self.description().to_string(),
+                        rule_names: self.names(),
+                        rule_description: self.description(),
                         error_detail: Some(format!("Column: {}", column)),
                         error_context: None,
-                        rule_information: self.information().map(|s| s.to_string()),
+                        rule_information: self.information(),
                         error_range: Some((column, 1)),
                         fix_info: Some(FixInfo {
                             line_number: None,
@@ -76,8 +76,8 @@ mod tests {
     #[test]
     fn test_md010_no_tabs() {
         let lines = vec![
-            "# Heading\n".to_string(),
-            "    Indented with spaces\n".to_string(),
+            "# Heading\n",
+            "    Indented with spaces\n",
         ];
 
         let params = RuleParams {
@@ -97,8 +97,8 @@ mod tests {
     #[test]
     fn test_md010_with_tabs() {
         let lines = vec![
-            "\tTabbed line\n".to_string(),
-            "Normal\tline with tab\n".to_string(),
+            "\tTabbed line\n",
+            "Normal\tline with tab\n",
         ];
 
         let params = RuleParams {

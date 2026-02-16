@@ -5,7 +5,7 @@ use crate::types::{FixInfo, LintError, ParserType, Rule, RuleParams, Severity};
 pub struct MD060;
 
 impl Rule for MD060 {
-    fn names(&self) -> &[&'static str] {
+    fn names(&self) -> &'static [&'static str] {
         &["MD060", "dollar-in-code-fence"]
     }
 
@@ -48,11 +48,11 @@ impl Rule for MD060 {
 
                 errors.push(LintError {
                     line_number,
-                    rule_names: self.names().iter().map(|s| s.to_string()).collect(),
-                    rule_description: self.description().to_string(),
+                    rule_names: self.names(),
+                    rule_description: self.description(),
                     error_detail: None,
                     error_context: Some(trimmed.to_string()),
-                    rule_information: self.information().map(|s| s.to_string()),
+                    rule_information: self.information(),
                     error_range: None,
                     fix_info: Some(FixInfo {
                         line_number: None,
@@ -76,7 +76,7 @@ mod tests {
     use std::collections::HashMap;
 
     fn make_params<'a>(
-        lines: &'a [String],
+        lines: &'a [&'a str],
         tokens: &'a [crate::parser::Token],
         config: &'a HashMap<String, serde_json::Value>,
     ) -> crate::types::RuleParams<'a> {
@@ -93,11 +93,11 @@ mod tests {
     #[test]
     fn test_md060_no_dollar_signs() {
         let rule = MD060;
-        let lines: Vec<String> = vec![
-            "```bash\n".to_string(),
-            "echo hello\n".to_string(),
-            "ls -la\n".to_string(),
-            "```\n".to_string(),
+        let lines: Vec<&str> = vec![
+            "```bash\n",
+            "echo hello\n",
+            "ls -la\n",
+            "```\n",
         ];
         let tokens = vec![];
         let config = HashMap::new();
@@ -109,11 +109,11 @@ mod tests {
     #[test]
     fn test_md060_dollar_sign_in_code_block() {
         let rule = MD060;
-        let lines: Vec<String> = vec![
-            "```bash\n".to_string(),
-            "$ echo hello\n".to_string(),
-            "$ ls -la\n".to_string(),
-            "```\n".to_string(),
+        let lines: Vec<&str> = vec![
+            "```bash\n",
+            "$ echo hello\n",
+            "$ ls -la\n",
+            "```\n",
         ];
         let tokens = vec![];
         let config = HashMap::new();
@@ -125,7 +125,7 @@ mod tests {
     #[test]
     fn test_md060_dollar_sign_outside_code_block() {
         let rule = MD060;
-        let lines: Vec<String> = vec!["$ echo hello\n".to_string()];
+        let lines: Vec<&str> = vec!["$ echo hello\n"];
         let tokens = vec![];
         let config = HashMap::new();
         let params = make_params(&lines, &tokens, &config);
@@ -136,10 +136,10 @@ mod tests {
     #[test]
     fn test_md060_tilde_code_fence() {
         let rule = MD060;
-        let lines: Vec<String> = vec![
-            "~~~\n".to_string(),
-            "$ npm install\n".to_string(),
-            "~~~\n".to_string(),
+        let lines: Vec<&str> = vec![
+            "~~~\n",
+            "$ npm install\n",
+            "~~~\n",
         ];
         let tokens = vec![];
         let config = HashMap::new();
@@ -151,11 +151,11 @@ mod tests {
     #[test]
     fn test_md060_mixed_dollar_and_non_dollar() {
         let rule = MD060;
-        let lines: Vec<String> = vec![
-            "```\n".to_string(),
-            "$ echo hello\n".to_string(),
-            "hello\n".to_string(),
-            "```\n".to_string(),
+        let lines: Vec<&str> = vec![
+            "```\n",
+            "$ echo hello\n",
+            "hello\n",
+            "```\n",
         ];
         let tokens = vec![];
         let config = HashMap::new();
@@ -167,10 +167,10 @@ mod tests {
     #[test]
     fn test_md060_fix_dollar_with_space() {
         let rule = MD060;
-        let lines: Vec<String> = vec![
-            "```bash\n".to_string(),
-            "$ echo hello\n".to_string(),
-            "```\n".to_string(),
+        let lines: Vec<&str> = vec![
+            "```bash\n",
+            "$ echo hello\n",
+            "```\n",
         ];
         let tokens = vec![];
         let config = HashMap::new();
@@ -189,10 +189,10 @@ mod tests {
     #[test]
     fn test_md060_fix_dollar_without_space() {
         let rule = MD060;
-        let lines: Vec<String> = vec![
-            "```bash\n".to_string(),
-            "$echo\n".to_string(),
-            "```\n".to_string(),
+        let lines: Vec<&str> = vec![
+            "```bash\n",
+            "$echo\n",
+            "```\n",
         ];
         let tokens = vec![];
         let config = HashMap::new();
@@ -211,10 +211,10 @@ mod tests {
     #[test]
     fn test_md060_fix_indented_dollar() {
         let rule = MD060;
-        let lines: Vec<String> = vec![
-            "```bash\n".to_string(),
-            "  $ echo hello\n".to_string(),
-            "```\n".to_string(),
+        let lines: Vec<&str> = vec![
+            "```bash\n",
+            "  $ echo hello\n",
+            "```\n",
         ];
         let tokens = vec![];
         let config = HashMap::new();

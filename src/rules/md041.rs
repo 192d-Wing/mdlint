@@ -8,7 +8,7 @@ use crate::types::{FixInfo, LintError, ParserType, Rule, RuleParams, Severity};
 pub struct MD041;
 
 impl Rule for MD041 {
-    fn names(&self) -> &[&'static str] {
+    fn names(&self) -> &'static [&'static str] {
         &["MD041", "first-line-heading", "first-line-h1"]
     }
 
@@ -52,11 +52,11 @@ impl Rule for MD041 {
                 // Fix: insert a heading before the current content
                 errors.push(LintError {
                     line_number: first_content_line,
-                    rule_names: self.names().iter().map(|s| s.to_string()).collect(),
-                    rule_description: self.description().to_string(),
+                    rule_names: self.names(),
+                    rule_description: self.description(),
                     error_detail: None,
                     error_context: None,
-                    rule_information: self.information().map(|s| s.to_string()),
+                    rule_information: self.information(),
                     error_range: None,
                     fix_info: Some(FixInfo {
                         line_number: Some(first_content_line),
@@ -74,11 +74,11 @@ impl Rule for MD041 {
             // No heading found - insert one at the beginning
             errors.push(LintError {
                 line_number: first_content_line,
-                rule_names: self.names().iter().map(|s| s.to_string()).collect(),
-                rule_description: self.description().to_string(),
+                rule_names: self.names(),
+                rule_description: self.description(),
                 error_detail: None,
                 error_context: None,
-                rule_information: self.information().map(|s| s.to_string()),
+                rule_information: self.information(),
                 error_range: None,
                 fix_info: Some(FixInfo {
                     line_number: Some(first_content_line),
@@ -115,7 +115,7 @@ mod tests {
             metadata: HashMap::new(),
         }];
 
-        let lines = vec!["# Heading\n".to_string()];
+        let lines = vec!["# Heading\n"];
 
         let params = RuleParams {
             name: "test.md",
@@ -134,7 +134,7 @@ mod tests {
     #[test]
     fn test_md041_no_heading() {
         let tokens = vec![];
-        let lines = vec!["Just some text\n".to_string()];
+        let lines = vec!["Just some text\n"];
 
         let params = RuleParams {
             name: "test.md",
@@ -165,9 +165,9 @@ mod tests {
         }];
 
         let lines = vec![
-            "Some text\n".to_string(),
-            "\n".to_string(),
-            "# Heading\n".to_string(),
+            "Some text\n",
+            "\n",
+            "# Heading\n",
         ];
 
         let params = RuleParams {
@@ -187,7 +187,7 @@ mod tests {
     #[test]
     fn test_md041_fix_info_no_heading() {
         let tokens = vec![];
-        let lines = vec!["Just some text\n".to_string()];
+        let lines = vec!["Just some text\n"];
 
         let params = RuleParams {
             name: "test.md",
@@ -222,9 +222,9 @@ mod tests {
         }];
 
         let lines = vec![
-            "Some text\n".to_string(),
-            "\n".to_string(),
-            "# Heading\n".to_string(),
+            "Some text\n",
+            "\n",
+            "# Heading\n",
         ];
 
         let params = RuleParams {

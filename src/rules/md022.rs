@@ -6,7 +6,7 @@ use crate::types::{FixInfo, LintError, ParserType, Rule, RuleParams, Severity};
 pub struct MD022;
 
 impl Rule for MD022 {
-    fn names(&self) -> &[&'static str] {
+    fn names(&self) -> &'static [&'static str] {
         &["MD022", "blanks-around-headings", "blanks-around-headers"]
     }
 
@@ -39,11 +39,11 @@ impl Rule for MD022 {
                 if !prev_line.trim().is_empty() {
                     errors.push(LintError {
                         line_number: line_num,
-                        rule_names: self.names().iter().map(|s| s.to_string()).collect(),
-                        rule_description: self.description().to_string(),
+                        rule_names: self.names(),
+                        rule_description: self.description(),
                         error_detail: Some("Expected blank line before heading".to_string()),
                         error_context: None,
-                        rule_information: self.information().map(|s| s.to_string()),
+                        rule_information: self.information(),
                         error_range: None,
                         fix_info: Some(FixInfo {
                             line_number: Some(line_num),
@@ -65,11 +65,11 @@ impl Rule for MD022 {
                 if !next_line.trim().is_empty() {
                     errors.push(LintError {
                         line_number: line_num,
-                        rule_names: self.names().iter().map(|s| s.to_string()).collect(),
-                        rule_description: self.description().to_string(),
+                        rule_names: self.names(),
+                        rule_description: self.description(),
                         error_detail: Some("Expected blank line after heading".to_string()),
                         error_context: None,
-                        rule_information: self.information().map(|s| s.to_string()),
+                        rule_information: self.information(),
                         error_range: None,
                         fix_info: Some(FixInfo {
                             line_number: Some(line_num + 1),
@@ -108,13 +108,13 @@ mod tests {
     #[test]
     fn test_md022_no_error_with_blank_lines() {
         let lines = vec![
-            "# Title\n".to_string(),
-            "\n".to_string(),
-            "Some text\n".to_string(),
-            "\n".to_string(),
-            "## Section\n".to_string(),
-            "\n".to_string(),
-            "More text\n".to_string(),
+            "# Title\n",
+            "\n",
+            "Some text\n",
+            "\n",
+            "## Section\n",
+            "\n",
+            "More text\n",
         ];
         let tokens = vec![make_heading(1, 1), make_heading(5, 2)];
         let params = RuleParams {
@@ -137,9 +137,9 @@ mod tests {
     #[test]
     fn test_md022_missing_blank_before_heading() {
         let lines = vec![
-            "# Title\n".to_string(),
-            "Some text\n".to_string(),
-            "## Section\n".to_string(),
+            "# Title\n",
+            "Some text\n",
+            "## Section\n",
         ];
         let tokens = vec![make_heading(1, 1), make_heading(3, 2)];
         let params = RuleParams {
@@ -162,7 +162,7 @@ mod tests {
 
     #[test]
     fn test_md022_missing_blank_after_heading() {
-        let lines = vec!["# Title\n".to_string(), "Some text\n".to_string()];
+        let lines = vec!["# Title\n", "Some text\n"];
         let tokens = vec![make_heading(1, 1)];
         let params = RuleParams {
             name: "test.md",
@@ -185,9 +185,9 @@ mod tests {
     #[test]
     fn test_md022_fix_info_inserts_blank_before() {
         let lines = vec![
-            "# Title\n".to_string(),
-            "Some text\n".to_string(),
-            "## Section\n".to_string(),
+            "# Title\n",
+            "Some text\n",
+            "## Section\n",
         ];
         let tokens = vec![make_heading(1, 1), make_heading(3, 2)];
         let params = RuleParams {
@@ -217,9 +217,9 @@ mod tests {
     fn test_md022_heading_at_start_of_file() {
         // First heading at line 1 should not complain about missing blank before
         let lines = vec![
-            "# Title\n".to_string(),
-            "\n".to_string(),
-            "Content\n".to_string(),
+            "# Title\n",
+            "\n",
+            "Content\n",
         ];
         let tokens = vec![make_heading(1, 1)];
         let params = RuleParams {
@@ -241,7 +241,7 @@ mod tests {
 
     #[test]
     fn test_md022_fix_info_inserts_blank_after() {
-        let lines = vec!["# Title\n".to_string(), "Some text\n".to_string()];
+        let lines = vec!["# Title\n", "Some text\n"];
         let tokens = vec![make_heading(1, 1)];
         let params = RuleParams {
             name: "test.md",

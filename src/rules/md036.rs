@@ -24,7 +24,7 @@ fn is_paragraph_child_meaningful(token: &crate::parser::Token) -> bool {
 }
 
 impl Rule for MD036 {
-    fn names(&self) -> &[&'static str] {
+    fn names(&self) -> &'static [&'static str] {
         &["MD036", "no-emphasis-as-heading"]
     }
 
@@ -153,11 +153,11 @@ impl Rule for MD036 {
 
                         errors.push(LintError {
                             line_number: text_token.start_line,
-                            rule_names: self.names().iter().map(|s| s.to_string()).collect(),
-                            rule_description: self.description().to_string(),
+                            rule_names: self.names(),
+                            rule_description: self.description(),
                             error_detail: None,
                             error_context: Some(text_token.text.clone()),
-                            rule_information: self.information().map(|s| s.to_string()),
+                            rule_information: self.information(),
                             error_range: None,
                             fix_info,
                             suggestion: Some(
@@ -239,7 +239,7 @@ mod tests {
         tokens[2].start_column = 1;
         tokens[2].end_column = 10;
 
-        let lines = vec!["_Heading_\n".to_string()];
+        let lines = vec!["_Heading_\n"];
 
         let params = RuleParams {
             name: "test.md",
@@ -272,7 +272,7 @@ mod tests {
         tokens[2].start_column = 1;
         tokens[2].end_column = 13;
 
-        let lines = vec!["**Heading**\n".to_string()];
+        let lines = vec!["**Heading**\n"];
 
         let params = RuleParams {
             name: "test.md",
@@ -300,7 +300,7 @@ mod tests {
             create_token("data", 1, "Not a heading.", vec![], Some(3)),
         ];
 
-        let lines = vec!["_Not a heading._\n".to_string()];
+        let lines = vec!["_Not a heading._\n"];
 
         let params = RuleParams {
             name: "test.md",
@@ -325,7 +325,7 @@ mod tests {
             create_token("data", 1, "Normal text", vec![], Some(1)),
         ];
 
-        let lines = vec!["Normal text\n".to_string()];
+        let lines = vec!["Normal text\n"];
 
         let params = RuleParams {
             name: "test.md",
@@ -356,7 +356,7 @@ mod tests {
         tokens[2].start_column = 1;
         tokens[2].end_column = 10; // "_Heading_" = 9 chars + 1 for end position
 
-        let lines = vec!["_Heading_\n".to_string()];
+        let lines = vec!["_Heading_\n"];
 
         let params = RuleParams {
             name: "test.md",
@@ -390,7 +390,7 @@ mod tests {
         tokens[2].start_column = 1;
         tokens[2].end_column = 13; // "**Heading**" = 11 chars + 1 for end position
 
-        let lines = vec!["**Heading**\n".to_string()];
+        let lines = vec!["**Heading**\n"];
 
         let params = RuleParams {
             name: "test.md",

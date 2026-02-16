@@ -6,7 +6,7 @@ use crate::types::{FixInfo, LintError, ParserType, Rule, RuleParams, Severity};
 pub struct MD035;
 
 impl Rule for MD035 {
-    fn names(&self) -> &[&'static str] {
+    fn names(&self) -> &'static [&'static str] {
         &["MD035", "hr-style"]
     }
 
@@ -54,11 +54,11 @@ impl Rule for MD035 {
             if text != &style {
                 errors.push(LintError {
                     line_number,
-                    rule_names: self.names().iter().map(|s| s.to_string()).collect(),
-                    rule_description: self.description().to_string(),
+                    rule_names: self.names(),
+                    rule_description: self.description(),
                     error_detail: Some(format!("Expected: {}; Actual: {}", style, text)),
                     error_context: Some(text.clone()),
-                    rule_information: self.information().map(|s| s.to_string()),
+                    rule_information: self.information(),
                     error_range: Some((1, text.len())),
                     fix_info: Some(FixInfo {
                         line_number: Some(line_number),
@@ -109,7 +109,7 @@ mod tests {
             },
         ];
 
-        let lines = vec!["---\n".to_string(), "\n".to_string(), "---\n".to_string()];
+        let lines = vec!["---\n", "\n", "---\n"];
 
         let params = RuleParams {
             name: "test.md",
@@ -152,7 +152,7 @@ mod tests {
             },
         ];
 
-        let lines = vec!["---\n".to_string(), "\n".to_string(), "***\n".to_string()];
+        let lines = vec!["---\n", "\n", "***\n"];
 
         let params = RuleParams {
             name: "test.md",
@@ -200,7 +200,7 @@ mod tests {
             },
         ];
 
-        let lines = vec!["---\n".to_string(), "\n".to_string(), "***\n".to_string()];
+        let lines = vec!["---\n", "\n", "***\n"];
 
         let mut config = HashMap::new();
         config.insert(
@@ -266,11 +266,11 @@ mod tests {
         ];
 
         let lines = vec![
-            "---\n".to_string(),
-            "\n".to_string(),
-            "***\n".to_string(),
-            "\n".to_string(),
-            "* * *\n".to_string(),
+            "---\n",
+            "\n",
+            "***\n",
+            "\n",
+            "* * *\n",
         ];
 
         let params = RuleParams {
@@ -292,7 +292,7 @@ mod tests {
     #[test]
     fn test_md035_no_horizontal_rules() {
         let tokens = vec![];
-        let lines = vec!["# Heading\n".to_string(), "Some text\n".to_string()];
+        let lines = vec!["# Heading\n", "Some text\n"];
 
         let params = RuleParams {
             name: "test.md",
@@ -335,7 +335,7 @@ mod tests {
             },
         ];
 
-        let lines = vec!["---\n".to_string(), "\n".to_string(), "***\n".to_string()];
+        let lines = vec!["---\n", "\n", "***\n"];
 
         let params = RuleParams {
             name: "test.md",

@@ -74,7 +74,7 @@ fn to_lowercase_string_array(value: Option<&serde_json::Value>) -> Vec<String> {
 }
 
 impl Rule for MD033 {
-    fn names(&self) -> &[&'static str] {
+    fn names(&self) -> &'static [&'static str] {
         &["MD033", "no-inline-html"]
     }
 
@@ -134,11 +134,11 @@ impl Rule for MD033 {
 
                     errors.push(LintError {
                         line_number: token.start_line,
-                        rule_names: self.names().iter().map(|s| s.to_string()).collect(),
-                        rule_description: self.description().to_string(),
+                        rule_names: self.names(),
+                        rule_description: self.description(),
                         error_detail: Some(format!("Element: {}", html_tag_info.name)),
                         error_context: None,
-                        rule_information: self.information().map(|s| s.to_string()),
+                        rule_information: self.information(),
                         error_range: Some(range),
                         fix_info: None,
                         suggestion: Some("Avoid using raw HTML in Markdown".to_string()),
@@ -185,7 +185,7 @@ mod tests {
     #[test]
     fn test_md033_no_html() {
         let tokens = vec![];
-        let lines = vec!["# Heading\n".to_string(), "Some text\n".to_string()];
+        let lines = vec!["# Heading\n", "Some text\n"];
 
         let params = RuleParams {
             name: "test.md",
@@ -215,7 +215,7 @@ mod tests {
             metadata: HashMap::new(),
         }];
 
-        let lines = vec!["<div>\n".to_string()];
+        let lines = vec!["<div>\n"];
 
         let params = RuleParams {
             name: "test.md",
@@ -246,7 +246,7 @@ mod tests {
             metadata: HashMap::new(),
         }];
 
-        let lines = vec!["<div>\n".to_string()];
+        let lines = vec!["<div>\n"];
 
         let mut config = HashMap::new();
         config.insert("allowed_elements".to_string(), serde_json::json!(["div"]));
@@ -279,7 +279,7 @@ mod tests {
             metadata: HashMap::new(),
         }];
 
-        let lines = vec!["</div>\n".to_string()];
+        let lines = vec!["</div>\n"];
 
         let params = RuleParams {
             name: "test.md",

@@ -7,7 +7,7 @@ use crate::types::{FixInfo, LintError, ParserType, Rule, RuleParams, Severity};
 pub struct MD018;
 
 impl Rule for MD018 {
-    fn names(&self) -> &[&'static str] {
+    fn names(&self) -> &'static [&'static str] {
         &["MD018", "no-missing-space-atx"]
     }
 
@@ -45,13 +45,13 @@ impl Rule for MD018 {
                     {
                         errors.push(LintError {
                             line_number,
-                            rule_names: self.names().iter().map(|s| s.to_string()).collect(),
-                            rule_description: self.description().to_string(),
+                            rule_names: self.names(),
+                            rule_description: self.description(),
                             error_detail: None,
                             error_context: Some(
                                 trimmed[..hash_count + 10.min(after_hash.len())].to_string(),
                             ),
-                            rule_information: self.information().map(|s| s.to_string()),
+                            rule_information: self.information(),
                             error_range: Some((hash_count + 1, 1)),
                             fix_info: Some(FixInfo {
                                 line_number: None,
@@ -82,7 +82,7 @@ mod tests {
 
     #[test]
     fn test_md018_with_space() {
-        let lines = vec!["# Heading\n".to_string(), "## Heading 2\n".to_string()];
+        let lines = vec!["# Heading\n", "## Heading 2\n"];
 
         let params = RuleParams {
             name: "test.md",
@@ -100,7 +100,7 @@ mod tests {
 
     #[test]
     fn test_md018_no_space() {
-        let lines = vec!["#Heading\n".to_string(), "##Heading 2\n".to_string()];
+        let lines = vec!["#Heading\n", "##Heading 2\n"];
 
         let params = RuleParams {
             name: "test.md",

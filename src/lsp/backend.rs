@@ -5,7 +5,7 @@
 use super::{
     code_actions, config::ConfigManager, diagnostics, document::DocumentManager, utils::Debouncer,
 };
-use crate::{apply_fixes, lint_sync, LintOptions};
+use crate::{LintOptions, apply_fixes, lint_sync};
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};

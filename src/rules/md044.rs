@@ -5,7 +5,7 @@ use crate::types::{FixInfo, LintError, ParserType, Rule, RuleParams, Severity};
 pub struct MD044;
 
 impl Rule for MD044 {
-    fn names(&self) -> &[&'static str] {
+    fn names(&self) -> &'static [&'static str] {
         &["MD044", "proper-names"]
     }
 
@@ -90,14 +90,14 @@ impl Rule for MD044 {
                         let actual = &line[absolute_pos..end_pos];
                         errors.push(LintError {
                             line_number,
-                            rule_names: self.names().iter().map(|s| s.to_string()).collect(),
-                            rule_description: self.description().to_string(),
+                            rule_names: self.names(),
+                            rule_description: self.description(),
                             error_detail: Some(format!(
                                 "Expected: {}; Actual: {}",
                                 correct, actual
                             )),
                             error_context: None,
-                            rule_information: self.information().map(|s| s.to_string()),
+                            rule_information: self.information(),
                             error_range: Some((absolute_pos + 1, correct.len())),
                             fix_info: Some(FixInfo {
                                 line_number: None,
@@ -127,7 +127,7 @@ mod tests {
     use std::collections::HashMap;
 
     fn make_params<'a>(
-        lines: &'a [String],
+        lines: &'a [&'a str],
         config: &'a HashMap<String, serde_json::Value>,
     ) -> crate::types::RuleParams<'a> {
         crate::types::RuleParams {
@@ -143,7 +143,7 @@ mod tests {
     #[test]
     fn test_md044_default_names() {
         let rule = MD044;
-        let lines = vec!["I love javascript and github.\n".to_string()];
+        let lines = vec!["I love javascript and github.\n"];
         let config = HashMap::new();
         let params = make_params(&lines, &config);
         let errors = rule.lint(&params);
@@ -153,7 +153,7 @@ mod tests {
     #[test]
     fn test_md044_correct_names() {
         let rule = MD044;
-        let lines = vec!["I love JavaScript and GitHub.\n".to_string()];
+        let lines = vec!["I love JavaScript and GitHub.\n"];
         let config = HashMap::new();
         let params = make_params(&lines, &config);
         let errors = rule.lint(&params);
@@ -163,7 +163,7 @@ mod tests {
     #[test]
     fn test_md044_config_names() {
         let rule = MD044;
-        let lines = vec!["Use rust for everything.\n".to_string()];
+        let lines = vec!["Use rust for everything.\n"];
         let mut config = HashMap::new();
         config.insert("names".to_string(), serde_json::json!(["Rust"]));
         let params = make_params(&lines, &config);
@@ -175,9 +175,9 @@ mod tests {
     fn test_md044_code_block_excluded() {
         let rule = MD044;
         let lines = vec![
-            "```\n".to_string(),
-            "javascript code\n".to_string(),
-            "```\n".to_string(),
+            "```\n",
+            "javascript code\n",
+            "```\n",
         ];
         let config = HashMap::new();
         let params = make_params(&lines, &config);
@@ -189,9 +189,9 @@ mod tests {
     fn test_md044_code_block_included() {
         let rule = MD044;
         let lines = vec![
-            "```\n".to_string(),
-            "javascript code\n".to_string(),
-            "```\n".to_string(),
+            "```\n",
+            "javascript code\n",
+            "```\n",
         ];
         let mut config = HashMap::new();
         config.insert("code_blocks".to_string(), serde_json::json!(true));
@@ -203,7 +203,7 @@ mod tests {
     #[test]
     fn test_md044_fix_info_single_occurrence() {
         let rule = MD044;
-        let lines = vec!["I love javascript.\n".to_string()];
+        let lines = vec!["I love javascript.\n"];
         let config = HashMap::new();
         let params = make_params(&lines, &config);
         let errors = rule.lint(&params);
@@ -220,7 +220,7 @@ mod tests {
     #[test]
     fn test_md044_fix_info_multiple_occurrences() {
         let rule = MD044;
-        let lines = vec!["javascript and javascript are great.\n".to_string()];
+        let lines = vec!["javascript and javascript are great.\n"];
         let config = HashMap::new();
         let params = make_params(&lines, &config);
         let errors = rule.lint(&params);
@@ -240,7 +240,7 @@ mod tests {
     #[test]
     fn test_md044_fix_info_mixed_correct_and_incorrect() {
         let rule = MD044;
-        let lines = vec!["JavaScript and javascript here.\n".to_string()];
+        let lines = vec!["JavaScript and javascript here.\n"];
         let config = HashMap::new();
         let params = make_params(&lines, &config);
         let errors = rule.lint(&params);
@@ -257,7 +257,7 @@ mod tests {
     #[test]
     fn test_md044_fix_info_custom_name() {
         let rule = MD044;
-        let lines = vec!["Use rust for everything.\n".to_string()];
+        let lines = vec!["Use rust for everything.\n"];
         let mut config = HashMap::new();
         config.insert("names".to_string(), serde_json::json!(["Rust"]));
         let params = make_params(&lines, &config);
@@ -274,7 +274,7 @@ mod tests {
     #[test]
     fn test_md044_fix_info_error_detail_shows_actual() {
         let rule = MD044;
-        let lines = vec!["I use Github daily.\n".to_string()];
+        let lines = vec!["I use Github daily.\n"];
         let config = HashMap::new();
         let params = make_params(&lines, &config);
         let errors = rule.lint(&params);

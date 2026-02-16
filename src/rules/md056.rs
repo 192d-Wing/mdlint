@@ -5,7 +5,7 @@ use crate::types::{LintError, ParserType, Rule, RuleParams, Severity};
 pub struct MD056;
 
 impl Rule for MD056 {
-    fn names(&self) -> &[&'static str] {
+    fn names(&self) -> &'static [&'static str] {
         &["MD056", "table-column-count"]
     }
 
@@ -43,14 +43,14 @@ impl Rule for MD056 {
                 } else if col_count != expected_cols {
                     errors.push(LintError {
                         line_number,
-                        rule_names: self.names().iter().map(|s| s.to_string()).collect(),
-                        rule_description: self.description().to_string(),
+                        rule_names: self.names(),
+                        rule_description: self.description(),
                         error_detail: Some(format!(
                             "Expected: {} columns; Actual: {} columns",
                             expected_cols, col_count
                         )),
                         error_context: Some(trimmed.to_string()),
-                        rule_information: self.information().map(|s| s.to_string()),
+                        rule_information: self.information(),
                         error_range: None,
                         fix_info: None,
                         suggestion: Some(
@@ -74,7 +74,7 @@ mod tests {
     use std::collections::HashMap;
 
     fn make_params<'a>(
-        lines: &'a [String],
+        lines: &'a [&'a str],
         tokens: &'a [crate::parser::Token],
         config: &'a HashMap<String, serde_json::Value>,
     ) -> crate::types::RuleParams<'a> {
@@ -91,10 +91,10 @@ mod tests {
     #[test]
     fn test_md056_consistent_column_count() {
         let rule = MD056;
-        let lines: Vec<String> = vec![
-            "| Header 1 | Header 2 |\n".to_string(),
-            "| -------- | -------- |\n".to_string(),
-            "| Cell 1   | Cell 2   |\n".to_string(),
+        let lines: Vec<&str> = vec![
+            "| Header 1 | Header 2 |\n",
+            "| -------- | -------- |\n",
+            "| Cell 1   | Cell 2   |\n",
         ];
         let tokens = vec![];
         let config = HashMap::new();
@@ -106,10 +106,10 @@ mod tests {
     #[test]
     fn test_md056_inconsistent_column_count() {
         let rule = MD056;
-        let lines: Vec<String> = vec![
-            "| Header 1 | Header 2 |\n".to_string(),
-            "| -------- | -------- |\n".to_string(),
-            "| Cell 1   | Cell 2   | Cell 3 |\n".to_string(),
+        let lines: Vec<&str> = vec![
+            "| Header 1 | Header 2 |\n",
+            "| -------- | -------- |\n",
+            "| Cell 1   | Cell 2   | Cell 3 |\n",
         ];
         let tokens = vec![];
         let config = HashMap::new();
@@ -121,7 +121,7 @@ mod tests {
     #[test]
     fn test_md056_single_row_table() {
         let rule = MD056;
-        let lines: Vec<String> = vec!["| Header 1 | Header 2 |\n".to_string()];
+        let lines: Vec<&str> = vec!["| Header 1 | Header 2 |\n"];
         let tokens = vec![];
         let config = HashMap::new();
         let params = make_params(&lines, &tokens, &config);
@@ -132,14 +132,14 @@ mod tests {
     #[test]
     fn test_md056_separate_tables_reset() {
         let rule = MD056;
-        let lines: Vec<String> = vec![
-            "| A | B |\n".to_string(),
-            "| - | - |\n".to_string(),
-            "\n".to_string(),
-            "Some text\n".to_string(),
-            "\n".to_string(),
-            "| A | B | C |\n".to_string(),
-            "| - | - | - |\n".to_string(),
+        let lines: Vec<&str> = vec![
+            "| A | B |\n",
+            "| - | - |\n",
+            "\n",
+            "Some text\n",
+            "\n",
+            "| A | B | C |\n",
+            "| - | - | - |\n",
         ];
         let tokens = vec![];
         let config = HashMap::new();

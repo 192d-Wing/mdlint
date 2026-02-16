@@ -9,7 +9,7 @@ use crate::types::{FixInfo, LintError, ParserType, Rule, RuleParams, Severity};
 pub struct MD030;
 
 impl Rule for MD030 {
-    fn names(&self) -> &[&'static str] {
+    fn names(&self) -> &'static [&'static str] {
         &["MD030", "list-marker-space"]
     }
 
@@ -125,14 +125,14 @@ impl Rule for MD030 {
 
                         errors.push(LintError {
                             line_number: whitespace.start_line,
-                            rule_names: self.names().iter().map(|s| s.to_string()).collect(),
-                            rule_description: self.description().to_string(),
+                            rule_names: self.names(),
+                            rule_description: self.description(),
                             error_detail: Some(format!(
                                 "Expected: {}; Actual: {}",
                                 expected_spaces, actual_spaces
                             )),
                             error_context: None,
-                            rule_information: self.information().map(|s| s.to_string()),
+                            rule_information: self.information(),
                             error_range: Some(range),
                             fix_info: Some(fix_info),
                             suggestion: Some(
@@ -242,7 +242,7 @@ mod tests {
             create_whitespace_token(1, 2, 3, Some(2)),         // 3: whitespace (1 space)
         ];
 
-        let lines = vec!["- Item\n".to_string()];
+        let lines = vec!["- Item\n"];
 
         let params = RuleParams {
             name: "test.md",
@@ -268,7 +268,7 @@ mod tests {
             create_whitespace_token(1, 2, 4, Some(2)),         // 3: whitespace (2 spaces)
         ];
 
-        let lines = vec!["-  Item\n".to_string()];
+        let lines = vec!["-  Item\n"];
 
         let params = RuleParams {
             name: "test.md",
@@ -302,7 +302,7 @@ mod tests {
             create_whitespace_token(1, 3, 4, Some(2)),       // 3: whitespace (1 space)
         ];
 
-        let lines = vec!["1. Item\n".to_string()];
+        let lines = vec!["1. Item\n"];
 
         let params = RuleParams {
             name: "test.md",
@@ -328,7 +328,7 @@ mod tests {
             create_whitespace_token(1, 3, 5, Some(2)),       // 3: whitespace (2 spaces)
         ];
 
-        let lines = vec!["1.  Item\n".to_string()];
+        let lines = vec!["1.  Item\n"];
 
         let params = RuleParams {
             name: "test.md",
@@ -366,9 +366,9 @@ mod tests {
         ];
 
         let lines = vec![
-            "-   Item 1\n".to_string(),
-            "    Paragraph 2\n".to_string(),
-            "-   Item 2\n".to_string(),
+            "-   Item 1\n",
+            "    Paragraph 2\n",
+            "-   Item 2\n",
         ];
 
         let mut config = HashMap::new();

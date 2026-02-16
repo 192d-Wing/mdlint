@@ -11,7 +11,7 @@ use crate::types::{FixInfo, LintError, ParserType, Rule, RuleParams, Severity};
 pub struct MD005;
 
 impl Rule for MD005 {
-    fn names(&self) -> &[&'static str] {
+    fn names(&self) -> &'static [&'static str] {
         &["MD005", "list-indent"]
     }
 
@@ -62,14 +62,14 @@ impl Rule for MD005 {
                     if expected_indent != actual_indent {
                         errors.push(LintError {
                             line_number,
-                            rule_names: self.names().iter().map(|s| s.to_string()).collect(),
-                            rule_description: self.description().to_string(),
+                            rule_names: self.names(),
+                            rule_description: self.description(),
                             error_detail: Some(format!(
                                 "Expected: {}; Actual: {}",
                                 expected_indent, actual_indent
                             )),
                             error_context: None,
-                            rule_information: self.information().map(|s| s.to_string()),
+                            rule_information: self.information(),
                             error_range: Some(range),
                             fix_info: None, // No fixInfo; MD007 handles this scenario better
                             suggestion: Some(
@@ -116,11 +116,11 @@ impl Rule for MD005 {
 
                             errors.push(LintError {
                                 line_number,
-                                rule_names: self.names().iter().map(|s| s.to_string()).collect(),
-                                rule_description: self.description().to_string(),
+                                rule_names: self.names(),
+                                rule_description: self.description(),
                                 error_detail: Some(detail),
                                 error_context: None,
-                                rule_information: self.information().map(|s| s.to_string()),
+                                rule_information: self.information(),
                                 error_range: Some(range),
                                 fix_info: Some(FixInfo {
                                     line_number: None,
@@ -202,9 +202,9 @@ mod tests {
         ];
 
         let lines = vec![
-            "- Item 1\n".to_string(),
-            "- Item 2\n".to_string(),
-            "- Item 3\n".to_string(),
+            "- Item 1\n",
+            "- Item 2\n",
+            "- Item 3\n",
         ];
 
         let params = RuleParams {
@@ -231,9 +231,9 @@ mod tests {
         ];
 
         let lines = vec![
-            "- Item 1\n".to_string(),
-            " - Item 2\n".to_string(), // Extra space
-            "- Item 3\n".to_string(),
+            "- Item 1\n",
+            " - Item 2\n", // Extra space
+            "- Item 3\n",
         ];
 
         let params = RuleParams {
@@ -269,9 +269,9 @@ mod tests {
         ];
 
         let lines = vec![
-            "1. Item 1\n".to_string(),
-            "2. Item 2\n".to_string(),
-            "3. Item 3\n".to_string(),
+            "1. Item 1\n",
+            "2. Item 2\n",
+            "3. Item 3\n",
         ];
 
         let params = RuleParams {
@@ -299,10 +299,10 @@ mod tests {
         ];
 
         let lines = vec![
-            " 1. Item 1\n".to_string(),
-            " 2. Item 2\n".to_string(),
-            " 9. Item 9\n".to_string(),
-            "10. Item 10\n".to_string(),
+            " 1. Item 1\n",
+            " 2. Item 2\n",
+            " 9. Item 9\n",
+            "10. Item 10\n",
         ];
 
         let params = RuleParams {
@@ -329,9 +329,9 @@ mod tests {
         ];
 
         let lines = vec![
-            "  1. Item 1\n".to_string(),
-            " 2. Item 2\n".to_string(), // Less indented
-            "  3. Item 3\n".to_string(),
+            "  1. Item 1\n",
+            " 2. Item 2\n", // Less indented
+            "  3. Item 3\n",
         ];
 
         let params = RuleParams {
@@ -354,7 +354,7 @@ mod tests {
     fn test_md005_empty_list() {
         let tokens = vec![create_list_token("listUnordered", 1, 1, vec![])];
 
-        let lines = vec!["".to_string()];
+        let lines = vec![""];
 
         let params = RuleParams {
             name: "test.md",
@@ -378,7 +378,7 @@ mod tests {
             create_list_item_prefix(2, 2, 5, "2. ", 0), // One space less
         ];
 
-        let lines = vec!["  1. Item 1\n".to_string(), " 2. Item 2\n".to_string()];
+        let lines = vec!["  1. Item 1\n", " 2. Item 2\n"];
 
         let params = RuleParams {
             name: "test.md",

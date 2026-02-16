@@ -56,7 +56,7 @@ impl MD042 {
 }
 
 impl Rule for MD042 {
-    fn names(&self) -> &[&'static str] {
+    fn names(&self) -> &'static [&'static str] {
         &["MD042", "no-empty-links"]
     }
 
@@ -111,11 +111,11 @@ impl Rule for MD042 {
 
                     errors.push(LintError {
                         line_number,
-                        rule_names: self.names().iter().map(|s| s.to_string()).collect(),
-                        rule_description: self.description().to_string(),
+                        rule_names: self.names(),
+                        rule_description: self.description(),
                         error_detail: None,
                         error_context: Some(full_match.as_str().to_string()),
-                        rule_information: self.information().map(|s| s.to_string()),
+                        rule_information: self.information(),
                         error_range: Some((full_match.start() + 1, full_match.len())),
                         fix_info: Some(FixInfo {
                             line_number: None,
@@ -164,11 +164,11 @@ impl Rule for MD042 {
                 {
                     errors.push(LintError {
                         line_number,
-                        rule_names: self.names().iter().map(|s| s.to_string()).collect(),
-                        rule_description: self.description().to_string(),
+                        rule_names: self.names(),
+                        rule_description: self.description(),
                         error_detail: None,
                         error_context: Some(full_match.as_str().to_string()),
-                        rule_information: self.information().map(|s| s.to_string()),
+                        rule_information: self.information(),
                         error_range: Some((full_match.start() + 1, full_match.len())),
                         fix_info: None,
                         suggestion: None,
@@ -189,7 +189,7 @@ mod tests {
 
     #[test]
     fn test_md042_empty_inline_link() {
-        let lines = vec!["[text]()\n".to_string()];
+        let lines = vec!["[text]()\n"];
 
         let params = RuleParams {
             name: "test.md",
@@ -208,7 +208,7 @@ mod tests {
 
     #[test]
     fn test_md042_empty_with_angle_brackets() {
-        let lines = vec!["[text](<>)\n".to_string()];
+        let lines = vec!["[text](<>)\n"];
 
         let params = RuleParams {
             name: "test.md",
@@ -226,7 +226,7 @@ mod tests {
 
     #[test]
     fn test_md042_fragment_only() {
-        let lines = vec!["[text](#)\n".to_string()];
+        let lines = vec!["[text](#)\n"];
 
         let params = RuleParams {
             name: "test.md",
@@ -244,7 +244,7 @@ mod tests {
 
     #[test]
     fn test_md042_fragment_with_title() {
-        let lines = vec!["[text](# \"title\")\n".to_string()];
+        let lines = vec!["[text](# \"title\")\n"];
 
         let params = RuleParams {
             name: "test.md",
@@ -262,7 +262,7 @@ mod tests {
 
     #[test]
     fn test_md042_valid_link() {
-        let lines = vec!["[text](https://example.com)\n".to_string()];
+        let lines = vec!["[text](https://example.com)\n"];
 
         let params = RuleParams {
             name: "test.md",
@@ -280,7 +280,7 @@ mod tests {
 
     #[test]
     fn test_md042_valid_fragment() {
-        let lines = vec!["[text](#section)\n".to_string()];
+        let lines = vec!["[text](#section)\n"];
 
         let params = RuleParams {
             name: "test.md",
@@ -299,9 +299,9 @@ mod tests {
     #[test]
     fn test_md042_reference_link_with_empty_definition() {
         let lines = vec![
-            "[text][frag]\n".to_string(),
-            "\n".to_string(),
-            "[frag]: #\n".to_string(),
+            "[text][frag]\n",
+            "\n",
+            "[frag]: #\n",
         ];
 
         let params = RuleParams {
@@ -322,9 +322,9 @@ mod tests {
     #[test]
     fn test_md042_reference_link_shorthand() {
         let lines = vec![
-            "[frag][]\n".to_string(),
-            "\n".to_string(),
-            "[frag]: #\n".to_string(),
+            "[frag][]\n",
+            "\n",
+            "[frag]: #\n",
         ];
 
         let params = RuleParams {
@@ -344,9 +344,9 @@ mod tests {
     #[test]
     fn test_md042_reference_link_implicit() {
         let lines = vec![
-            "[frag]\n".to_string(),
-            "\n".to_string(),
-            "[frag]: #\n".to_string(),
+            "[frag]\n",
+            "\n",
+            "[frag]: #\n",
         ];
 
         let params = RuleParams {
@@ -366,9 +366,9 @@ mod tests {
     #[test]
     fn test_md042_reference_link_with_valid_definition() {
         let lines = vec![
-            "[text][ref]\n".to_string(),
-            "\n".to_string(),
-            "[ref]: https://example.com\n".to_string(),
+            "[text][ref]\n",
+            "\n",
+            "[ref]: https://example.com\n",
         ];
 
         let params = RuleParams {
@@ -387,7 +387,7 @@ mod tests {
 
     #[test]
     fn test_md042_multiple_empty_links_on_same_line() {
-        let lines = vec!["[text1](link-1) [text2]() [text3](link-3)\n".to_string()];
+        let lines = vec!["[text1](link-1) [text2]() [text3](link-3)\n"];
 
         let params = RuleParams {
             name: "test.md",
@@ -412,7 +412,7 @@ mod tests {
 
     #[test]
     fn test_md042_fix_empty_inline_link() {
-        let lines = vec!["[text]()\n".to_string()];
+        let lines = vec!["[text]()\n"];
 
         let params = RuleParams {
             name: "test.md",
@@ -434,7 +434,7 @@ mod tests {
 
     #[test]
     fn test_md042_fix_fragment_only() {
-        let lines = vec!["[text](#)\n".to_string()];
+        let lines = vec!["[text](#)\n"];
 
         let params = RuleParams {
             name: "test.md",
@@ -457,9 +457,9 @@ mod tests {
     #[test]
     fn test_md042_no_fix_reference_link() {
         let lines = vec![
-            "[text][frag]\n".to_string(),
-            "\n".to_string(),
-            "[frag]: #\n".to_string(),
+            "[text][frag]\n",
+            "\n",
+            "[frag]: #\n",
         ];
 
         let params = RuleParams {

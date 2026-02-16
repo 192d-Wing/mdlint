@@ -144,8 +144,8 @@ mod tests {
             "test.md".to_string(),
             vec![LintError {
                 line_number: 1,
-                rule_names: vec!["MD001".to_string(), "heading-increment".to_string()],
-                rule_description: "Heading levels should increment by one".to_string(),
+                rule_names: &["MD001", "heading-increment"],
+                rule_description: "Heading levels should increment by one",
                 severity: Severity::Error,
                 ..Default::default()
             }],
@@ -164,15 +164,15 @@ mod tests {
             vec![
                 LintError {
                     line_number: 1,
-                    rule_names: vec!["MD001".to_string()],
-                    rule_description: "test".to_string(),
+                    rule_names: &["MD001"],
+                    rule_description: "test",
                     severity: Severity::Error,
                     ..Default::default()
                 },
                 LintError {
                     line_number: 2,
-                    rule_names: vec!["MD059".to_string()],
-                    rule_description: "test".to_string(),
+                    rule_names: &["MD059"],
+                    rule_description: "test",
                     severity: Severity::Warning,
                     ..Default::default()
                 },
@@ -190,8 +190,8 @@ mod tests {
             "test.md".to_string(),
             vec![LintError {
                 line_number: 3,
-                rule_names: vec!["MD009".to_string()],
-                rule_description: "Trailing spaces".to_string(),
+                rule_names: &["MD009"],
+                rule_description: "Trailing spaces",
                 error_range: Some((12, 3)),
                 severity: Severity::Error,
                 ..Default::default()
@@ -217,8 +217,8 @@ mod tests {
             "test.md".to_string(),
             vec![LintError {
                 line_number: 1,
-                rule_names: vec!["MD009".to_string()],
-                rule_description: "Trailing spaces".to_string(),
+                rule_names: &["MD009"],
+                rule_description: "Trailing spaces",
                 error_range: Some((5, 3)),
                 severity: Severity::Error,
                 ..Default::default()
@@ -238,8 +238,8 @@ mod tests {
             "test.md".to_string(),
             vec![LintError {
                 line_number: 1,
-                rule_names: vec!["MD022".to_string()],
-                rule_description: "Headings should be surrounded by blank lines".to_string(),
+                rule_names: &["MD022"],
+                rule_description: "Headings should be surrounded by blank lines",
                 error_range: None,
                 severity: Severity::Error,
                 ..Default::default()

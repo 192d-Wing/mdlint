@@ -12,7 +12,7 @@ static REVERSED_LINK_RE: Lazy<Regex> =
 pub struct MD011;
 
 impl Rule for MD011 {
-    fn names(&self) -> &[&'static str] {
+    fn names(&self) -> &'static [&'static str] {
         &["MD011", "no-reversed-links"]
     }
 
@@ -46,11 +46,11 @@ impl Rule for MD011 {
 
                 errors.push(LintError {
                     line_number,
-                    rule_names: self.names().iter().map(|s| s.to_string()).collect(),
-                    rule_description: self.description().to_string(),
+                    rule_names: self.names(),
+                    rule_description: self.description(),
                     error_detail: None,
                     error_context: Some(mat.as_str().to_string()),
-                    rule_information: self.information().map(|s| s.to_string()),
+                    rule_information: self.information(),
                     error_range: Some((mat.start() + 1, mat.len())),
                     fix_info: Some(FixInfo {
                         line_number: None,
@@ -77,7 +77,7 @@ mod tests {
 
     #[test]
     fn test_md011_correct_syntax() {
-        let lines = vec!["[text](link)\n".to_string()];
+        let lines = vec!["[text](link)\n"];
 
         let params = RuleParams {
             name: "test.md",
@@ -95,7 +95,7 @@ mod tests {
 
     #[test]
     fn test_md011_reversed_syntax() {
-        let lines = vec!["(text)[link]\n".to_string()];
+        let lines = vec!["(text)[link]\n"];
 
         let params = RuleParams {
             name: "test.md",
@@ -113,7 +113,7 @@ mod tests {
 
     #[test]
     fn test_md011_fix_info() {
-        let lines = vec!["(text)[link]\n".to_string()];
+        let lines = vec!["(text)[link]\n"];
 
         let params = RuleParams {
             name: "test.md",
@@ -140,7 +140,7 @@ mod tests {
 
     #[test]
     fn test_md011_fix_info_with_offset() {
-        let lines = vec!["See (hello)[world] for details\n".to_string()];
+        let lines = vec!["See (hello)[world] for details\n"];
 
         let params = RuleParams {
             name: "test.md",

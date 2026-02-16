@@ -76,7 +76,7 @@ fn get_ordered_list_value(line: &str) -> Option<(usize, usize, usize)> {
 /// Check if a token is an ordered list by examining its first list item
 fn is_ordered_list(
     tokens: &[crate::parser::Token],
-    lines: &[String],
+    lines: &[&str],
     list_token: &crate::parser::Token,
 ) -> bool {
     // Check if any child list items are ordered
@@ -94,7 +94,7 @@ fn is_ordered_list(
 }
 
 impl Rule for MD029 {
-    fn names(&self) -> &[&'static str] {
+    fn names(&self) -> &'static [&'static str] {
         &["MD029", "ol-prefix"]
     }
 
@@ -205,14 +205,14 @@ impl Rule for MD029 {
                     if actual != expected {
                         errors.push(LintError {
                             line_number: item.start_line,
-                            rule_names: self.names().iter().map(|s| s.to_string()).collect(),
-                            rule_description: self.description().to_string(),
+                            rule_names: self.names(),
+                            rule_description: self.description(),
                             error_detail: Some(format!(
                                 "Expected: {}; Actual: {}",
                                 expected, actual
                             )),
                             error_context: Some(format!("Style: {}", list_style.to_str())),
-                            rule_information: self.information().map(|s| s.to_string()),
+                            rule_information: self.information(),
                             error_range: Some((column, num_len)),
                             fix_info: Some(FixInfo {
                                 line_number: None,
@@ -274,9 +274,9 @@ mod tests {
     #[test]
     fn test_md029_consistent_one() {
         let lines = vec![
-            "1. Item 1\n".to_string(),
-            "1. Item 2\n".to_string(),
-            "1. Item 3\n".to_string(),
+            "1. Item 1\n",
+            "1. Item 2\n",
+            "1. Item 3\n",
         ];
 
         let tokens = vec![
@@ -303,9 +303,9 @@ mod tests {
     #[test]
     fn test_md029_consistent_ordered() {
         let lines = vec![
-            "1. Item 1\n".to_string(),
-            "2. Item 2\n".to_string(),
-            "3. Item 3\n".to_string(),
+            "1. Item 1\n",
+            "2. Item 2\n",
+            "3. Item 3\n",
         ];
 
         let tokens = vec![
@@ -332,9 +332,9 @@ mod tests {
     #[test]
     fn test_md029_inconsistent_mixed() {
         let lines = vec![
-            "1. Item 1\n".to_string(),
-            "1. Item 2\n".to_string(),
-            "2. Item 3\n".to_string(), // Should be 1
+            "1. Item 1\n",
+            "1. Item 2\n",
+            "2. Item 3\n", // Should be 1
         ];
 
         let tokens = vec![
@@ -369,9 +369,9 @@ mod tests {
     #[test]
     fn test_md029_style_ordered() {
         let lines = vec![
-            "1. Item 1\n".to_string(),
-            "1. Item 2\n".to_string(), // Should be 2
-            "1. Item 3\n".to_string(), // Should be 3
+            "1. Item 1\n",
+            "1. Item 2\n", // Should be 2
+            "1. Item 3\n", // Should be 3
         ];
 
         let mut config = HashMap::new();
@@ -403,9 +403,9 @@ mod tests {
     #[test]
     fn test_md029_style_one() {
         let lines = vec![
-            "1. Item 1\n".to_string(),
-            "2. Item 2\n".to_string(), // Should be 1
-            "3. Item 3\n".to_string(), // Should be 1
+            "1. Item 1\n",
+            "2. Item 2\n", // Should be 1
+            "3. Item 3\n", // Should be 1
         ];
 
         let mut config = HashMap::new();
@@ -437,9 +437,9 @@ mod tests {
     #[test]
     fn test_md029_style_zero() {
         let lines = vec![
-            "0. Item 1\n".to_string(),
-            "0. Item 2\n".to_string(),
-            "0. Item 3\n".to_string(),
+            "0. Item 1\n",
+            "0. Item 2\n",
+            "0. Item 3\n",
         ];
 
         let mut config = HashMap::new();
@@ -469,9 +469,9 @@ mod tests {
     #[test]
     fn test_md029_auto_detect_zero_increment() {
         let lines = vec![
-            "0. Item 1\n".to_string(),
-            "1. Item 2\n".to_string(),
-            "2. Item 3\n".to_string(),
+            "0. Item 1\n",
+            "1. Item 2\n",
+            "2. Item 3\n",
         ];
 
         let tokens = vec![

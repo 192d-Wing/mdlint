@@ -113,7 +113,7 @@ fn get_nesting_level(
 }
 
 impl Rule for MD004 {
-    fn names(&self) -> &[&'static str] {
+    fn names(&self) -> &'static [&'static str] {
         &["MD004", "ul-style"]
     }
 
@@ -207,15 +207,15 @@ impl Rule for MD004 {
 
                     errors.push(LintError {
                         line_number: item.start_line,
-                        rule_names: self.names().iter().map(|s| s.to_string()).collect(),
-                        rule_description: self.description().to_string(),
+                        rule_names: self.names(),
+                        rule_description: self.description(),
                         error_detail: Some(format!(
                             "Expected: {}; Actual: {}",
                             expected_style.to_str(),
                             item_style.to_str()
                         )),
                         error_context: Some(format!("{}", marker)),
-                        rule_information: self.information().map(|s| s.to_string()),
+                        rule_information: self.information(),
                         error_range: Some((column, 1)),
                         fix_info: Some(FixInfo {
                             line_number: None,
@@ -262,9 +262,9 @@ mod tests {
         ];
 
         let lines = vec![
-            "* Item 1\n".to_string(),
-            "* Item 2\n".to_string(),
-            "* Item 3\n".to_string(),
+            "* Item 1\n",
+            "* Item 2\n",
+            "* Item 3\n",
         ];
 
         let params = RuleParams {
@@ -290,9 +290,9 @@ mod tests {
         ];
 
         let lines = vec![
-            "- Item 1\n".to_string(),
-            "- Item 2\n".to_string(),
-            "- Item 3\n".to_string(),
+            "- Item 1\n",
+            "- Item 2\n",
+            "- Item 3\n",
         ];
 
         let params = RuleParams {
@@ -318,9 +318,9 @@ mod tests {
         ];
 
         let lines = vec![
-            "* Item 1\n".to_string(),
-            "- Item 2\n".to_string(),
-            "+ Item 3\n".to_string(),
+            "* Item 1\n",
+            "- Item 2\n",
+            "+ Item 3\n",
         ];
 
         let params = RuleParams {
@@ -350,7 +350,7 @@ mod tests {
 
         let tokens = vec![create_list_item_token(1), create_list_item_token(2)];
 
-        let lines = vec!["* Item 1\n".to_string(), "- Item 2\n".to_string()];
+        let lines = vec!["* Item 1\n", "- Item 2\n"];
 
         let params = RuleParams {
             name: "test.md",
@@ -379,7 +379,7 @@ mod tests {
 
         let tokens = vec![create_list_item_token(1), create_list_item_token(2)];
 
-        let lines = vec!["- Item 1\n".to_string(), "- Item 2\n".to_string()];
+        let lines = vec!["- Item 1\n", "- Item 2\n"];
 
         let params = RuleParams {
             name: "test.md",
@@ -406,7 +406,7 @@ mod tests {
 
         let tokens = vec![create_list_item_token(1), create_list_item_token(2)];
 
-        let lines = vec!["+ Item 1\n".to_string(), "+ Item 2\n".to_string()];
+        let lines = vec!["+ Item 1\n", "+ Item 2\n"];
 
         let params = RuleParams {
             name: "test.md",

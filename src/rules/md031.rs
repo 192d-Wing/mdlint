@@ -23,7 +23,7 @@ fn get_code_fence_prefix(line: &str) -> Option<String> {
 }
 
 /// Check if a line is inside a list item based on indentation
-fn is_in_list_context(lines: &[String], start_idx: usize) -> bool {
+fn is_in_list_context(lines: &[&str], start_idx: usize) -> bool {
     // Look backward to find if we're in a list context
     // A simple heuristic: check if there's a list marker in previous lines
     // with less or equal indentation
@@ -64,7 +64,7 @@ fn is_in_list_context(lines: &[String], start_idx: usize) -> bool {
 }
 
 impl Rule for MD031 {
-    fn names(&self) -> &[&'static str] {
+    fn names(&self) -> &'static [&'static str] {
         &["MD031", "blanks-around-fences"]
     }
 
@@ -139,11 +139,11 @@ impl Rule for MD031 {
 
                         errors.push(LintError {
                             line_number,
-                            rule_names: self.names().iter().map(|s| s.to_string()).collect(),
-                            rule_description: self.description().to_string(),
+                            rule_names: self.names(),
+                            rule_description: self.description(),
                             error_detail: None,
                             error_context: Some(line.trim().to_string()),
-                            rule_information: self.information().map(|s| s.to_string()),
+                            rule_information: self.information(),
                             error_range: None,
                             fix_info: Some(FixInfo {
                                 line_number: Some(line_number),
@@ -196,11 +196,11 @@ impl Rule for MD031 {
 
                             errors.push(LintError {
                                 line_number,
-                                rule_names: self.names().iter().map(|s| s.to_string()).collect(),
-                                rule_description: self.description().to_string(),
+                                rule_names: self.names(),
+                                rule_description: self.description(),
                                 error_detail: None,
                                 error_context: Some(line.trim().to_string()),
-                                rule_information: self.information().map(|s| s.to_string()),
+                                rule_information: self.information(),
                                 error_range: None,
                                 fix_info: Some(FixInfo {
                                     line_number: Some(line_number + 1),
@@ -232,13 +232,13 @@ mod tests {
     #[test]
     fn test_md031_valid_blank_lines() {
         let lines = vec![
-            "# Heading\n".to_string(),
-            "\n".to_string(),
-            "```rust\n".to_string(),
-            "let x = 5;\n".to_string(),
-            "```\n".to_string(),
-            "\n".to_string(),
-            "More text\n".to_string(),
+            "# Heading\n",
+            "\n",
+            "```rust\n",
+            "let x = 5;\n",
+            "```\n",
+            "\n",
+            "More text\n",
         ];
 
         let params = RuleParams {
@@ -258,11 +258,11 @@ mod tests {
     #[test]
     fn test_md031_missing_blank_before() {
         let lines = vec![
-            "# Heading\n".to_string(),
-            "```rust\n".to_string(),
-            "let x = 5;\n".to_string(),
-            "```\n".to_string(),
-            "\n".to_string(),
+            "# Heading\n",
+            "```rust\n",
+            "let x = 5;\n",
+            "```\n",
+            "\n",
         ];
 
         let params = RuleParams {
@@ -283,12 +283,12 @@ mod tests {
     #[test]
     fn test_md031_missing_blank_after() {
         let lines = vec![
-            "# Heading\n".to_string(),
-            "\n".to_string(),
-            "```rust\n".to_string(),
-            "let x = 5;\n".to_string(),
-            "```\n".to_string(),
-            "More text\n".to_string(),
+            "# Heading\n",
+            "\n",
+            "```rust\n",
+            "let x = 5;\n",
+            "```\n",
+            "More text\n",
         ];
 
         let params = RuleParams {
@@ -309,11 +309,11 @@ mod tests {
     #[test]
     fn test_md031_missing_both_blanks() {
         let lines = vec![
-            "# Heading\n".to_string(),
-            "```rust\n".to_string(),
-            "let x = 5;\n".to_string(),
-            "```\n".to_string(),
-            "More text\n".to_string(),
+            "# Heading\n",
+            "```rust\n",
+            "let x = 5;\n",
+            "```\n",
+            "More text\n",
         ];
 
         let params = RuleParams {
@@ -335,11 +335,11 @@ mod tests {
     #[test]
     fn test_md031_tilde_fences() {
         let lines = vec![
-            "Text\n".to_string(),
-            "~~~\n".to_string(),
-            "code\n".to_string(),
-            "~~~\n".to_string(),
-            "Text\n".to_string(),
+            "Text\n",
+            "~~~\n",
+            "code\n",
+            "~~~\n",
+            "Text\n",
         ];
 
         let params = RuleParams {
@@ -359,10 +359,10 @@ mod tests {
     #[test]
     fn test_md031_start_of_file() {
         let lines = vec![
-            "```rust\n".to_string(),
-            "let x = 5;\n".to_string(),
-            "```\n".to_string(),
-            "\n".to_string(),
+            "```rust\n",
+            "let x = 5;\n",
+            "```\n",
+            "\n",
         ];
 
         let params = RuleParams {
@@ -383,10 +383,10 @@ mod tests {
     #[test]
     fn test_md031_end_of_file() {
         let lines = vec![
-            "\n".to_string(),
-            "```rust\n".to_string(),
-            "let x = 5;\n".to_string(),
-            "```\n".to_string(),
+            "\n",
+            "```rust\n",
+            "let x = 5;\n",
+            "```\n",
         ];
 
         let params = RuleParams {

@@ -30,9 +30,7 @@ fn lint_string_with_config(markdown: &str, config: Config) -> Vec<mkdlint::LintE
 
 /// Check if any error matches a given rule ID
 fn has_rule(errors: &[mkdlint::LintError], rule_id: &str) -> bool {
-    errors
-        .iter()
-        .any(|e| e.rule_names.contains(&rule_id.to_string()))
+    errors.iter().any(|e| e.rule_names.contains(&rule_id))
 }
 
 // ---- Existing tests ----
@@ -322,7 +320,7 @@ fn test_error_has_line_number() {
     let errors = lint_string("# Hello\n\nLine with spaces   \n");
     let md009_errors: Vec<_> = errors
         .iter()
-        .filter(|e| e.rule_names.contains(&"MD009".to_string()))
+        .filter(|e| e.rule_names.contains(&"MD009"))
         .collect();
 
     if !md009_errors.is_empty() {

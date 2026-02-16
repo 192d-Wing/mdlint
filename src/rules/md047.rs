@@ -5,7 +5,7 @@ use crate::types::{FixInfo, LintError, ParserType, Rule, RuleParams, Severity};
 pub struct MD047;
 
 impl Rule for MD047 {
-    fn names(&self) -> &[&'static str] {
+    fn names(&self) -> &'static [&'static str] {
         &["MD047", "single-trailing-newline"]
     }
 
@@ -38,11 +38,11 @@ impl Rule for MD047 {
         if !last_line.ends_with('\n') && !last_line.ends_with("\r\n") {
             errors.push(LintError {
                 line_number: params.lines.len(),
-                rule_names: self.names().iter().map(|s| s.to_string()).collect(),
-                rule_description: self.description().to_string(),
+                rule_names: self.names(),
+                rule_description: self.description(),
                 error_detail: None,
                 error_context: None,
-                rule_information: self.information().map(|s| s.to_string()),
+                rule_information: self.information(),
                 error_range: None,
                 fix_info: Some(FixInfo {
                     line_number: Some(params.lines.len()),
@@ -66,7 +66,7 @@ mod tests {
 
     #[test]
     fn test_md047_valid_with_newline() {
-        let lines = vec!["# Heading\n".to_string(), "Content\n".to_string()];
+        let lines = vec!["# Heading\n", "Content\n"];
 
         let params = RuleParams {
             name: "test.md",
@@ -85,7 +85,7 @@ mod tests {
 
     #[test]
     fn test_md047_missing_newline() {
-        let lines = vec!["# Heading\n".to_string(), "Content".to_string()];
+        let lines = vec!["# Heading\n", "Content"];
 
         let params = RuleParams {
             name: "test.md",
@@ -106,7 +106,7 @@ mod tests {
 
     #[test]
     fn test_md047_empty_file() {
-        let lines: Vec<String> = vec![];
+        let lines: Vec<&str> = vec![];
 
         let params = RuleParams {
             name: "test.md",

@@ -9,7 +9,7 @@ static IMAGE_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"!\[([^\]]*)\]\([^)]+\)"
 pub struct MD045;
 
 impl Rule for MD045 {
-    fn names(&self) -> &[&'static str] {
+    fn names(&self) -> &'static [&'static str] {
         &["MD045", "no-alt-text"]
     }
 
@@ -45,11 +45,11 @@ impl Rule for MD045 {
 
                     errors.push(LintError {
                         line_number,
-                        rule_names: self.names().iter().map(|s| s.to_string()).collect(),
-                        rule_description: self.description().to_string(),
+                        rule_names: self.names(),
+                        rule_description: self.description(),
                         error_detail: None,
                         error_context: Some(full_match.as_str().to_string()),
-                        rule_information: self.information().map(|s| s.to_string()),
+                        rule_information: self.information(),
                         error_range: Some((full_match.start() + 1, full_match.len())),
                         fix_info: Some(FixInfo {
                             line_number: None,
@@ -76,7 +76,7 @@ mod tests {
     use std::collections::HashMap;
 
     fn make_params<'a>(
-        lines: &'a [String],
+        lines: &'a [&'a str],
         tokens: &'a [crate::parser::Token],
         config: &'a HashMap<String, serde_json::Value>,
     ) -> crate::types::RuleParams<'a> {
@@ -93,7 +93,7 @@ mod tests {
     #[test]
     fn test_md045_with_alt_text() {
         let rule = MD045;
-        let lines: Vec<String> = vec!["![alt text](image.png)\n".to_string()];
+        let lines: Vec<&str> = vec!["![alt text](image.png)\n"];
         let tokens = vec![];
         let config = HashMap::new();
         let params = make_params(&lines, &tokens, &config);
@@ -104,7 +104,7 @@ mod tests {
     #[test]
     fn test_md045_no_alt_text() {
         let rule = MD045;
-        let lines: Vec<String> = vec!["![](image.png)\n".to_string()];
+        let lines: Vec<&str> = vec!["![](image.png)\n"];
         let tokens = vec![];
         let config = HashMap::new();
         let params = make_params(&lines, &tokens, &config);
@@ -115,7 +115,7 @@ mod tests {
     #[test]
     fn test_md045_whitespace_only_alt() {
         let rule = MD045;
-        let lines: Vec<String> = vec!["![  ](image.png)\n".to_string()];
+        let lines: Vec<&str> = vec!["![  ](image.png)\n"];
         let tokens = vec![];
         let config = HashMap::new();
         let params = make_params(&lines, &tokens, &config);

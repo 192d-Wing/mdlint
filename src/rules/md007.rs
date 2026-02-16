@@ -13,7 +13,7 @@ static UL_MARKER_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"^(\s*)[*+\-]\s").un
 pub struct MD007;
 
 impl Rule for MD007 {
-    fn names(&self) -> &[&'static str] {
+    fn names(&self) -> &'static [&'static str] {
         &["MD007", "ul-indent"]
     }
 
@@ -65,14 +65,14 @@ impl Rule for MD007 {
                     let expected = (leading_spaces / indent) * indent;
                     errors.push(LintError {
                         line_number,
-                        rule_names: self.names().iter().map(|s| s.to_string()).collect(),
-                        rule_description: self.description().to_string(),
+                        rule_names: self.names(),
+                        rule_description: self.description(),
                         error_detail: Some(format!(
                             "Expected: {}; Actual: {}",
                             expected, leading_spaces
                         )),
                         error_context: Some(trimmed.to_string()),
-                        rule_information: self.information().map(|s| s.to_string()),
+                        rule_information: self.information(),
                         error_range: Some((1, leading_spaces)),
                         fix_info: Some(FixInfo {
                             line_number: None,
@@ -97,7 +97,7 @@ mod tests {
     use std::collections::HashMap;
 
     fn make_params<'a>(
-        lines: &'a [String],
+        lines: &'a [&'a str],
         config: &'a HashMap<String, serde_json::Value>,
     ) -> RuleParams<'a> {
         RuleParams {
@@ -112,10 +112,10 @@ mod tests {
 
     #[test]
     fn test_md007_correct_indentation() {
-        let lines: Vec<String> = vec![
-            "* Item 1\n".to_string(),
-            "  * Nested item\n".to_string(),
-            "    * Deep nested\n".to_string(),
+        let lines: Vec<&str> = vec![
+            "* Item 1\n",
+            "  * Nested item\n",
+            "    * Deep nested\n",
         ];
         let config = HashMap::new();
         let params = make_params(&lines, &config);
@@ -127,9 +127,9 @@ mod tests {
 
     #[test]
     fn test_md007_wrong_indentation() {
-        let lines: Vec<String> = vec![
-            "* Item 1\n".to_string(),
-            "   * Nested item\n".to_string(), // 3 spaces, should be 2 or 4
+        let lines: Vec<&str> = vec![
+            "* Item 1\n",
+            "   * Nested item\n", // 3 spaces, should be 2 or 4
         ];
         let config = HashMap::new();
         let params = make_params(&lines, &config);
@@ -146,9 +146,9 @@ mod tests {
 
     #[test]
     fn test_md007_custom_indent() {
-        let lines: Vec<String> = vec![
-            "* Item 1\n".to_string(),
-            "    * Nested item\n".to_string(), // 4 spaces, correct for indent=4
+        let lines: Vec<&str> = vec![
+            "* Item 1\n",
+            "    * Nested item\n", // 4 spaces, correct for indent=4
         ];
         let mut config = HashMap::new();
         config.insert("indent".to_string(), serde_json::json!(4));
@@ -161,10 +161,10 @@ mod tests {
 
     #[test]
     fn test_md007_top_level_no_error() {
-        let lines: Vec<String> = vec![
-            "* Item 1\n".to_string(),
-            "* Item 2\n".to_string(),
-            "- Item 3\n".to_string(),
+        let lines: Vec<&str> = vec![
+            "* Item 1\n",
+            "* Item 2\n",
+            "- Item 3\n",
         ];
         let config = HashMap::new();
         let params = make_params(&lines, &config);
@@ -176,10 +176,10 @@ mod tests {
 
     #[test]
     fn test_md007_in_code_block_ignored() {
-        let lines: Vec<String> = vec![
-            "```\n".to_string(),
-            "   * not a list\n".to_string(),
-            "```\n".to_string(),
+        let lines: Vec<&str> = vec![
+            "```\n",
+            "   * not a list\n",
+            "```\n",
         ];
         let config = HashMap::new();
         let params = make_params(&lines, &config);

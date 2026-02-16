@@ -7,7 +7,7 @@ use crate::types::{LintError, ParserType, Rule, RuleParams, Severity};
 pub struct MD013;
 
 impl Rule for MD013 {
-    fn names(&self) -> &[&'static str] {
+    fn names(&self) -> &'static [&'static str] {
         &["MD013", "line-length"]
     }
 
@@ -55,8 +55,8 @@ impl Rule for MD013 {
             if actual_length > line_length {
                 errors.push(LintError {
                     line_number,
-                    rule_names: self.names().iter().map(|s| s.to_string()).collect(),
-                    rule_description: self.description().to_string(),
+                    rule_names: self.names(),
+                    rule_description: self.description(),
                     error_detail: Some(format!(
                         "Expected: {}; Actual: {}",
                         line_length, actual_length
@@ -66,7 +66,7 @@ impl Rule for MD013 {
                     } else {
                         trimmed.to_string()
                     }),
-                    rule_information: self.information().map(|s| s.to_string()),
+                    rule_information: self.information(),
                     error_range: Some((line_length + 1, actual_length - line_length)),
                     fix_info: None,
                     suggestion: Some(
@@ -88,7 +88,7 @@ mod tests {
 
     #[test]
     fn test_md013_short_line() {
-        let lines = vec!["Short line\n".to_string()];
+        let lines = vec!["Short line\n"];
 
         let params = RuleParams {
             name: "test.md",
@@ -107,7 +107,7 @@ mod tests {
     #[test]
     fn test_md013_long_line() {
         let long_line = "a".repeat(100) + "\n";
-        let lines = vec![long_line];
+        let lines = vec![long_line.as_str()];
 
         let params = RuleParams {
             name: "test.md",

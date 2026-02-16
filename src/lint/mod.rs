@@ -133,20 +133,11 @@ fn load_config(options: &LintOptions) -> Result<Config> {
 fn lint_content(content: &str, config: &Config, name: &str) -> Result<Vec<LintError>> {
     use crate::config::RuleConfig;
     use crate::rules;
+    use crate::types::ParserType;
     use std::collections::HashMap;
 
-    // Parse the markdown
-    let tokens = parser::parse(content);
-
-    // Split into lines (preserve line endings)
-    let lines: Vec<String> = if content.contains("\r\n") {
-        content
-            .split("\r\n")
-            .map(|s| format!("{}\r\n", s))
-            .collect()
-    } else {
-        content.split('\n').map(|s| format!("{}\n", s)).collect()
-    };
+    // Split into lines (zero-copy, preserving line endings)
+    let lines: Vec<&str> = content.split_inclusive('\n').collect();
 
     // Execute all enabled rules
     let mut all_errors = Vec::new();
@@ -157,13 +148,25 @@ fn lint_content(content: &str, config: &Config, name: &str) -> Result<Vec<LintEr
         .filter(|rule| config.is_rule_enabled(rule.names()[0]))
         .collect();
 
+    // Only parse if at least one enabled rule needs tokens
+    let needs_parser = enabled_rules
+        .iter()
+        .any(|rule| rule.parser_type() == ParserType::Micromark);
+    let tokens = if needs_parser {
+        parser::parse(content)
+    } else {
+        vec![]
+    };
+
+    let empty_config = HashMap::new();
+
     for rule in enabled_rules {
         let rule_name = rule.names()[0];
 
-        // Extract per-rule config options
+        // Extract per-rule config options (avoid clone when no config)
         let rule_config = match config.get_rule_config(rule_name) {
-            Some(RuleConfig::Options(opts)) => opts.clone(),
-            _ => HashMap::new(),
+            Some(RuleConfig::Options(opts)) => opts,
+            _ => &empty_config,
         };
 
         let params = crate::types::RuleParams {
@@ -172,7 +175,7 @@ fn lint_content(content: &str, config: &Config, name: &str) -> Result<Vec<LintEr
             lines: &lines,
             front_matter_lines: &[],
             tokens: &tokens,
-            config: &rule_config,
+            config: rule_config,
         };
 
         // Run the rule
@@ -306,8 +309,8 @@ mod tests {
     fn make_error(line: usize, fix: FixInfo) -> LintError {
         LintError {
             line_number: line,
-            rule_names: vec!["TEST".to_string()],
-            rule_description: "test".to_string(),
+            rule_names: &["TEST"],
+            rule_description: "test",
             fix_info: Some(fix),
             severity: Severity::Error,
             ..Default::default()
@@ -443,8 +446,8 @@ mod tests {
         let content = "hello\n";
         let errors = vec![LintError {
             line_number: 1,
-            rule_names: vec!["TEST".to_string()],
-            rule_description: "test".to_string(),
+            rule_names: &["TEST"],
+            rule_description: "test",
             fix_info: None,
             severity: Severity::Error,
             ..Default::default()

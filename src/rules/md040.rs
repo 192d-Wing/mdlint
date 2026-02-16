@@ -5,7 +5,7 @@ use crate::types::{FixInfo, LintError, ParserType, Rule, RuleParams, Severity};
 pub struct MD040;
 
 impl Rule for MD040 {
-    fn names(&self) -> &[&'static str] {
+    fn names(&self) -> &'static [&'static str] {
         &["MD040", "fenced-code-language"]
     }
 
@@ -60,11 +60,11 @@ impl Rule for MD040 {
 
                         errors.push(LintError {
                             line_number,
-                            rule_names: self.names().iter().map(|s| s.to_string()).collect(),
-                            rule_description: self.description().to_string(),
+                            rule_names: self.names(),
+                            rule_description: self.description(),
                             error_detail: Some("Missing language specification".to_string()),
                             error_context: Some(trimmed.to_string()),
-                            rule_information: self.information().map(|s| s.to_string()),
+                            rule_information: self.information(),
                             error_range: Some((leading_spaces + 1, trimmed.len())),
                             fix_info: Some(FixInfo {
                                 line_number: Some(line_number),
@@ -94,9 +94,9 @@ mod tests {
     #[test]
     fn test_md040_with_language() {
         let lines = vec![
-            "```rust\n".to_string(),
-            "let x = 5;\n".to_string(),
-            "```\n".to_string(),
+            "```rust\n",
+            "let x = 5;\n",
+            "```\n",
         ];
 
         let params = RuleParams {
@@ -116,9 +116,9 @@ mod tests {
     #[test]
     fn test_md040_no_language() {
         let lines = vec![
-            "```\n".to_string(),
-            "code\n".to_string(),
-            "```\n".to_string(),
+            "```\n",
+            "code\n",
+            "```\n",
         ];
 
         let params = RuleParams {
@@ -139,9 +139,9 @@ mod tests {
     #[test]
     fn test_md040_fix_info() {
         let lines = vec![
-            "```\n".to_string(),
-            "code here\n".to_string(),
-            "```\n".to_string(),
+            "```\n",
+            "code here\n",
+            "```\n",
         ];
 
         let params = RuleParams {
@@ -167,9 +167,9 @@ mod tests {
     #[test]
     fn test_md040_custom_default_language() {
         let lines = vec![
-            "~~~\n".to_string(),
-            "code here\n".to_string(),
-            "~~~\n".to_string(),
+            "~~~\n",
+            "code here\n",
+            "~~~\n",
         ];
 
         let mut config = HashMap::new();

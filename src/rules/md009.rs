@@ -7,7 +7,7 @@ use crate::types::{FixInfo, LintError, ParserType, Rule, RuleParams, Severity};
 pub struct MD009;
 
 impl Rule for MD009 {
-    fn names(&self) -> &[&'static str] {
+    fn names(&self) -> &'static [&'static str] {
         &["MD009", "no-trailing-spaces"]
     }
 
@@ -43,11 +43,11 @@ impl Rule for MD009 {
 
                 errors.push(LintError {
                     line_number,
-                    rule_names: self.names().iter().map(|s| s.to_string()).collect(),
-                    rule_description: self.description().to_string(),
+                    rule_names: self.names(),
+                    rule_description: self.description(),
                     error_detail: Some(format!("Expected: 0; Actual: {}", trailing_count)),
                     error_context: Some(trimmed_end[trailing_start..].to_string()),
-                    rule_information: self.information().map(|s| s.to_string()),
+                    rule_information: self.information(),
                     error_range: Some((trailing_start + 1, trailing_count)),
                     fix_info: Some(FixInfo {
                         line_number: None,
@@ -72,7 +72,7 @@ mod tests {
 
     #[test]
     fn test_md009_no_trailing_spaces() {
-        let lines = vec!["# Heading\n".to_string(), "This is content\n".to_string()];
+        let lines = vec!["# Heading\n", "This is content\n"];
 
         let params = RuleParams {
             name: "test.md",
@@ -91,8 +91,8 @@ mod tests {
     #[test]
     fn test_md009_with_trailing_spaces() {
         let lines = vec![
-            "# Heading  \n".to_string(),
-            "This is content   \n".to_string(),
+            "# Heading  \n",
+            "This is content   \n",
         ];
 
         let params = RuleParams {
@@ -115,7 +115,7 @@ mod tests {
 
     #[test]
     fn test_md009_with_tabs() {
-        let lines = vec!["Content\t\n".to_string()];
+        let lines = vec!["Content\t\n"];
 
         let params = RuleParams {
             name: "test.md",

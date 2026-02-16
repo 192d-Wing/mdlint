@@ -32,7 +32,7 @@ fn is_ignored(label: &str, ignored_definitions: &[String]) -> bool {
 }
 
 impl Rule for MD053 {
-    fn names(&self) -> &[&'static str] {
+    fn names(&self) -> &'static [&'static str] {
         &["MD053", "link-image-reference-definitions"]
     }
 
@@ -128,11 +128,11 @@ impl Rule for MD053 {
             if !used_labels.contains(label) {
                 errors.push(LintError {
                     line_number: *line_number,
-                    rule_names: self.names().iter().map(|s| s.to_string()).collect(),
-                    rule_description: self.description().to_string(),
+                    rule_names: self.names(),
+                    rule_description: self.description(),
                     error_detail: Some(format!("Unused reference definition \"{}\"", label)),
                     error_context: None,
-                    rule_information: self.information().map(|s| s.to_string()),
+                    rule_information: self.information(),
                     error_range: None,
                     fix_info: Some(FixInfo {
                         line_number: Some(*line_number),
@@ -156,7 +156,7 @@ mod tests {
     use std::collections::HashMap;
 
     fn make_params<'a>(
-        lines: &'a [String],
+        lines: &'a [&'a str],
         config: &'a HashMap<String, serde_json::Value>,
     ) -> RuleParams<'a> {
         RuleParams {
@@ -171,10 +171,10 @@ mod tests {
 
     #[test]
     fn test_md053_all_used() {
-        let lines: Vec<String> = vec![
-            "This has a [link][foo] reference.\n".to_string(),
-            "\n".to_string(),
-            "[foo]: https://example.com\n".to_string(),
+        let lines: Vec<&str> = vec![
+            "This has a [link][foo] reference.\n",
+            "\n",
+            "[foo]: https://example.com\n",
         ];
         let config = HashMap::new();
         let params = make_params(&lines, &config);
@@ -186,10 +186,10 @@ mod tests {
 
     #[test]
     fn test_md053_unused_definition() {
-        let lines: Vec<String> = vec![
-            "This is some text.\n".to_string(),
-            "\n".to_string(),
-            "[foo]: https://example.com\n".to_string(),
+        let lines: Vec<&str> = vec![
+            "This is some text.\n",
+            "\n",
+            "[foo]: https://example.com\n",
         ];
         let config = HashMap::new();
         let params = make_params(&lines, &config);
@@ -202,10 +202,10 @@ mod tests {
 
     #[test]
     fn test_md053_ignored_definition() {
-        let lines: Vec<String> = vec![
-            "This is some text.\n".to_string(),
-            "\n".to_string(),
-            "[//]: https://example.com\n".to_string(),
+        let lines: Vec<&str> = vec![
+            "This is some text.\n",
+            "\n",
+            "[//]: https://example.com\n",
         ];
         let config = HashMap::new();
         let params = make_params(&lines, &config);
@@ -217,10 +217,10 @@ mod tests {
 
     #[test]
     fn test_md053_fix_unused_definition() {
-        let lines: Vec<String> = vec![
-            "This is some text.\n".to_string(),
-            "\n".to_string(),
-            "[foo]: https://example.com\n".to_string(),
+        let lines: Vec<&str> = vec![
+            "This is some text.\n",
+            "\n",
+            "[foo]: https://example.com\n",
         ];
         let config = HashMap::new();
         let params = make_params(&lines, &config);
@@ -239,12 +239,12 @@ mod tests {
 
     #[test]
     fn test_md053_fix_multiple_unused() {
-        let lines: Vec<String> = vec![
-            "This has a [link][bar] reference.\n".to_string(),
-            "\n".to_string(),
-            "[foo]: https://example.com\n".to_string(),
-            "[bar]: https://example.org\n".to_string(),
-            "[baz]: https://example.net\n".to_string(),
+        let lines: Vec<&str> = vec![
+            "This has a [link][bar] reference.\n",
+            "\n",
+            "[foo]: https://example.com\n",
+            "[bar]: https://example.org\n",
+            "[baz]: https://example.net\n",
         ];
         let config = HashMap::new();
         let params = make_params(&lines, &config);
@@ -263,10 +263,10 @@ mod tests {
 
     #[test]
     fn test_md053_no_fix_for_used() {
-        let lines: Vec<String> = vec![
-            "This has a [link][foo] reference.\n".to_string(),
-            "\n".to_string(),
-            "[foo]: https://example.com\n".to_string(),
+        let lines: Vec<&str> = vec![
+            "This has a [link][foo] reference.\n",
+            "\n",
+            "[foo]: https://example.com\n",
         ];
         let config = HashMap::new();
         let params = make_params(&lines, &config);

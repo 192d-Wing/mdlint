@@ -86,7 +86,7 @@ fn find_strong_matches(line: &str) -> Vec<StrongMatch> {
 }
 
 impl Rule for MD050 {
-    fn names(&self) -> &[&'static str] {
+    fn names(&self) -> &'static [&'static str] {
         &["MD050", "strong-style"]
     }
 
@@ -153,14 +153,14 @@ impl Rule for MD050 {
 
                 errors.push(LintError {
                     line_number: *line_number,
-                    rule_names: self.names().iter().map(|s| s.to_string()).collect(),
-                    rule_description: self.description().to_string(),
+                    rule_names: self.names(),
+                    rule_description: self.description(),
                     error_detail: Some(format!(
                         "Expected: {}; Actual: {}",
                         preferred_style, sm.style
                     )),
                     error_context: Some(sm.full_match.clone()),
-                    rule_information: self.information().map(|s| s.to_string()),
+                    rule_information: self.information(),
                     error_range: Some((sm.start + 1, sm.full_match.len())),
                     fix_info: Some(FixInfo {
                         line_number: None,
@@ -184,7 +184,7 @@ mod tests {
     use std::collections::HashMap;
 
     fn make_params<'a>(
-        lines: &'a [String],
+        lines: &'a [&'a str],
         tokens: &'a [crate::parser::Token],
         config: &'a HashMap<String, serde_json::Value>,
     ) -> crate::types::RuleParams<'a> {
@@ -201,7 +201,7 @@ mod tests {
     #[test]
     fn test_md050_consistent_double_asterisks() {
         let rule = MD050;
-        let lines: Vec<String> = vec!["**bold** text\n".to_string()];
+        let lines: Vec<&str> = vec!["**bold** text\n"];
         let tokens = vec![];
         let config = HashMap::new();
         let params = make_params(&lines, &tokens, &config);
@@ -212,7 +212,7 @@ mod tests {
     #[test]
     fn test_md050_consistent_double_underscores() {
         let rule = MD050;
-        let lines: Vec<String> = vec!["__bold__ text\n".to_string()];
+        let lines: Vec<&str> = vec!["__bold__ text\n"];
         let tokens = vec![];
         let config = HashMap::new();
         let params = make_params(&lines, &tokens, &config);
@@ -223,7 +223,7 @@ mod tests {
     #[test]
     fn test_md050_mixed_styles() {
         let rule = MD050;
-        let lines: Vec<String> = vec!["**bold** and __also bold__\n".to_string()];
+        let lines: Vec<&str> = vec!["**bold** and __also bold__\n"];
         let tokens = vec![];
         let config = HashMap::new();
         let params = make_params(&lines, &tokens, &config);
@@ -235,7 +235,7 @@ mod tests {
     fn test_md050_mixed_styles_consistent_mode() {
         let rule = MD050;
         // First strong is asterisk, so underscore ones should be flagged
-        let lines: Vec<String> = vec!["**one** and __two__\n".to_string()];
+        let lines: Vec<&str> = vec!["**one** and __two__\n"];
         let tokens = vec![];
         let config = HashMap::new();
         let params = make_params(&lines, &tokens, &config);
@@ -250,7 +250,7 @@ mod tests {
     #[test]
     fn test_md050_configured_asterisk_style() {
         let rule = MD050;
-        let lines: Vec<String> = vec!["__one__ and __two__\n".to_string()];
+        let lines: Vec<&str> = vec!["__one__ and __two__\n"];
         let tokens = vec![];
         let mut config = HashMap::new();
         config.insert("style".to_string(), serde_json::json!("asterisk"));
@@ -262,7 +262,7 @@ mod tests {
     #[test]
     fn test_md050_configured_underscore_style() {
         let rule = MD050;
-        let lines: Vec<String> = vec!["**one** and **two**\n".to_string()];
+        let lines: Vec<&str> = vec!["**one** and **two**\n"];
         let tokens = vec![];
         let mut config = HashMap::new();
         config.insert("style".to_string(), serde_json::json!("underscore"));
@@ -275,7 +275,7 @@ mod tests {
     fn test_md050_fix_info_underscore_to_asterisk() {
         let rule = MD050;
         // First is asterisk, so underscore should get fix_info
-        let lines: Vec<String> = vec!["**one** and __two__\n".to_string()];
+        let lines: Vec<&str> = vec!["**one** and __two__\n"];
         let tokens = vec![];
         let config = HashMap::new();
         let params = make_params(&lines, &tokens, &config);
@@ -294,7 +294,7 @@ mod tests {
     fn test_md050_fix_info_asterisk_to_underscore() {
         let rule = MD050;
         // First is underscore, so asterisk should get fix_info
-        let lines: Vec<String> = vec!["__one__ and **two**\n".to_string()];
+        let lines: Vec<&str> = vec!["__one__ and **two**\n"];
         let tokens = vec![];
         let config = HashMap::new();
         let params = make_params(&lines, &tokens, &config);
@@ -311,7 +311,7 @@ mod tests {
     #[test]
     fn test_md050_fix_info_multiple_errors() {
         let rule = MD050;
-        let lines: Vec<String> = vec!["**ok** and __bad1__ and __bad2__\n".to_string()];
+        let lines: Vec<&str> = vec!["**ok** and __bad1__ and __bad2__\n"];
         let tokens = vec![];
         let config = HashMap::new();
         let params = make_params(&lines, &tokens, &config);
@@ -328,7 +328,7 @@ mod tests {
     #[test]
     fn test_md050_no_strong() {
         let rule = MD050;
-        let lines: Vec<String> = vec!["Just plain text.\n".to_string()];
+        let lines: Vec<&str> = vec!["Just plain text.\n"];
         let tokens = vec![];
         let config = HashMap::new();
         let params = make_params(&lines, &tokens, &config);
@@ -339,9 +339,9 @@ mod tests {
     #[test]
     fn test_md050_multiline() {
         let rule = MD050;
-        let lines: Vec<String> = vec![
-            "**first** line\n".to_string(),
-            "__second__ line\n".to_string(),
+        let lines: Vec<&str> = vec![
+            "**first** line\n",
+            "__second__ line\n",
         ];
         let tokens = vec![];
         let config = HashMap::new();

@@ -29,6 +29,64 @@ fn generate_large_md() -> String {
     content
 }
 
+fn generate_realistic_md() -> String {
+    let mut content = String::with_capacity(30_000);
+    content.push_str("# Project Documentation\n\n");
+    content.push_str("## Overview\n\n");
+    content.push_str(
+        "This project provides a comprehensive solution for managing data pipelines.\n\n",
+    );
+    content.push_str("## Installation\n\n");
+    content.push_str("```bash\nnpm install my-package\npip install my-package\n```\n\n");
+    content.push_str("## Configuration\n\n");
+    content.push_str("| Option | Type | Default | Description |\n");
+    content.push_str("|--------|------|---------|-------------|\n");
+    for i in 0..20 {
+        content.push_str(&format!(
+            "| option_{} | string | \"default\" | Description for option {} |\n",
+            i, i
+        ));
+    }
+    content.push_str("\n## API Reference\n\n");
+    for i in 0..30 {
+        content.push_str(&format!("### `function_{}()`\n\n", i));
+        content.push_str(&format!(
+            "This function performs operation {}. It accepts the following parameters:\n\n",
+            i
+        ));
+        content.push_str(&format!(
+            "- `param1` - First parameter for function {}\n",
+            i
+        ));
+        content.push_str(&format!(
+            "- `param2` - Second parameter for function {}\n\n",
+            i
+        ));
+        content.push_str(&format!(
+            "See [function_{}](#{}) for related functionality.\n\n",
+            (i + 1) % 30,
+            i
+        ));
+        if i % 5 == 0 {
+            content.push_str("```javascript\nconst result = await myFunction({\n  key: 'value',\n  count: 42\n});\nconsole.log(result);\n```\n\n");
+        }
+        if i % 7 == 0 {
+            content.push_str(
+                "> **Note:** This function is deprecated. Use the newer API instead.\n\n",
+            );
+        }
+    }
+    content.push_str("## FAQ\n\n");
+    for i in 0..10 {
+        content.push_str(&format!(
+            "**Q: How do I handle case {}?**\n\nA: You should follow these steps:\n\n",
+            i
+        ));
+        content.push_str("1. First step\n2. Second step\n3. Third step\n\n");
+    }
+    content
+}
+
 fn generate_fixable_md() -> String {
     let mut content = String::new();
     content.push_str("# Title\n\n");
@@ -71,6 +129,21 @@ fn bench_lint_single_large(c: &mut Criterion) {
     });
 }
 
+fn bench_lint_realistic(c: &mut Criterion) {
+    let content = generate_realistic_md();
+    c.bench_function("lint_realistic_md", |b| {
+        b.iter(|| {
+            let options = LintOptions {
+                strings: vec![("bench.md".to_string(), content.clone())]
+                    .into_iter()
+                    .collect(),
+                ..Default::default()
+            };
+            black_box(lint_sync(&options).unwrap())
+        })
+    });
+}
+
 fn bench_lint_multi_files(c: &mut Criterion) {
     let content = generate_small_md();
     let strings: HashMap<String, String> = (0..20)
@@ -78,6 +151,23 @@ fn bench_lint_multi_files(c: &mut Criterion) {
         .collect();
 
     c.bench_function("lint_multi_20_files", |b| {
+        b.iter(|| {
+            let options = LintOptions {
+                strings: strings.clone(),
+                ..Default::default()
+            };
+            black_box(lint_sync(&options).unwrap())
+        })
+    });
+}
+
+fn bench_lint_multi_100_files(c: &mut Criterion) {
+    let content = generate_small_md();
+    let strings: HashMap<String, String> = (0..100)
+        .map(|i| (format!("file_{}.md", i), content.clone()))
+        .collect();
+
+    c.bench_function("lint_multi_100_files", |b| {
         b.iter(|| {
             let options = LintOptions {
                 strings: strings.clone(),
@@ -138,7 +228,9 @@ criterion_group!(
     bench_parser_only,
     bench_lint_single_small,
     bench_lint_single_large,
+    bench_lint_realistic,
     bench_lint_multi_files,
+    bench_lint_multi_100_files,
     bench_apply_fixes,
     bench_config_load_json,
 );

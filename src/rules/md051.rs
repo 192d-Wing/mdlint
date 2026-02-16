@@ -51,7 +51,7 @@ fn extract_heading_text(line: &str) -> Option<String> {
 }
 
 /// Collect all heading IDs with duplicate handling
-fn collect_heading_ids(lines: &[String]) -> Vec<String> {
+fn collect_heading_ids(lines: &[&str]) -> Vec<String> {
     let mut ids = Vec::new();
     let mut id_counts: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
     let mut in_code_block = false;
@@ -82,7 +82,7 @@ fn collect_heading_ids(lines: &[String]) -> Vec<String> {
 }
 
 impl Rule for MD051 {
-    fn names(&self) -> &[&'static str] {
+    fn names(&self) -> &'static [&'static str] {
         &["MD051", "link-fragments"]
     }
 
@@ -127,14 +127,14 @@ impl Rule for MD051 {
                 if !heading_ids.contains(&fragment.to_string()) {
                     errors.push(LintError {
                         line_number,
-                        rule_names: self.names().iter().map(|s| s.to_string()).collect(),
-                        rule_description: self.description().to_string(),
+                        rule_names: self.names(),
+                        rule_description: self.description(),
                         error_detail: Some(format!(
                             "No matching heading for fragment: #{}",
                             fragment
                         )),
                         error_context: Some(cap[0].to_string()),
-                        rule_information: self.information().map(|s| s.to_string()),
+                        rule_information: self.information(),
                         error_range: None,
                         fix_info: None,
                         suggestion: Some(
@@ -156,7 +156,7 @@ mod tests {
     use std::collections::HashMap;
 
     fn make_params<'a>(
-        lines: &'a [String],
+        lines: &'a [&'a str],
         config: &'a HashMap<String, serde_json::Value>,
     ) -> crate::types::RuleParams<'a> {
         crate::types::RuleParams {
@@ -181,10 +181,10 @@ mod tests {
     #[test]
     fn test_collect_heading_ids_duplicates() {
         let lines = vec![
-            "# Title\n".to_string(),
-            "## Section\n".to_string(),
-            "## Section\n".to_string(),
-            "## Section\n".to_string(),
+            "# Title\n",
+            "## Section\n",
+            "## Section\n",
+            "## Section\n",
         ];
         let ids = collect_heading_ids(&lines);
         assert_eq!(ids, vec!["title", "section", "section-1", "section-2"]);
@@ -194,11 +194,11 @@ mod tests {
     fn test_md051_valid_fragment() {
         let rule = MD051;
         let lines = vec![
-            "# Title\n".to_string(),
-            "\n".to_string(),
-            "## Getting Started\n".to_string(),
-            "\n".to_string(),
-            "See [title](#title) and [start](#getting-started).\n".to_string(),
+            "# Title\n",
+            "\n",
+            "## Getting Started\n",
+            "\n",
+            "See [title](#title) and [start](#getting-started).\n",
         ];
         let config = HashMap::new();
         let params = make_params(&lines, &config);
@@ -210,9 +210,9 @@ mod tests {
     fn test_md051_invalid_fragment() {
         let rule = MD051;
         let lines = vec![
-            "# Title\n".to_string(),
-            "\n".to_string(),
-            "See [missing](#nonexistent).\n".to_string(),
+            "# Title\n",
+            "\n",
+            "See [missing](#nonexistent).\n",
         ];
         let config = HashMap::new();
         let params = make_params(&lines, &config);
@@ -231,11 +231,11 @@ mod tests {
     fn test_md051_duplicate_heading_ids() {
         let rule = MD051;
         let lines = vec![
-            "# Title\n".to_string(),
-            "## Section\n".to_string(),
-            "## Section\n".to_string(),
-            "\n".to_string(),
-            "See [first](#section) and [second](#section-1).\n".to_string(),
+            "# Title\n",
+            "## Section\n",
+            "## Section\n",
+            "\n",
+            "See [first](#section) and [second](#section-1).\n",
         ];
         let config = HashMap::new();
         let params = make_params(&lines, &config);
@@ -247,10 +247,10 @@ mod tests {
     fn test_md051_fragment_in_code_block_ignored() {
         let rule = MD051;
         let lines = vec![
-            "# Title\n".to_string(),
-            "```\n".to_string(),
-            "[link](#nonexistent)\n".to_string(),
-            "```\n".to_string(),
+            "# Title\n",
+            "```\n",
+            "[link](#nonexistent)\n",
+            "```\n",
         ];
         let config = HashMap::new();
         let params = make_params(&lines, &config);
@@ -262,10 +262,10 @@ mod tests {
     fn test_md051_multiple_fragments_one_line() {
         let rule = MD051;
         let lines = vec![
-            "# Title\n".to_string(),
-            "## About\n".to_string(),
-            "\n".to_string(),
-            "See [a](#title) and [b](#missing).\n".to_string(),
+            "# Title\n",
+            "## About\n",
+            "\n",
+            "See [a](#title) and [b](#missing).\n",
         ];
         let config = HashMap::new();
         let params = make_params(&lines, &config);

@@ -35,7 +35,7 @@ impl HeadingStyle {
 }
 
 /// Determines the heading style from the actual text
-fn get_heading_style(lines: &[String], start_line: usize, end_line: usize) -> HeadingStyle {
+fn get_heading_style(lines: &[&str], start_line: usize, end_line: usize) -> HeadingStyle {
     if start_line == 0 || start_line > lines.len() {
         return HeadingStyle::Atx;
     }
@@ -77,7 +77,7 @@ fn get_heading_style(lines: &[String], start_line: usize, end_line: usize) -> He
 
 /// Generates fix_info to convert a heading to the target style
 fn generate_heading_fix(
-    lines: &[String],
+    lines: &[&str],
     start_line: usize,
     _end_line: usize,
     current_style: HeadingStyle,
@@ -152,7 +152,7 @@ fn generate_heading_fix(
 }
 
 /// Gets the heading level (1-6)
-fn get_heading_level(lines: &[String], start_line: usize, end_line: usize) -> usize {
+fn get_heading_level(lines: &[&str], start_line: usize, end_line: usize) -> usize {
     if start_line == 0 || start_line > lines.len() {
         return 1;
     }
@@ -185,7 +185,7 @@ fn get_heading_level(lines: &[String], start_line: usize, end_line: usize) -> us
 }
 
 impl Rule for MD003 {
-    fn names(&self) -> &[&'static str] {
+    fn names(&self) -> &'static [&'static str] {
         &["MD003", "heading-style"]
     }
 
@@ -241,15 +241,15 @@ impl Rule for MD003 {
 
                         errors.push(LintError {
                             line_number: heading.start_line,
-                            rule_names: self.names().iter().map(|s| s.to_string()).collect(),
-                            rule_description: self.description().to_string(),
+                            rule_names: self.names(),
+                            rule_description: self.description(),
                             error_detail: Some(format!(
                                 "Expected: {}; Actual: {}",
                                 first.as_str(),
                                 style.as_str()
                             )),
                             error_context: None,
-                            rule_information: self.information().map(|s| s.to_string()),
+                            rule_information: self.information(),
                             error_range: None,
                             fix_info,
                             suggestion: Some(format!(
@@ -263,8 +263,8 @@ impl Rule for MD003 {
                         if style == HeadingStyle::Setext && heading.end_line > heading.start_line {
                             errors.push(LintError {
                                 line_number: heading.end_line,
-                                rule_names: vec![],
-                                rule_description: String::new(),
+                                rule_names: &[],
+                                rule_description: "",
                                 error_detail: None,
                                 error_context: None,
                                 rule_information: None,
@@ -354,15 +354,15 @@ impl Rule for MD003 {
 
                     errors.push(LintError {
                         line_number: heading.start_line,
-                        rule_names: self.names().iter().map(|s| s.to_string()).collect(),
-                        rule_description: self.description().to_string(),
+                        rule_names: self.names(),
+                        rule_description: self.description(),
                         error_detail: Some(format!(
                             "Expected: {}; Actual: {}",
                             expected,
                             actual.as_str()
                         )),
                         error_context: None,
-                        rule_information: self.information().map(|s| s.to_string()),
+                        rule_information: self.information(),
                         error_range: None,
                         fix_info,
                         suggestion: Some(format!("Convert heading to {} style", expected)),
@@ -373,8 +373,8 @@ impl Rule for MD003 {
                     if actual == HeadingStyle::Setext && heading.end_line > heading.start_line {
                         errors.push(LintError {
                             line_number: heading.end_line,
-                            rule_names: vec![],
-                            rule_description: String::new(),
+                            rule_names: &[],
+                            rule_description: "",
                             error_detail: None,
                             error_context: None,
                             rule_information: None,
@@ -428,11 +428,11 @@ mod tests {
         ];
 
         let lines = vec![
-            "# Heading 1\n".to_string(),
-            "\n".to_string(),
-            "## Heading 2\n".to_string(),
-            "\n".to_string(),
-            "### Heading 3\n".to_string(),
+            "# Heading 1\n",
+            "\n",
+            "## Heading 2\n",
+            "\n",
+            "### Heading 3\n",
         ];
 
         let mut config = HashMap::new();
@@ -457,10 +457,10 @@ mod tests {
         let tokens = vec![create_heading_token(1, 1), create_heading_token(3, 4)];
 
         let lines = vec![
-            "# Heading 1\n".to_string(),
-            "\n".to_string(),
-            "Heading 2\n".to_string(),
-            "---------\n".to_string(),
+            "# Heading 1\n",
+            "\n",
+            "Heading 2\n",
+            "---------\n",
         ];
 
         let mut config = HashMap::new();
@@ -493,10 +493,10 @@ mod tests {
         let tokens = vec![create_heading_token(1, 1), create_heading_token(3, 4)];
 
         let lines = vec![
-            "# Heading 1\n".to_string(),
-            "\n".to_string(),
-            "Heading 2\n".to_string(),
-            "---------\n".to_string(),
+            "# Heading 1\n",
+            "\n",
+            "Heading 2\n",
+            "---------\n",
         ];
 
         let mut config = HashMap::new();
@@ -527,10 +527,10 @@ mod tests {
         let tokens = vec![create_heading_token(1, 2), create_heading_token(4, 4)];
 
         let lines = vec![
-            "Heading 1\n".to_string(),
-            "=========\n".to_string(),
-            "\n".to_string(),
-            "# Heading 2\n".to_string(),
+            "Heading 1\n",
+            "=========\n",
+            "\n",
+            "# Heading 2\n",
         ];
 
         let mut config = HashMap::new();
@@ -556,9 +556,9 @@ mod tests {
         let tokens = vec![create_heading_token(1, 1), create_heading_token(3, 3)];
 
         let lines = vec![
-            "# Heading 1 #\n".to_string(),
-            "\n".to_string(),
-            "## Heading 2\n".to_string(),
+            "# Heading 1 #\n",
+            "\n",
+            "## Heading 2\n",
         ];
 
         let mut config = HashMap::new();
@@ -593,13 +593,13 @@ mod tests {
         ];
 
         let lines = vec![
-            "Heading 1\n".to_string(),
-            "=========\n".to_string(),
-            "\n".to_string(),
-            "Heading 2\n".to_string(),
-            "---------\n".to_string(),
-            "\n".to_string(),
-            "### Heading 3\n".to_string(),
+            "Heading 1\n",
+            "=========\n",
+            "\n",
+            "Heading 2\n",
+            "---------\n",
+            "\n",
+            "### Heading 3\n",
         ];
 
         let mut config = HashMap::new();
@@ -627,10 +627,10 @@ mod tests {
         let tokens = vec![create_heading_token(1, 2), create_heading_token(4, 4)];
 
         let lines = vec![
-            "Heading 1\n".to_string(),
-            "=========\n".to_string(),
-            "\n".to_string(),
-            "### Heading 3 ###\n".to_string(),
+            "Heading 1\n",
+            "=========\n",
+            "\n",
+            "### Heading 3 ###\n",
         ];
 
         let mut config = HashMap::new();
@@ -655,28 +655,28 @@ mod tests {
 
     #[test]
     fn test_get_heading_style_atx() {
-        let lines = vec!["# Heading\n".to_string()];
+        let lines = vec!["# Heading\n"];
         assert_eq!(get_heading_style(&lines, 1, 1), HeadingStyle::Atx);
     }
 
     #[test]
     fn test_get_heading_style_atx_closed() {
-        let lines = vec!["# Heading #\n".to_string()];
+        let lines = vec!["# Heading #\n"];
         assert_eq!(get_heading_style(&lines, 1, 1), HeadingStyle::AtxClosed);
     }
 
     #[test]
     fn test_get_heading_style_setext() {
-        let lines = vec!["Heading\n".to_string(), "=======\n".to_string()];
+        let lines = vec!["Heading\n", "=======\n"];
         assert_eq!(get_heading_style(&lines, 1, 2), HeadingStyle::Setext);
     }
 
     #[test]
     fn test_get_heading_level_atx() {
         let lines = vec![
-            "# H1\n".to_string(),
-            "## H2\n".to_string(),
-            "### H3\n".to_string(),
+            "# H1\n",
+            "## H2\n",
+            "### H3\n",
         ];
         assert_eq!(get_heading_level(&lines, 1, 1), 1);
         assert_eq!(get_heading_level(&lines, 2, 2), 2);
@@ -686,10 +686,10 @@ mod tests {
     #[test]
     fn test_get_heading_level_setext() {
         let lines = vec![
-            "Heading 1\n".to_string(),
-            "=========\n".to_string(),
-            "Heading 2\n".to_string(),
-            "---------\n".to_string(),
+            "Heading 1\n",
+            "=========\n",
+            "Heading 2\n",
+            "---------\n",
         ];
         assert_eq!(get_heading_level(&lines, 1, 2), 1);
         assert_eq!(get_heading_level(&lines, 3, 4), 2);

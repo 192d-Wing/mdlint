@@ -13,11 +13,7 @@ pub fn format_sarif(results: &LintResults) -> String {
     for file in &files {
         if let Some(errors) = results.results.get(*file) {
             for error in errors {
-                let rule_id = error
-                    .rule_names
-                    .first()
-                    .map(|s| s.as_str())
-                    .unwrap_or("unknown");
+                let rule_id = error.rule_names.first().copied().unwrap_or("unknown");
 
                 // Track unique rules for the tool driver
                 rule_set.entry(rule_id.to_string()).or_insert_with(|| {
@@ -27,7 +23,7 @@ pub fn format_sarif(results: &LintResults) -> String {
                         "shortDescription": {
                             "text": error.rule_description
                         },
-                        "helpUri": error.rule_information.as_deref().unwrap_or("")
+                        "helpUri": error.rule_information.unwrap_or("")
                     })
                 });
 
@@ -36,7 +32,7 @@ pub fn format_sarif(results: &LintResults) -> String {
                     Severity::Warning => "warning",
                 };
 
-                let mut message_text = error.rule_description.clone();
+                let mut message_text = error.rule_description.to_string();
                 if let Some(detail) = &error.error_detail {
                     message_text.push_str(&format!(" [{}]", detail));
                 }
@@ -102,8 +98,8 @@ mod tests {
             "test.md".to_string(),
             vec![LintError {
                 line_number: 3,
-                rule_names: vec!["MD001".to_string(), "heading-increment".to_string()],
-                rule_description: "Heading levels should increment by one".to_string(),
+                rule_names: &["MD001", "heading-increment"],
+                rule_description: "Heading levels should increment by one",
                 error_range: Some((1, 4)),
                 severity: Severity::Error,
                 ..Default::default()

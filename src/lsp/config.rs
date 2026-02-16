@@ -182,10 +182,7 @@ mod tests {
         let config = manager.find_config(&workspace_root);
 
         // Should NOT find parent config (stopped at workspace root)
-        assert!(
-            config.is_none(),
-            "Should not search above workspace root"
-        );
+        assert!(config.is_none(), "Should not search above workspace root");
     }
 
     #[test]

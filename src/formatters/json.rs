@@ -28,8 +28,8 @@ mod tests {
             "test.md".to_string(),
             vec![LintError {
                 line_number: 5,
-                rule_names: vec!["MD009".to_string()],
-                rule_description: "Trailing spaces".to_string(),
+                rule_names: &["MD009"],
+                rule_description: "Trailing spaces",
                 error_detail: Some("Expected: 0; Actual: 3".to_string()),
                 severity: Severity::Error,
                 ..Default::default()

@@ -7,7 +7,7 @@ use crate::types::{FixInfo, LintError, ParserType, Rule, RuleParams, Severity};
 pub struct MD012;
 
 impl Rule for MD012 {
-    fn names(&self) -> &[&'static str] {
+    fn names(&self) -> &'static [&'static str] {
         &["MD012", "no-multiple-blanks"]
     }
 
@@ -47,11 +47,11 @@ impl Rule for MD012 {
                     // Report error on the line after the first blank
                     errors.push(LintError {
                         line_number: first_blank_line + 1,
-                        rule_names: self.names().iter().map(|s| s.to_string()).collect(),
-                        rule_description: self.description().to_string(),
+                        rule_names: self.names(),
+                        rule_description: self.description(),
                         error_detail: Some(format!("Expected: 1; Actual: {}", blank_count)),
                         error_context: None,
-                        rule_information: self.information().map(|s| s.to_string()),
+                        rule_information: self.information(),
                         error_range: None,
                         fix_info: Some(FixInfo {
                             line_number: Some(first_blank_line + 1),
@@ -71,11 +71,11 @@ impl Rule for MD012 {
         if blank_count > 1 {
             errors.push(LintError {
                 line_number: first_blank_line + 1,
-                rule_names: self.names().iter().map(|s| s.to_string()).collect(),
-                rule_description: self.description().to_string(),
+                rule_names: self.names(),
+                rule_description: self.description(),
                 error_detail: Some(format!("Expected: 1; Actual: {}", blank_count)),
                 error_context: None,
-                rule_information: self.information().map(|s| s.to_string()),
+                rule_information: self.information(),
                 error_range: None,
                 fix_info: Some(FixInfo {
                     line_number: Some(first_blank_line + 1),
@@ -100,9 +100,9 @@ mod tests {
     #[test]
     fn test_md012_single_blank_lines() {
         let lines = vec![
-            "# Heading\n".to_string(),
-            "\n".to_string(),
-            "Content\n".to_string(),
+            "# Heading\n",
+            "\n",
+            "Content\n",
         ];
 
         let params = RuleParams {
@@ -122,11 +122,11 @@ mod tests {
     #[test]
     fn test_md012_multiple_blank_lines() {
         let lines = vec![
-            "# Heading\n".to_string(),
-            "\n".to_string(),
-            "\n".to_string(),
-            "\n".to_string(),
-            "Content\n".to_string(),
+            "# Heading\n",
+            "\n",
+            "\n",
+            "\n",
+            "Content\n",
         ];
 
         let params = RuleParams {
@@ -154,7 +154,7 @@ mod tests {
 
     #[test]
     fn test_md012_no_blank_lines() {
-        let lines = vec!["# Heading\n".to_string(), "Content\n".to_string()];
+        let lines = vec!["# Heading\n", "Content\n"];
 
         let params = RuleParams {
             name: "test.md",

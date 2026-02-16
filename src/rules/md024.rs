@@ -6,7 +6,7 @@ use crate::types::{FixInfo, LintError, ParserType, Rule, RuleParams, Severity};
 pub struct MD024;
 
 impl Rule for MD024 {
-    fn names(&self) -> &[&'static str] {
+    fn names(&self) -> &'static [&'static str] {
         &["MD024", "no-duplicate-heading", "no-duplicate-header"]
     }
 
@@ -53,14 +53,14 @@ impl Rule for MD024 {
 
                         errors.push(LintError {
                             line_number,
-                            rule_names: self.names().iter().map(|s| s.to_string()).collect(),
-                            rule_description: self.description().to_string(),
+                            rule_names: self.names(),
+                            rule_description: self.description(),
                             error_detail: Some(format!(
                                 "Duplicate heading: '{}' (occurrence #{})",
                                 normalized, count
                             )),
                             error_context: Some(normalized.to_string()),
-                            rule_information: self.information().map(|s| s.to_string()),
+                            rule_information: self.information(),
                             error_range: None,
                             fix_info: Some(FixInfo {
                                 line_number: None,
@@ -106,11 +106,11 @@ mod tests {
             make_heading(5, "Conclusion", 2),
         ];
         let lines = vec![
-            "# Introduction\n".to_string(),
-            "\n".to_string(),
-            "## Details\n".to_string(),
-            "\n".to_string(),
-            "## Conclusion\n".to_string(),
+            "# Introduction\n",
+            "\n",
+            "## Details\n",
+            "\n",
+            "## Conclusion\n",
         ];
         let params = RuleParams {
             name: "test.md",
@@ -133,11 +133,11 @@ mod tests {
             make_heading(5, "Setup", 2),
         ];
         let lines = vec![
-            "## Setup\n".to_string(),
-            "\n".to_string(),
-            "## Usage\n".to_string(),
-            "\n".to_string(),
-            "## Setup\n".to_string(),
+            "## Setup\n",
+            "\n",
+            "## Usage\n",
+            "\n",
+            "## Setup\n",
         ];
         let params = RuleParams {
             name: "test.md",
@@ -162,11 +162,11 @@ mod tests {
             make_heading(5, "FAQ", 2),
         ];
         let lines = vec![
-            "## FAQ\n".to_string(),
-            "\n".to_string(),
-            "## FAQ\n".to_string(),
-            "\n".to_string(),
-            "## FAQ\n".to_string(),
+            "## FAQ\n",
+            "\n",
+            "## FAQ\n",
+            "\n",
+            "## FAQ\n",
         ];
         let params = RuleParams {
             name: "test.md",
@@ -188,9 +188,9 @@ mod tests {
             make_heading(3, "Overview", 2),
         ];
         let lines = vec![
-            "# Overview\n".to_string(),
-            "\n".to_string(),
-            "## Overview\n".to_string(),
+            "# Overview\n",
+            "\n",
+            "## Overview\n",
         ];
         let params = RuleParams {
             name: "test.md",
@@ -213,9 +213,9 @@ mod tests {
     fn test_md024_fix_info() {
         let tokens = vec![make_heading(1, "Title", 1), make_heading(3, "Title", 2)];
         let lines = vec![
-            "# Title\n".to_string(),
-            "\n".to_string(),
-            "## Title\n".to_string(),
+            "# Title\n",
+            "\n",
+            "## Title\n",
         ];
         let params = RuleParams {
             name: "test.md",
@@ -241,11 +241,11 @@ mod tests {
             make_heading(5, "FAQ", 2),
         ];
         let lines = vec![
-            "## FAQ\n".to_string(),
-            "\n".to_string(),
-            "## FAQ\n".to_string(),
-            "\n".to_string(),
-            "## FAQ\n".to_string(),
+            "## FAQ\n",
+            "\n",
+            "## FAQ\n",
+            "\n",
+            "## FAQ\n",
         ];
         let params = RuleParams {
             name: "test.md",
@@ -274,9 +274,9 @@ mod tests {
     fn test_md024_fix_column_calculation() {
         let tokens = vec![make_heading(1, "Setup", 2), make_heading(3, "Setup", 2)];
         let lines = vec![
-            "## Setup\n".to_string(),
-            "\n".to_string(),
-            "## Setup\n".to_string(),
+            "## Setup\n",
+            "\n",
+            "## Setup\n",
         ];
         let params = RuleParams {
             name: "test.md",

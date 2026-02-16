@@ -28,7 +28,7 @@ static CODE_FENCE_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"^(`{3,}|~{3,})").u
 pub struct MD054;
 
 impl Rule for MD054 {
-    fn names(&self) -> &[&'static str] {
+    fn names(&self) -> &'static [&'static str] {
         &["MD054", "link-image-style"]
     }
 
@@ -127,11 +127,11 @@ impl Rule for MD054 {
                     matched_ranges.push((mat.start(), mat.end()));
                     errors.push(LintError {
                         line_number,
-                        rule_names: self.names().iter().map(|s| s.to_string()).collect(),
-                        rule_description: self.description().to_string(),
+                        rule_names: self.names(),
+                        rule_description: self.description(),
                         error_detail: Some("Autolink style is not allowed".to_string()),
                         error_context: Some(mat.as_str().to_string()),
-                        rule_information: self.information().map(|s| s.to_string()),
+                        rule_information: self.information(),
                         error_range: Some((mat.start() + 1, mat.len())),
                         fix_info: None,
                         suggestion: Some(
@@ -153,11 +153,11 @@ impl Rule for MD054 {
                         matched_ranges.push((mat.start(), mat.end()));
                         errors.push(LintError {
                             line_number,
-                            rule_names: self.names().iter().map(|s| s.to_string()).collect(),
-                            rule_description: self.description().to_string(),
+                            rule_names: self.names(),
+                            rule_description: self.description(),
                             error_detail: Some("Inline style is not allowed".to_string()),
                             error_context: Some(mat.as_str().to_string()),
-                            rule_information: self.information().map(|s| s.to_string()),
+                            rule_information: self.information(),
                             error_range: Some((mat.start() + 1, mat.len())),
                             fix_info: None,
                             suggestion: Some(
@@ -182,13 +182,13 @@ impl Rule for MD054 {
                         matched_ranges.push((mat.start(), mat.end()));
                         errors.push(LintError {
                             line_number,
-                            rule_names: self.names().iter().map(|s| s.to_string()).collect(),
-                            rule_description: self.description().to_string(),
+                            rule_names: self.names(),
+                            rule_description: self.description(),
                             error_detail: Some(
                                 "Collapsed reference style is not allowed".to_string(),
                             ),
                             error_context: Some(mat.as_str().to_string()),
-                            rule_information: self.information().map(|s| s.to_string()),
+                            rule_information: self.information(),
                             error_range: Some((mat.start() + 1, mat.len())),
                             fix_info: None,
                             suggestion: Some(
@@ -213,11 +213,11 @@ impl Rule for MD054 {
                         matched_ranges.push((mat.start(), mat.end()));
                         errors.push(LintError {
                             line_number,
-                            rule_names: self.names().iter().map(|s| s.to_string()).collect(),
-                            rule_description: self.description().to_string(),
+                            rule_names: self.names(),
+                            rule_description: self.description(),
                             error_detail: Some("Full reference style is not allowed".to_string()),
                             error_context: Some(mat.as_str().to_string()),
-                            rule_information: self.information().map(|s| s.to_string()),
+                            rule_information: self.information(),
                             error_range: Some((mat.start() + 1, mat.len())),
                             fix_info: None,
                             suggestion: Some(
@@ -242,13 +242,13 @@ impl Rule for MD054 {
                         matched_ranges.push((mat.start(), mat.end()));
                         errors.push(LintError {
                             line_number,
-                            rule_names: self.names().iter().map(|s| s.to_string()).collect(),
-                            rule_description: self.description().to_string(),
+                            rule_names: self.names(),
+                            rule_description: self.description(),
                             error_detail: Some(
                                 "Shortcut reference style is not allowed".to_string(),
                             ),
                             error_context: Some(mat.as_str().to_string()),
-                            rule_information: self.information().map(|s| s.to_string()),
+                            rule_information: self.information(),
                             error_range: Some((mat.start() + 1, mat.len())),
                             fix_info: None,
                             suggestion: Some(
@@ -276,7 +276,7 @@ mod tests {
     use std::collections::HashMap;
 
     fn make_params<'a>(
-        lines: &'a [String],
+        lines: &'a [&'a str],
         config: &'a HashMap<String, serde_json::Value>,
     ) -> RuleParams<'a> {
         RuleParams {
@@ -292,11 +292,11 @@ mod tests {
     #[test]
     fn test_md054_all_styles_allowed() {
         let lines = vec![
-            "[inline link](https://example.com)\n".to_string(),
-            "[full ref][label]\n".to_string(),
-            "[collapsed ref][]\n".to_string(),
-            "[shortcut ref] is here\n".to_string(),
-            "<https://example.com>\n".to_string(),
+            "[inline link](https://example.com)\n",
+            "[full ref][label]\n",
+            "[collapsed ref][]\n",
+            "[shortcut ref] is here\n",
+            "<https://example.com>\n",
         ];
         let config = HashMap::new();
         let params = make_params(&lines, &config);
@@ -307,7 +307,7 @@ mod tests {
 
     #[test]
     fn test_md054_inline_only() {
-        let lines = vec!["[full ref][label]\n".to_string()];
+        let lines = vec!["[full ref][label]\n"];
         let mut config = HashMap::new();
         config.insert("full".to_string(), serde_json::Value::Bool(false));
         let params = make_params(&lines, &config);
@@ -326,7 +326,7 @@ mod tests {
 
     #[test]
     fn test_md054_autolink_disabled() {
-        let lines = vec!["<https://example.com>\n".to_string()];
+        let lines = vec!["<https://example.com>\n"];
         let mut config = HashMap::new();
         config.insert("autolink".to_string(), serde_json::Value::Bool(false));
         let params = make_params(&lines, &config);

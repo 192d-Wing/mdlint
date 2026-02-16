@@ -10,7 +10,7 @@ static EMPHASIS_UNDERSCORE_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"_[^_]+_")
 pub struct MD059;
 
 impl Rule for MD059 {
-    fn names(&self) -> &[&'static str] {
+    fn names(&self) -> &'static [&'static str] {
         &["MD059", "emphasis-marker-style-math"]
     }
 
@@ -48,13 +48,13 @@ impl Rule for MD059 {
                     if EMPHASIS_UNDERSCORE_RE.is_match(&display_math_content) {
                         errors.push(LintError {
                             line_number: display_math_start_line,
-                            rule_names: self.names().iter().map(|s| s.to_string()).collect(),
-                            rule_description: self.description().to_string(),
+                            rule_names: self.names(),
+                            rule_description: self.description(),
                             error_detail: Some(
                                 "Emphasis-style underscore found in display math".to_string(),
                             ),
                             error_context: Some(display_math_content.trim().to_string()),
-                            rule_information: self.information().map(|s| s.to_string()),
+                            rule_information: self.information(),
                             error_range: None,
                             fix_info: None,
                             suggestion: Some("Use backslash to escape $ for literal dollar signs when using math".to_string()),
@@ -110,13 +110,13 @@ impl MD059 {
                 if EMPHASIS_UNDERSCORE_RE.is_match(math_content) {
                     errors.push(LintError {
                         line_number,
-                        rule_names: self.names().iter().map(|s| s.to_string()).collect(),
-                        rule_description: self.description().to_string(),
+                        rule_names: self.names(),
+                        rule_description: self.description(),
                         error_detail: Some(
                             "Emphasis-style underscore found in display math".to_string(),
                         ),
                         error_context: Some(format!("$${}$$", math_content)),
-                        rule_information: self.information().map(|s| s.to_string()),
+                        rule_information: self.information(),
                         error_range: Some((abs_start + 1, abs_end + 2 - abs_start)),
                         fix_info: None,
                         suggestion: Some(
@@ -164,13 +164,13 @@ impl MD059 {
                     if !math_content.is_empty() && EMPHASIS_UNDERSCORE_RE.is_match(math_content) {
                         errors.push(LintError {
                             line_number,
-                            rule_names: self.names().iter().map(|s| s.to_string()).collect(),
-                            rule_description: self.description().to_string(),
+                            rule_names: self.names(),
+                            rule_description: self.description(),
                             error_detail: Some(
                                 "Emphasis-style underscore found in math".to_string(),
                             ),
                             error_context: Some(format!("${}$", math_content)),
-                            rule_information: self.information().map(|s| s.to_string()),
+                            rule_information: self.information(),
                             error_range: Some((start + 1, i + 1 - start)),
                             fix_info: None,
                             suggestion: Some("Use backslash to escape $ for literal dollar signs when using math".to_string()),
@@ -192,7 +192,7 @@ mod tests {
     use std::collections::HashMap;
 
     fn make_params<'a>(
-        lines: &'a [String],
+        lines: &'a [&'a str],
         config: &'a HashMap<String, serde_json::Value>,
     ) -> RuleParams<'a> {
         RuleParams {
@@ -207,7 +207,7 @@ mod tests {
 
     #[test]
     fn test_md059_no_emphasis_in_math() {
-        let lines = vec!["$x^2$\n".to_string()];
+        let lines = vec!["$x^2$\n"];
         let config = HashMap::new();
         let params = make_params(&lines, &config);
         let rule = MD059;
@@ -217,7 +217,7 @@ mod tests {
 
     #[test]
     fn test_md059_emphasis_in_math() {
-        let lines = vec!["$_text_$\n".to_string()];
+        let lines = vec!["$_text_$\n"];
         let config = HashMap::new();
         let params = make_params(&lines, &config);
         let rule = MD059;

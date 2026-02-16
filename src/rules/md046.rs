@@ -5,7 +5,7 @@ use crate::types::{LintError, ParserType, Rule, RuleParams, Severity};
 pub struct MD046;
 
 impl Rule for MD046 {
-    fn names(&self) -> &[&'static str] {
+    fn names(&self) -> &'static [&'static str] {
         &["MD046", "code-block-style"]
     }
 
@@ -46,11 +46,11 @@ impl Rule for MD046 {
         if fenced_count > 0 && indented_count > 0 {
             errors.push(LintError {
                 line_number: 1,
-                rule_names: self.names().iter().map(|s| s.to_string()).collect(),
-                rule_description: self.description().to_string(),
+                rule_names: self.names(),
+                rule_description: self.description(),
                 error_detail: Some("Mixed code block styles (fenced and indented)".to_string()),
                 error_context: None,
-                rule_information: self.information().map(|s| s.to_string()),
+                rule_information: self.information(),
                 error_range: None,
                 fix_info: None,
                 suggestion: Some(
@@ -72,11 +72,11 @@ mod tests {
     #[test]
     fn test_md046_fenced_only() {
         let lines = vec![
-            "# Title\n".to_string(),
-            "\n".to_string(),
-            "```\n".to_string(),
-            "code\n".to_string(),
-            "```\n".to_string(),
+            "# Title\n",
+            "\n",
+            "```\n",
+            "code\n",
+            "```\n",
         ];
         let params = RuleParams {
             name: "test.md",
@@ -94,10 +94,10 @@ mod tests {
     #[test]
     fn test_md046_indented_only() {
         let lines = vec![
-            "# Title\n".to_string(),
-            "\n".to_string(),
-            "    code block\n".to_string(),
-            "    more code\n".to_string(),
+            "# Title\n",
+            "\n",
+            "    code block\n",
+            "    more code\n",
         ];
         let params = RuleParams {
             name: "test.md",
@@ -115,13 +115,13 @@ mod tests {
     #[test]
     fn test_md046_mixed_styles() {
         let lines = vec![
-            "# Title\n".to_string(),
-            "\n".to_string(),
-            "```\n".to_string(),
-            "fenced code\n".to_string(),
-            "```\n".to_string(),
-            "\n".to_string(),
-            "    indented code\n".to_string(),
+            "# Title\n",
+            "\n",
+            "```\n",
+            "fenced code\n",
+            "```\n",
+            "\n",
+            "    indented code\n",
         ];
         let params = RuleParams {
             name: "test.md",
@@ -144,11 +144,11 @@ mod tests {
     #[test]
     fn test_md046_tilde_fenced() {
         let lines = vec![
-            "~~~\n".to_string(),
-            "code\n".to_string(),
-            "~~~\n".to_string(),
-            "\n".to_string(),
-            "    indented\n".to_string(),
+            "~~~\n",
+            "code\n",
+            "~~~\n",
+            "\n",
+            "    indented\n",
         ];
         let params = RuleParams {
             name: "test.md",
@@ -170,9 +170,9 @@ mod tests {
     #[test]
     fn test_md046_no_code_blocks() {
         let lines = vec![
-            "# Title\n".to_string(),
-            "\n".to_string(),
-            "Just a paragraph.\n".to_string(),
+            "# Title\n",
+            "\n",
+            "Just a paragraph.\n",
         ];
         let params = RuleParams {
             name: "test.md",
@@ -190,10 +190,10 @@ mod tests {
     #[test]
     fn test_md046_no_fix_info() {
         let lines = vec![
-            "```\n".to_string(),
-            "code\n".to_string(),
-            "```\n".to_string(),
-            "    indented\n".to_string(),
+            "```\n",
+            "code\n",
+            "```\n",
+            "    indented\n",
         ];
         let params = RuleParams {
             name: "test.md",

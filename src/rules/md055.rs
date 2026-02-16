@@ -5,7 +5,7 @@ use crate::types::{FixInfo, LintError, ParserType, Rule, RuleParams, Severity};
 pub struct MD055;
 
 impl Rule for MD055 {
-    fn names(&self) -> &[&'static str] {
+    fn names(&self) -> &'static [&'static str] {
         &["MD055", "table-pipe-style"]
     }
 
@@ -72,11 +72,11 @@ impl Rule for MD055 {
 
                     errors.push(LintError {
                         line_number,
-                        rule_names: self.names().iter().map(|s| s.to_string()).collect(),
-                        rule_description: self.description().to_string(),
+                        rule_names: self.names(),
+                        rule_description: self.description(),
                         error_detail: Some("Inconsistent pipe style".to_string()),
                         error_context: Some(trimmed.to_string()),
-                        rule_information: self.information().map(|s| s.to_string()),
+                        rule_information: self.information(),
                         error_range: None,
                         fix_info,
                         suggestion: Some(
@@ -99,7 +99,7 @@ mod tests {
     use std::collections::HashMap;
 
     fn make_params<'a>(
-        lines: &'a [String],
+        lines: &'a [&'a str],
         tokens: &'a [crate::parser::Token],
         config: &'a HashMap<String, serde_json::Value>,
     ) -> crate::types::RuleParams<'a> {
@@ -116,10 +116,10 @@ mod tests {
     #[test]
     fn test_md055_consistent_leading_and_trailing_pipes() {
         let rule = MD055;
-        let lines: Vec<String> = vec![
-            "| Header 1 | Header 2 |\n".to_string(),
-            "| -------- | -------- |\n".to_string(),
-            "| Cell 1   | Cell 2   |\n".to_string(),
+        let lines: Vec<&str> = vec![
+            "| Header 1 | Header 2 |\n",
+            "| -------- | -------- |\n",
+            "| Cell 1   | Cell 2   |\n",
         ];
         let tokens = vec![];
         let config = HashMap::new();
@@ -131,10 +131,10 @@ mod tests {
     #[test]
     fn test_md055_no_leading_or_trailing_pipes() {
         let rule = MD055;
-        let lines: Vec<String> = vec![
-            "Header 1 | Header 2\n".to_string(),
-            "-------- | --------\n".to_string(),
-            "Cell 1   | Cell 2\n".to_string(),
+        let lines: Vec<&str> = vec![
+            "Header 1 | Header 2\n",
+            "-------- | --------\n",
+            "Cell 1   | Cell 2\n",
         ];
         let tokens = vec![];
         let config = HashMap::new();
@@ -146,7 +146,7 @@ mod tests {
     #[test]
     fn test_md055_inconsistent_pipe_style() {
         let rule = MD055;
-        let lines: Vec<String> = vec!["| Header 1 | Header 2\n".to_string()];
+        let lines: Vec<&str> = vec!["| Header 1 | Header 2\n"];
         let tokens = vec![];
         let config = HashMap::new();
         let params = make_params(&lines, &tokens, &config);
@@ -157,7 +157,7 @@ mod tests {
     #[test]
     fn test_md055_trailing_only_pipe() {
         let rule = MD055;
-        let lines: Vec<String> = vec!["Header 1 | Header 2 |\n".to_string()];
+        let lines: Vec<&str> = vec!["Header 1 | Header 2 |\n"];
         let tokens = vec![];
         let config = HashMap::new();
         let params = make_params(&lines, &tokens, &config);
@@ -168,7 +168,7 @@ mod tests {
     #[test]
     fn test_md055_fix_missing_trailing_pipe() {
         let rule = MD055;
-        let lines: Vec<String> = vec!["| Header 1 | Header 2\n".to_string()];
+        let lines: Vec<&str> = vec!["| Header 1 | Header 2\n"];
         let tokens = vec![];
         let config = HashMap::new();
         let params = make_params(&lines, &tokens, &config);
@@ -187,7 +187,7 @@ mod tests {
     #[test]
     fn test_md055_fix_missing_leading_pipe() {
         let rule = MD055;
-        let lines: Vec<String> = vec!["Header 1 | Header 2 |\n".to_string()];
+        let lines: Vec<&str> = vec!["Header 1 | Header 2 |\n"];
         let tokens = vec![];
         let config = HashMap::new();
         let params = make_params(&lines, &tokens, &config);
@@ -206,7 +206,7 @@ mod tests {
     #[test]
     fn test_md055_fix_indented_table() {
         let rule = MD055;
-        let lines: Vec<String> = vec!["  | Header 1 | Header 2\n".to_string()];
+        let lines: Vec<&str> = vec!["  | Header 1 | Header 2\n"];
         let tokens = vec![];
         let config = HashMap::new();
         let params = make_params(&lines, &tokens, &config);
