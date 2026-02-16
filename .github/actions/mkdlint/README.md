@@ -5,6 +5,7 @@ Fast Markdown linter with auto-fix support and native GitHub Code Scanning integ
 ## Features
 
 - **Fast Binary Downloads**: Pre-built binaries for Linux, macOS, and Windows (x86_64 and aarch64)
+- **SHA256 Checksum Verification**: Automatic verification of downloaded binaries for security
 - **Automatic Caching**: Caches downloaded binaries for 10-100x faster subsequent runs
 - **SARIF Integration**: Native GitHub Code Scanning support with automatic SARIF upload
 - **Auto-Fix Support**: Apply fixes automatically with the `fix: true` option
@@ -290,6 +291,31 @@ For best performance on large repositories, combine with changed file detection:
 ```
 
 This can reduce linting time from minutes to seconds on large repositories.
+
+## Security
+
+### Binary Verification
+
+The action automatically verifies downloaded binaries using SHA256 checksums:
+
+1. **Download**: Fetches pre-built binary from GitHub Releases
+2. **Checksum Download**: Fetches corresponding `.sha256` file
+3. **Verification**: Compares computed hash with expected hash
+4. **Fail-Safe**: Refuses to use binary if checksum doesn't match
+
+**Checksum Process:**
+
+- Generated during release build (see `.github/workflows/release.yml`)
+- Published alongside each binary archive
+- Verified before extraction using `sha256sum` or `shasum`
+- Skipped only if checksum file unavailable (warns but continues)
+
+**Security Best Practices:**
+
+- Binaries are stripped and optimized for release
+- No third-party dependencies in action script
+- Minimal `GITHUB_TOKEN` permissions required
+- All downloads from official repository releases
 
 ## Troubleshooting
 

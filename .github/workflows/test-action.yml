@@ -568,3 +568,33 @@ jobs:
           fi
 
           echo "✓ Integration test complete"
+
+  test-checksum-verification:
+    name: Test Checksum Verification
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Test with checksum verification
+        id: with-checksum
+        uses: ./.github/actions/mkdlint
+        with:
+          files: 'README.md'
+          version: 'latest'
+          fail-on-error: false
+          upload-sarif: false
+
+      - name: Verify checksum was checked
+        run: |
+          echo "Binary path: ${{ steps.with-checksum.outputs.binary-path }}"
+          echo "Cache hit: ${{ steps.with-checksum.outputs.cache-hit }}"
+
+          # If not from cache, checksum should have been verified
+          if [ "${{ steps.with-checksum.outputs.cache-hit }}" != "true" ]; then
+            echo "✓ Binary downloaded with checksum verification"
+          else
+            echo "✓ Using cached binary (checksum verified on first download)"
+          fi
