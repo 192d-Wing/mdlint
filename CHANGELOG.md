@@ -7,22 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-02-16
+
 ### Added
 
 - **Interactive Configuration Wizard** 🧙
-  - `mkdlint init --interactive` - Guided configuration setup
-  - Asks questions about:
+  - `mkdlint init --interactive` - Guided configuration setup with 9 comprehensive questions
+  - Questions about:
     - Format preference (JSON/YAML/TOML)
-    - Line length limits
-    - Heading style preferences (ATX/Setext)
-    - List marker style (dash/asterisk/plus)
-    - Emphasis style (asterisk/underscore)
-    - Inline HTML preferences with element selection
-    - Code block style (fenced/indented)
-    - Common rules to disable
+    - Line length limits (with 0 to disable option)
+    - Heading style preferences (ATX/Setext/Consistent)
+    - List marker style (dash/asterisk/plus/consistent)
+    - Emphasis style (asterisk/underscore/consistent)
+    - Strong emphasis style (asterisk/underscore/consistent)
+    - Inline HTML with multi-select element picker
+    - Code block style (fenced/indented/consistent)
+    - Common rules to disable (MD013, MD033, MD034, MD041)
   - Generates optimal config based on answers
   - Auto-adjusts output filename extension to match format
-  - Uses `dialoguer` crate for interactive prompts
+  - Uses `dialoguer` crate for interactive terminal prompts
+  - Significantly improves first-time user experience
+
+### Changed
+
+- Refactored config generation to use `ConfigOptions` struct for cleaner code
+
+### Technical
+
+- Added `dialoguer` dependency (v0.11) for interactive prompts
+- All 346 tests passing, zero clippy warnings
 
 ## [0.6.1] - 2026-02-16
 
