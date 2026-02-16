@@ -3,7 +3,8 @@
 //! This module provides the main Language Server implementation.
 
 use super::{code_actions, diagnostics, document::DocumentManager, utils::Debouncer};
-use crate::{LintOptions, lint_sync};
+use crate::{LintOptions, apply_fixes, lint_sync};
+use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
 use tower_lsp::jsonrpc::Result;
@@ -91,6 +92,10 @@ impl LanguageServer for MkdlintLanguageServer {
                     TextDocumentSyncKind::FULL,
                 )),
                 code_action_provider: Some(CodeActionProviderCapability::Simple(true)),
+                execute_command_provider: Some(ExecuteCommandOptions {
+                    commands: vec!["mkdlint.fixAll".to_string()],
+                    work_done_progress_options: WorkDoneProgressOptions::default(),
+                }),
                 ..Default::default()
             },
             server_info: Some(ServerInfo {
@@ -196,10 +201,135 @@ impl LanguageServer for MkdlintLanguageServer {
             }
         }
 
+        // Add "Fix All" command if there are any fixable errors in the document
+        let fixable_count = doc
+            .cached_errors
+            .iter()
+            .filter(|e| e.fix_info.is_some())
+            .count();
+        if fixable_count > 0 {
+            let fix_all_command = CodeActionOrCommand::CodeAction(CodeAction {
+                title: format!("Fix all mkdlint issues ({} fixes)", fixable_count),
+                kind: Some(CodeActionKind::SOURCE_FIX_ALL),
+                command: Some(Command {
+                    title: "Fix all".to_string(),
+                    command: "mkdlint.fixAll".to_string(),
+                    arguments: Some(vec![serde_json::to_value(&uri).unwrap()]),
+                }),
+                ..Default::default()
+            });
+            actions.push(fix_all_command);
+        }
+
         if actions.is_empty() {
             Ok(None)
         } else {
             Ok(Some(actions))
+        }
+    }
+
+    async fn execute_command(
+        &self,
+        params: ExecuteCommandParams,
+    ) -> Result<Option<serde_json::Value>> {
+        match params.command.as_str() {
+            "mkdlint.fixAll" => {
+                // Extract URI from arguments
+                let uri = match params.arguments.first() {
+                    Some(arg) => match serde_json::from_value::<Url>(arg.clone()) {
+                        Ok(uri) => uri,
+                        Err(e) => {
+                            self.client
+                                .log_message(
+                                    MessageType::ERROR,
+                                    format!("Invalid URI argument: {}", e),
+                                )
+                                .await;
+                            return Ok(None);
+                        }
+                    },
+                    None => {
+                        self.client
+                            .log_message(MessageType::ERROR, "No URI provided for fixAll")
+                            .await;
+                        return Ok(None);
+                    }
+                };
+
+                // Get document
+                let doc = match self.document_manager.get(&uri) {
+                    Some(doc) => doc,
+                    None => {
+                        self.client
+                            .log_message(MessageType::ERROR, format!("Document not found: {}", uri))
+                            .await;
+                        return Ok(None);
+                    }
+                };
+
+                // Apply all fixes
+                let fixed_content = apply_fixes(&doc.content, &doc.cached_errors);
+
+                // Create workspace edit to replace entire document
+                let text_edit = TextEdit {
+                    range: Range {
+                        start: Position {
+                            line: 0,
+                            character: 0,
+                        },
+                        end: Position {
+                            line: u32::MAX,
+                            character: u32::MAX,
+                        },
+                    },
+                    new_text: fixed_content.clone(),
+                };
+
+                let mut changes = HashMap::new();
+                changes.insert(uri.clone(), vec![text_edit]);
+
+                let workspace_edit = WorkspaceEdit {
+                    changes: Some(changes),
+                    ..Default::default()
+                };
+
+                // Apply the edit
+                if let Ok(response) = self.client.apply_edit(workspace_edit).await {
+                    if response.applied {
+                        self.client
+                            .log_message(MessageType::INFO, "Applied all fixes")
+                            .await;
+
+                        // Update document content
+                        self.document_manager
+                            .update(&uri, fixed_content, doc.version + 1);
+
+                        // Re-lint the document
+                        self.lint_and_publish(uri).await;
+                    } else {
+                        self.client
+                            .log_message(
+                                MessageType::ERROR,
+                                format!(
+                                    "Failed to apply fixes: {}",
+                                    response.failure_reason.unwrap_or_default()
+                                ),
+                            )
+                            .await;
+                    }
+                }
+
+                Ok(None)
+            }
+            _ => {
+                self.client
+                    .log_message(
+                        MessageType::WARNING,
+                        format!("Unknown command: {}", params.command),
+                    )
+                    .await;
+                Ok(None)
+            }
         }
     }
 }
