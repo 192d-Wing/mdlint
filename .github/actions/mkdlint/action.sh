@@ -125,6 +125,38 @@ download_binary() {
 
     log_success "Downloaded archive"
 
+    # Download and verify checksum
+    local checksum_url="${download_url}.sha256"
+    local checksum_path="${archive_path}.sha256"
+
+    log_info "Downloading checksum..."
+    if command -v curl >/dev/null 2>&1; then
+        if ! curl -sSL -f -o "$checksum_path" "$checksum_url"; then
+            log_warning "Failed to download checksum from: $checksum_url"
+            log_warning "Skipping checksum verification"
+        else
+            # Verify checksum
+            log_info "Verifying checksum..."
+            if command -v sha256sum >/dev/null 2>&1; then
+                if ! (cd "$temp_dir" && sha256sum -c "$(basename "$checksum_path")"); then
+                    log_error "Checksum verification failed"
+                    rm -f "$archive_path" "$checksum_path"
+                    return 1
+                fi
+            elif command -v shasum >/dev/null 2>&1; then
+                if ! (cd "$temp_dir" && shasum -a 256 -c "$(basename "$checksum_path")"); then
+                    log_error "Checksum verification failed"
+                    rm -f "$archive_path" "$checksum_path"
+                    return 1
+                fi
+            else
+                log_warning "No SHA256 utility found, skipping checksum verification"
+            fi
+            log_success "Checksum verified"
+            rm -f "$checksum_path"
+        fi
+    fi
+
     # Extract archive
     log_info "Extracting binary..."
 

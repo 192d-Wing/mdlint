@@ -113,10 +113,33 @@ jobs:
             tar czf ../../../${{ matrix.asset_name }}.tar.gz ${{ matrix.artifact_name }}
           fi
 
+      - name: Generate SHA256 checksums
+        shell: bash
+        run: |
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            ARCHIVE="${{ matrix.asset_name }}.zip"
+          else
+            ARCHIVE="${{ matrix.asset_name }}.tar.gz"
+          fi
+
+          if command -v sha256sum >/dev/null 2>&1; then
+            sha256sum "$ARCHIVE" > "${ARCHIVE}.sha256"
+          elif command -v shasum >/dev/null 2>&1; then
+            shasum -a 256 "$ARCHIVE" > "${ARCHIVE}.sha256"
+          else
+            echo "::error::No SHA256 utility found"
+            exit 1
+          fi
+
+          echo "Generated checksum:"
+          cat "${ARCHIVE}.sha256"
+
       - name: Upload Release Asset
         uses: softprops/action-gh-release@v2
         with:
-          files: ./${{ matrix.asset_name }}${{ matrix.os == 'windows-latest' && '.zip' || '.tar.gz' }}
+          files: |
+            ./${{ matrix.asset_name }}${{ matrix.os == 'windows-latest' && '.zip' || '.tar.gz' }}
+            ./${{ matrix.asset_name }}${{ matrix.os == 'windows-latest' && '.zip' || '.tar.gz' }}.sha256
 
   publish-crate:
     name: Publish to crates.io
