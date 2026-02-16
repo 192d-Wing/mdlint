@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-02-16
+
+### Added
+
+- **Comprehensive Documentation** 📚
+  - **User Guide**: Complete guide covering getting started, configuration, auto-fix, IDE integration, CI/CD, troubleshooting, and FAQ
+  - **Auto-Fix Showcase**: Before/after examples in README showing 80% coverage
+  - **Helpful Suggestions**: All 44 rules now include actionable suggestions
+    - Improves user experience and discoverability
+    - Provides clear guidance on how to fix issues
+    - Displayed with 💡 icon in colored output
+
+### Changed
+
+- Updated README to reflect 80% auto-fix coverage (was showing 63%)
+- Updated library version examples to 0.6
+- Improved feature discovery and documentation
+
 ## [0.6.0] - 2026-02-16
 
 ### Added
@@ -350,7 +368,8 @@ This release makes existing auto-fixes discoverable by properly tagging them. No
 - Parallel file processing
 - Inline configuration comments support
 
-[Unreleased]: https://github.com/192d-Wing/mkdlint/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/192d-Wing/mkdlint/compare/v0.6.1...HEAD
+[0.6.1]: https://github.com/192d-Wing/mkdlint/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/192d-Wing/mkdlint/compare/v0.5.3...v0.6.0
 [0.5.3]: https://github.com/192d-Wing/mkdlint/compare/v0.5.2...v0.5.3
 [0.5.2]: https://github.com/192d-Wing/mkdlint/compare/v0.5.1...v0.5.2
