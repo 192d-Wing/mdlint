@@ -7,21 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Documentation
+## [0.8.0] - 2026-02-16
 
-- **Comprehensive IDE Integration Guide** 📝
-  - Expanded USER_GUIDE.md IDE section from ~60 to ~550 lines
-  - Copy-paste ready configurations for 6 major editors:
-    - VS Code (tasks, auto-run, watch mode, keybindings)
-    - Neovim/Vim (ALE, null-ls, autocmd, custom commands)
-    - Emacs (Flycheck, auto-fix, compilation mode)
-    - Zed (tasks configuration)
-    - Sublime Text (build system)
-    - Generic LSP (future-ready)
-  - Each editor has 3-4 integration methods for different workflows
-  - Extensive troubleshooting section with 8+ common issues
-  - Recommended workflows for beginners, power users, and teams
-  - **Completes v0.7.0 roadmap milestone** ✅
+### Added
+
+- **MD024 Auto-Fix** - Duplicate Heading Disambiguation 🔧
+  - Automatically append occurrence numbers to duplicate headings
+  - Example: `## Setup` → `## Setup (2)` → `## Setup (3)`
+  - Helpful suggestions show proposed fix
+  - Smart counting per heading text
+  - **Auto-fix coverage: 43/54 → 44/54 (81.5%)**
+  - Only 10 rules remaining without auto-fix
+
+### Changed
+
+- Updated README and USER_GUIDE with new coverage stats
+
+### Technical
+
+- Refactored MD024 to use HashMap for occurrence tracking
+- Added 3 new tests for fix generation and column calculation
+- All 348 tests passing, zero clippy warnings
 
 ## [0.7.1] - 2026-02-16
 

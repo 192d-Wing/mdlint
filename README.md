@@ -15,7 +15,7 @@ A fast Markdown linter written in Rust, inspired by [markdownlint](https://githu
 ## Features
 
 - **54 lint rules** (MD001-MD060) enforcing Markdown best practices
-- **🎉 Automatic fixing** for **43 rules (80% coverage)** with `--fix` flag
+- **🎉 Automatic fixing** for **44 rules (81.5% coverage)** with `--fix` flag
 - **💡 Helpful suggestions** for all rules with actionable guidance
 - **Language Server Protocol (LSP)** — real-time linting in VS Code, Neovim, and other editors
 - **GitHub Action** — native integration with SARIF Code Scanning
@@ -27,7 +27,7 @@ A fast Markdown linter written in Rust, inspired by [markdownlint](https://githu
 
 ## Auto-Fix Showcase
 
-mkdlint can automatically fix **43 out of 54 rules (80%)**! Here are some examples:
+mkdlint can automatically fix **44 out of 54 rules (81.5%)**! Here are some examples:
 
 ### Before Auto-Fix
 
