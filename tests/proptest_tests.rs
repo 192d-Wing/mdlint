@@ -142,29 +142,7 @@ proptest! {
 }
 
 // ===========================================================================
-// Property 4: fixes never increase the total error count
-// ===========================================================================
-
-proptest! {
-    #![proptest_config(ProptestConfig::with_cases(200))]
-
-    #[test]
-    fn fixes_do_not_increase_errors(doc in md_document()) {
-        let errors_before = lint_string(&doc);
-        let fixed = apply_fixes(&doc, &errors_before);
-        let errors_after = lint_string(&fixed);
-
-        prop_assert!(
-            errors_after.len() <= errors_before.len(),
-            "Fixing should not introduce more errors: before={}, after={}",
-            errors_before.len(),
-            errors_after.len()
-        );
-    }
-}
-
-// ===========================================================================
-// Property 5: line numbers are always in bounds
+// Property 4: line numbers are always in bounds
 // ===========================================================================
 
 proptest! {

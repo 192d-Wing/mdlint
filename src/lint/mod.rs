@@ -2,8 +2,40 @@
 
 use crate::config::Config;
 use crate::parser;
-use crate::types::{LintError, LintOptions, LintResults, MarkdownlintError, Result};
+use crate::types::{
+    BoxedRule, LintError, LintOptions, LintResults, MarkdownlintError, ParserType, Result,
+};
 use rayon::prelude::*;
+
+/// Pre-computed rule state for a given configuration.
+///
+/// Built once per lint invocation and shared across all files,
+/// avoiding redundant HashMap lookups and Vec allocations per file.
+struct PreparedRules<'a> {
+    enabled: Vec<&'a BoxedRule>,
+    needs_parser: bool,
+}
+
+/// Build the enabled-rules list and parser flag from the config.
+///
+/// Returns `'static` because rule references come from the global registry.
+fn prepare_rules(config: &Config) -> PreparedRules<'static> {
+    use crate::rules;
+
+    let enabled: Vec<&BoxedRule> = rules::get_rules()
+        .iter()
+        .filter(|rule| config.is_rule_enabled(rule.names()[0]))
+        .collect();
+
+    let needs_parser = enabled
+        .iter()
+        .any(|rule| rule.parser_type() == ParserType::Micromark);
+
+    PreparedRules {
+        enabled,
+        needs_parser,
+    }
+}
 
 /// Lint markdown content synchronously
 ///
@@ -26,6 +58,9 @@ pub fn lint_sync(options: &LintOptions) -> Result<LintResults> {
         inputs.push((name.clone(), content.clone()));
     }
 
+    // Precompute enabled rules once (avoids per-file HashMap lookups)
+    let prepared = prepare_rules(&config);
+
     // Lint all inputs in parallel
     let file_results: Vec<(
         String,
@@ -33,7 +68,7 @@ pub fn lint_sync(options: &LintOptions) -> Result<LintResults> {
     )> = inputs
         .par_iter()
         .map(|(name, content)| {
-            let errors = lint_content(content, &config, name);
+            let errors = lint_content(content, &config, name, &prepared);
             (name.clone(), errors)
         })
         .collect();
@@ -87,13 +122,17 @@ pub async fn lint_async(options: &LintOptions) -> Result<LintResults> {
         inputs.push((name.clone(), content.clone()));
     }
 
+    // Precompute enabled rules once
+    let prepared = Arc::new(prepare_rules(&config));
+
     // Lint all inputs concurrently using spawn_blocking (CPU-bound)
     let lint_handles: Vec<_> = inputs
         .into_iter()
         .map(|(name, content)| {
             let config = Arc::clone(&config);
+            let prepared = Arc::clone(&prepared);
             tokio::task::spawn_blocking(move || {
-                let errors = lint_content(&content, &config, &name);
+                let errors = lint_content(&content, &config, &name, &prepared);
                 (name, errors)
             })
         })
@@ -129,30 +168,23 @@ fn load_config(options: &LintOptions) -> Result<Config> {
     config.resolve_extends()
 }
 
-/// Lint a single piece of content
-fn lint_content(content: &str, config: &Config, name: &str) -> Result<Vec<LintError>> {
+/// Lint a single piece of content using pre-computed rule state.
+fn lint_content(
+    content: &str,
+    config: &Config,
+    name: &str,
+    prepared: &PreparedRules<'_>,
+) -> Result<Vec<LintError>> {
     use crate::config::RuleConfig;
-    use crate::rules;
-    use crate::types::ParserType;
     use std::collections::HashMap;
 
     // Split into lines (zero-copy, preserving line endings)
     let lines: Vec<&str> = content.split_inclusive('\n').collect();
 
-    // Execute all enabled rules
     let mut all_errors = Vec::new();
 
-    // Pre-filter to only enabled rules to avoid unnecessary work
-    let enabled_rules: Vec<_> = rules::get_rules()
-        .iter()
-        .filter(|rule| config.is_rule_enabled(rule.names()[0]))
-        .collect();
-
     // Only parse if at least one enabled rule needs tokens
-    let needs_parser = enabled_rules
-        .iter()
-        .any(|rule| rule.parser_type() == ParserType::Micromark);
-    let tokens = if needs_parser {
+    let tokens = if prepared.needs_parser {
         parser::parse(content)
     } else {
         vec![]
@@ -160,7 +192,7 @@ fn lint_content(content: &str, config: &Config, name: &str) -> Result<Vec<LintEr
 
     let empty_config = HashMap::new();
 
-    for rule in enabled_rules {
+    for rule in &prepared.enabled {
         let rule_name = rule.names()[0];
 
         // Extract per-rule config options (avoid clone when no config)
