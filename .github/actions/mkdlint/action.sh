@@ -1,426 +1,339 @@
 #!/usr/bin/env bash
-# mkdlint GitHub Action - Setup and Execution Script
 set -euo pipefail
 
-# Color output helpers
-if [ "${INPUT_NO_COLOR:-false}" = "true" ] || [ ! -t 1 ]; then
-    RED=""
-    GREEN=""
-    YELLOW=""
-    BLUE=""
-    RESET=""
-else
-    RED="\033[0;31m"
-    GREEN="\033[0;32m"
-    YELLOW="\033[0;33m"
-    BLUE="\033[0;34m"
-    RESET="\033[0m"
-fi
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+CYAN='\033[0;36m'
+NC='\033[0m' # No Color
 
-# Logging helpers
-log_info() {
-    echo -e "${BLUE}ℹ${RESET} $*"
+# Logging functions
+info() {
+    echo -e "${CYAN}ℹ${NC} $*"
 }
 
-log_success() {
-    echo -e "${GREEN}✓${RESET} $*"
+success() {
+    echo -e "${GREEN}✓${NC} $*"
 }
 
-log_warning() {
-    echo -e "${YELLOW}⚠${RESET} $*"
+warn() {
+    echo -e "${YELLOW}⚠${NC} $*"
 }
 
-log_error() {
-    echo -e "${RED}✗${RESET} $*" >&2
+error() {
+    echo -e "${RED}✗${NC} $*" >&2
 }
 
-# Resolve version (convert "latest" to actual version)
-resolve_version() {
-    local version="${INPUT_VERSION:-latest}"
-
-    if [ "$version" = "latest" ]; then
-        log_info "Resolving latest version..."
-
-        # Try GitHub API
-        if command -v curl >/dev/null 2>&1; then
-            local latest_version
-            latest_version=$(curl -sSL \
-                -H "Accept: application/vnd.github+json" \
-                -H "Authorization: Bearer ${GITHUB_TOKEN:-}" \
-                "https://api.github.com/repos/192d-Wing/mkdlint/releases/latest" \
-                | grep -o '"tag_name": *"[^"]*"' \
-                | sed 's/"tag_name": *"\(.*\)"/\1/' \
-                || echo "")
-
-            if [ -n "$latest_version" ]; then
-                version="$latest_version"
-                log_success "Latest version: $version"
-            else
-                log_warning "Could not fetch latest version from GitHub API, using v0.3.2"
-                version="v0.3.2"
-            fi
-        else
-            log_warning "curl not available, using v0.3.2"
-            version="v0.3.2"
-        fi
-    fi
-
-    # Ensure version has "v" prefix
-    if [[ ! "$version" =~ ^v ]]; then
-        version="v${version}"
-    fi
-
-    echo "$version"
-}
-
-# Download and extract binary
-download_binary() {
-    local version="$1"
-    local platform="$2"
-    local temp_dir="${TEMP_DIR}/mkdlint-bin"
-
-    # Check if already cached
-    if [ "${CACHE_HIT:-false}" = "true" ] && [ -f "${temp_dir}/mkdlint" ]; then
-        log_success "Using cached binary"
-        echo "${temp_dir}/mkdlint"
-        return 0
-    fi
-
-    log_info "Downloading mkdlint ${version} for ${platform}..."
-
-    # Create temp directory
-    mkdir -p "$temp_dir"
-
-    # Determine archive name and extension
-    local archive_name="mkdlint-${platform}"
-    local archive_ext
-    local binary_name="mkdlint"
-
-    if [[ "$platform" == windows-* ]]; then
-        archive_ext="zip"
-        binary_name="mkdlint.exe"
-    else
-        archive_ext="tar.gz"
-    fi
-
-    local download_url="https://github.com/192d-Wing/mkdlint/releases/download/${version}/${archive_name}.${archive_ext}"
-
-    # Download archive
-    local archive_path="${temp_dir}/${archive_name}.${archive_ext}"
-
-    if command -v curl >/dev/null 2>&1; then
-        if ! curl -sSL -f -o "$archive_path" "$download_url"; then
-            log_error "Failed to download from: $download_url"
-            return 1
-        fi
-    elif command -v wget >/dev/null 2>&1; then
-        if ! wget -q -O "$archive_path" "$download_url"; then
-            log_error "Failed to download from: $download_url"
-            return 1
-        fi
-    else
-        log_error "Neither curl nor wget is available"
-        return 1
-    fi
-
-    log_success "Downloaded archive"
-
-    # Download and verify checksum
-    local checksum_url="${download_url}.sha256"
-    local checksum_path="${archive_path}.sha256"
-
-    log_info "Downloading checksum..."
-    if command -v curl >/dev/null 2>&1; then
-        if ! curl -sSL -f -o "$checksum_path" "$checksum_url"; then
-            log_warning "Failed to download checksum from: $checksum_url"
-            log_warning "Skipping checksum verification"
-        else
-            # Verify checksum
-            log_info "Verifying checksum..."
-            if command -v sha256sum >/dev/null 2>&1; then
-                if ! (cd "$temp_dir" && sha256sum -c "$(basename "$checksum_path")"); then
-                    log_error "Checksum verification failed"
-                    rm -f "$archive_path" "$checksum_path"
-                    return 1
-                fi
-            elif command -v shasum >/dev/null 2>&1; then
-                if ! (cd "$temp_dir" && shasum -a 256 -c "$(basename "$checksum_path")"); then
-                    log_error "Checksum verification failed"
-                    rm -f "$archive_path" "$checksum_path"
-                    return 1
-                fi
-            else
-                log_warning "No SHA256 utility found, skipping checksum verification"
-            fi
-            log_success "Checksum verified"
-            rm -f "$checksum_path"
-        fi
-    fi
-
-    # Extract archive
-    log_info "Extracting binary..."
-
-    if [[ "$archive_ext" == "tar.gz" ]]; then
-        if ! tar -xzf "$archive_path" -C "$temp_dir"; then
-            log_error "Failed to extract tar.gz archive"
-            return 1
-        fi
-    elif [[ "$archive_ext" == "zip" ]]; then
-        if ! unzip -q -o "$archive_path" -d "$temp_dir"; then
-            log_error "Failed to extract zip archive"
-            return 1
-        fi
-    fi
-
-    # Clean up archive
-    rm -f "$archive_path"
-
-    # Make binary executable
-    chmod +x "${temp_dir}/${binary_name}"
-
-    # Verify binary
-    if ! "${temp_dir}/${binary_name}" --version >/dev/null 2>&1; then
-        log_error "Binary verification failed"
-        return 1
-    fi
-
-    log_success "Binary ready: ${temp_dir}/${binary_name}"
-
-    # For Windows, return with .exe extension
-    if [[ "$platform" == windows-* ]]; then
-        echo "${temp_dir}/mkdlint.exe"
-    else
-        echo "${temp_dir}/mkdlint"
-    fi
-}
-
-# Build from source using cargo
-build_from_source() {
-    local version="$1"
-
-    log_info "Building mkdlint from source..."
-
-    # Check for cargo
-    if ! command -v cargo >/dev/null 2>&1; then
-        log_error "cargo not found - cannot build from source"
-        log_error "Please install Rust from https://rustup.rs/"
-        return 1
-    fi
-
-    # Install via cargo
-    local version_arg="${version#v}" # Remove 'v' prefix for cargo
-
-    if ! cargo install mkdlint --version "$version_arg" --quiet; then
-        log_error "Failed to build mkdlint ${version} from source"
-        return 1
-    fi
-
-    local binary_path
-    binary_path="$(command -v mkdlint)"
-
-    if [ -z "$binary_path" ]; then
-        log_error "mkdlint binary not found after cargo install"
-        return 1
-    fi
-
-    log_success "Built from source: $binary_path"
-    echo "$binary_path"
-}
-
-# Setup mkdlint (main setup function)
-setup_mkdlint() {
-    local version
-    version=$(resolve_version)
-
-    local binary_path=""
-
-    # Try binary download first if requested
-    if [ "${INPUT_USE_BINARY:-true}" = "true" ]; then
-        if binary_path=$(download_binary "$version" "$PLATFORM"); then
-            log_success "Using pre-built binary"
-        else
-            log_warning "Binary download failed, falling back to cargo build"
-            binary_path=""
-        fi
-    fi
-
-    # Fall back to cargo build if binary download failed or not requested
-    if [ -z "$binary_path" ]; then
-        if ! binary_path=$(build_from_source "$version"); then
-            log_error "Failed to setup mkdlint"
-            exit 1
-        fi
-    fi
-
-    # Verify final binary
-    local mkdlint_version
-    mkdlint_version=$("$binary_path" --version 2>&1 || echo "unknown")
-    log_success "mkdlint ready: $mkdlint_version"
-
-    # Output binary path
-    echo "binary-path=$binary_path" >> "$GITHUB_OUTPUT"
-}
-
-# Run mkdlint with configured options
-run_mkdlint() {
-    local binary_path="${BINARY_PATH}"
-
-    if [ ! -f "$binary_path" ]; then
-        log_error "mkdlint binary not found at: $binary_path"
-        exit 1
-    fi
-
-    # Build command array
-    local -a cmd=("$binary_path")
-
-    # Add files/directories
-    local files="${INPUT_FILES:-.}"
-    for file in $files; do
-        cmd+=("$file")
-    done
-
-    # Add config file
-    if [ -n "${INPUT_CONFIG:-}" ]; then
-        cmd+=("--config" "$INPUT_CONFIG")
-    fi
-
-    # Add output format
-    local output_format="${INPUT_OUTPUT_FORMAT:-sarif}"
-    cmd+=("--output-format" "$output_format")
-
-    # Add SARIF file path
-    local sarif_file="${INPUT_SARIF_FILE:-mkdlint.sarif}"
-    if [ "$output_format" = "sarif" ]; then
-        cmd+=("--output" "$sarif_file")
-    fi
-
-    # Add fix flag
-    if [ "${INPUT_FIX:-false}" = "true" ]; then
-        cmd+=("--fix")
-    fi
-
-    # Add ignore patterns
-    if [ -n "${INPUT_IGNORE:-}" ]; then
-        for pattern in $INPUT_IGNORE; do
-            cmd+=("--ignore" "$pattern")
-        done
-    fi
-
-    # Add enable rules
-    if [ -n "${INPUT_ENABLE:-}" ]; then
-        for rule in $INPUT_ENABLE; do
-            cmd+=("--enable" "$rule")
-        done
-    fi
-
-    # Add disable rules
-    if [ -n "${INPUT_DISABLE:-}" ]; then
-        for rule in $INPUT_DISABLE; do
-            cmd+=("--disable" "$rule")
-        done
-    fi
-
-    # Add color flag
-    if [ "${INPUT_NO_COLOR:-false}" = "true" ]; then
-        cmd+=("--no-color")
-    fi
-
-    # Add verbose flag
-    if [ "${INPUT_VERBOSE:-false}" = "true" ]; then
-        cmd+=("--verbose")
-    fi
-
-    # Add quiet flag
-    if [ "${INPUT_QUIET:-false}" = "true" ]; then
-        cmd+=("--quiet")
-    fi
-
-    # Add custom arguments
-    if [ -n "${INPUT_CUSTOM_ARGS:-}" ]; then
-        # shellcheck disable=SC2206
-        cmd+=($INPUT_CUSTOM_ARGS)
-    fi
-
-    # Log command (for debugging)
-    if [ "${INPUT_VERBOSE:-false}" = "true" ]; then
-        log_info "Running: ${cmd[*]}"
-    fi
-
-    # Run mkdlint and capture exit code
-    local exit_code=0
-    "${cmd[@]}" || exit_code=$?
-
-    # Parse results
-    local error_count=0
-    local file_count=0
-
-    if [ -f "$sarif_file" ] && [ "$output_format" = "sarif" ]; then
-        # Parse SARIF output if jq is available
-        if command -v jq >/dev/null 2>&1; then
-            error_count=$(jq '[.runs[].results[]] | length' "$sarif_file" 2>/dev/null || echo "0")
-            file_count=$(jq '[.runs[].results[].locations[].physicalLocation.artifactLocation.uri] | unique | length' "$sarif_file" 2>/dev/null || echo "0")
-        else
-            log_warning "jq not available - cannot parse SARIF results"
-        fi
-
-        log_info "SARIF results written to: $sarif_file"
-    fi
-
-    # Set outputs
-    echo "exit-code=$exit_code" >> "$GITHUB_OUTPUT"
-    echo "error-count=$error_count" >> "$GITHUB_OUTPUT"
-    echo "file-count=$file_count" >> "$GITHUB_OUTPUT"
-
-    if [ "$output_format" = "sarif" ]; then
-        echo "sarif-file=$sarif_file" >> "$GITHUB_OUTPUT"
-    else
-        echo "sarif-file=" >> "$GITHUB_OUTPUT"
-    fi
-
-    # Generate step summary
-    {
-        echo "## mkdlint Results"
-        echo ""
-        if [ "$exit_code" = "0" ] && [ "$error_count" = "0" ]; then
-            echo "✅ **No issues found**"
-        else
-            echo "❌ **Found $error_count error(s) in $file_count file(s)**"
-        fi
-        echo ""
-        echo "- Exit Code: \`$exit_code\`"
-        echo "- Errors: \`$error_count\`"
-        echo "- Files: \`$file_count\`"
-        echo "- Format: \`$output_format\`"
-
-        if [ "$output_format" = "sarif" ] && [ "${INPUT_UPLOAD_SARIF:-true}" = "true" ]; then
-            echo "- SARIF Upload: ✅ Enabled"
-        fi
-    } >> "$GITHUB_STEP_SUMMARY"
-
-    # Return original exit code (but don't fail here - let the action.yml check step handle it)
-    return 0
-}
-
-# Main execution dispatcher
-main() {
-    local action="${1:-}"
-
-    case "$action" in
-        setup)
-            setup_mkdlint
+# Detect platform
+detect_platform() {
+    local os arch
+    os="$(uname -s)"
+    arch="$(uname -m)"
+
+    case "$os" in
+        Linux*)
+            case "$arch" in
+                x86_64) echo "linux-x86_64" ;;
+                aarch64|arm64) echo "linux-aarch64" ;;
+                *) error "Unsupported architecture: $arch"; exit 1 ;;
+            esac
             ;;
-        run)
-            run_mkdlint
+        Darwin*)
+            case "$arch" in
+                x86_64) echo "macos-x86_64" ;;
+                arm64) echo "macos-aarch64" ;;
+                *) error "Unsupported architecture: $arch"; exit 1 ;;
+            esac
+            ;;
+        MINGW*|MSYS*|CYGWIN*)
+            echo "windows-x86_64"
             ;;
         *)
-            log_error "Unknown action: $action"
-            log_error "Usage: $0 {setup|run}"
+            error "Unsupported OS: $os"
             exit 1
             ;;
     esac
 }
 
-# Only run main if this script is executed directly (not sourced)
-if [ "${BASH_SOURCE[0]}" = "${0}" ]; then
-    main "$@"
-fi
+# Resolve version
+resolve_version() {
+    local version="$1"
+    
+    if [ "$version" = "latest" ]; then
+        info "Fetching latest version from GitHub..."
+        local latest
+        latest=$(curl -sSf https://api.github.com/repos/192d-Wing/mkdlint/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+        if [ -z "$latest" ]; then
+            error "Failed to fetch latest version"
+            exit 1
+        fi
+        echo "$latest"
+    else
+        # Ensure version has 'v' prefix
+        if [[ ! "$version" =~ ^v ]]; then
+            echo "v$version"
+        else
+            echo "$version"
+        fi
+    fi
+}
+
+# Download binary
+download_binary() {
+    local version="$1"
+    local platform="$2"
+    local cache_dir="$HOME/.mkdlint-bin"
+    
+    mkdir -p "$cache_dir"
+    
+    local archive_name
+    local binary_name="mkdlint"
+    
+    if [[ "$platform" == windows-* ]]; then
+        archive_name="mkdlint-${platform}.exe.zip"
+        binary_name="mkdlint.exe"
+    else
+        archive_name="mkdlint-${platform}.tar.gz"
+    fi
+    
+    local url="https://github.com/192d-Wing/mkdlint/releases/download/${version}/${archive_name}"
+    local download_path="${cache_dir}/${archive_name}"
+    
+    info "Downloading mkdlint ${version} for ${platform}..."
+    if ! curl -sSfL "$url" -o "$download_path"; then
+        error "Failed to download from $url"
+        return 1
+    fi
+    
+    info "Extracting binary..."
+    cd "$cache_dir"
+    if [[ "$archive_name" == *.tar.gz ]]; then
+        tar -xzf "$archive_name"
+    else
+        unzip -q -o "$archive_name"
+    fi
+    
+    if [ ! -f "$cache_dir/$binary_name" ]; then
+        error "Binary not found after extraction"
+        return 1
+    fi
+    
+    chmod +x "$cache_dir/$binary_name"
+    
+    # Verify binary works
+    if "$cache_dir/$binary_name" --version >/dev/null 2>&1; then
+        success "Binary downloaded and verified"
+        echo "$cache_dir/$binary_name"
+        return 0
+    else
+        error "Binary verification failed"
+        return 1
+    fi
+}
+
+# Build from source
+build_from_source() {
+    local version="$1"
+    
+    info "Building mkdlint from source..."
+    
+    if ! command -v cargo &> /dev/null; then
+        error "cargo not found. Please install Rust or use use-binary: true"
+        exit 1
+    fi
+    
+    # Install specific version or latest
+    if [ "$version" = "latest" ] || [ "$version" = "vlatest" ]; then
+        cargo install mkdlint --features cli
+    else
+        # Remove 'v' prefix for cargo
+        local cargo_version="${version#v}"
+        cargo install mkdlint --version "$cargo_version" --features cli
+    fi
+    
+    local binary_path
+    binary_path="$(command -v mkdlint)"
+    
+    if [ -z "$binary_path" ]; then
+        error "mkdlint not found after installation"
+        exit 1
+    fi
+    
+    success "Built from source successfully"
+    echo "$binary_path"
+}
+
+# Setup mkdlint
+cmd_setup() {
+    local version="$1"
+    local use_binary="$2"
+    local cache_hit="${3:-false}"
+    
+    local resolved_version
+    resolved_version=$(resolve_version "$version")
+    
+    local binary_path
+    
+    if [ "$use_binary" = "true" ]; then
+        # Check if binary already in cache
+        local cache_dir="$HOME/.mkdlint-bin"
+        local binary_name="mkdlint"
+        [[ "$(detect_platform)" == windows-* ]] && binary_name="mkdlint.exe"
+        
+        if [ "$cache_hit" = "true" ] && [ -f "$cache_dir/$binary_name" ]; then
+            success "Using cached binary"
+            binary_path="$cache_dir/$binary_name"
+        else
+            # Download binary
+            local platform
+            platform=$(detect_platform)
+            
+            if ! binary_path=$(download_binary "$resolved_version" "$platform"); then
+                warn "Binary download failed, falling back to source build"
+                binary_path=$(build_from_source "$resolved_version")
+            fi
+        fi
+    else
+        # Build from source
+        binary_path=$(build_from_source "$resolved_version")
+    fi
+    
+    # Output to GitHub Actions
+    echo "binary-path=$binary_path" >> "$GITHUB_OUTPUT"
+    
+    # Verify and show version
+    local actual_version
+    actual_version=$("$binary_path" --version 2>&1 | head -n1)
+    success "mkdlint ready: $actual_version"
+    info "Binary path: $binary_path"
+}
+
+# Run mkdlint
+cmd_run() {
+    local binary_path="$1"
+    local files="$2"
+    local config="$3"
+    local output_format="$4"
+    local sarif_file="$5"
+    local fix="$6"
+    local ignore="$7"
+    local enable="$8"
+    local disable="$9"
+    local no_color="${10}"
+    local verbose="${11}"
+    local quiet="${12}"
+    
+    # Build command
+    local cmd=("$binary_path")
+    
+    # Add flags
+    [ "$fix" = "true" ] && cmd+=(--fix)
+    [ "$no_color" = "true" ] && cmd+=(--no-color)
+    [ "$verbose" = "true" ] && cmd+=(--verbose)
+    [ "$quiet" = "true" ] && cmd+=(--quiet)
+    
+    # Add config
+    [ -n "$config" ] && cmd+=(--config "$config")
+    
+    # Add output format
+    cmd+=(--output-format "$output_format")
+    
+    # Add ignore patterns
+    if [ -n "$ignore" ]; then
+        IFS=',' read -ra PATTERNS <<< "$ignore"
+        for pattern in "${PATTERNS[@]}"; do
+            cmd+=(--ignore "$pattern")
+        done
+    fi
+    
+    # Add enable rules
+    if [ -n "$enable" ]; then
+        IFS=',' read -ra RULES <<< "$enable"
+        for rule in "${RULES[@]}"; do
+            cmd+=(--enable "$rule")
+        done
+    fi
+    
+    # Add disable rules
+    if [ -n "$disable" ]; then
+        IFS=',' read -ra RULES <<< "$disable"
+        for rule in "${RULES[@]}"; do
+            cmd+=(--disable "$rule")
+        done
+    fi
+    
+    # Add files
+    cmd+=($files)
+    
+    info "Running: ${cmd[*]}"
+    
+    # Run and capture output
+    local exit_code=0
+    local output_file
+    output_file=$(mktemp)
+    
+    if [ "$output_format" = "sarif" ]; then
+        "${cmd[@]}" > "$sarif_file" 2>&1 || exit_code=$?
+        cp "$sarif_file" "$output_file"
+    else
+        "${cmd[@]}" > "$output_file" 2>&1 || exit_code=$?
+        cat "$output_file"
+    fi
+    
+    # Parse results
+    local error_count=0
+    local file_count=0
+    
+    if [ "$output_format" = "sarif" ] && command -v jq &> /dev/null; then
+        # Parse SARIF with jq if available
+        if [ -f "$sarif_file" ]; then
+            error_count=$(jq '[.runs[].results | length] | add // 0' "$sarif_file" 2>/dev/null || echo "0")
+            file_count=$(jq '[.runs[].results[].locations[].physicalLocation.artifactLocation.uri] | unique | length' "$sarif_file" 2>/dev/null || echo "0")
+        fi
+    elif [ "$output_format" = "json" ] && command -v jq &> /dev/null; then
+        # Parse JSON
+        if [ -f "$output_file" ]; then
+            error_count=$(jq '[.[] | length] | add // 0' "$output_file" 2>/dev/null || echo "0")
+            file_count=$(jq 'keys | length' "$output_file" 2>/dev/null || echo "0")
+        fi
+    fi
+    
+    # Output to GitHub Actions
+    echo "exit-code=$exit_code" >> "$GITHUB_OUTPUT"
+    echo "error-count=$error_count" >> "$GITHUB_OUTPUT"
+    echo "file-count=$file_count" >> "$GITHUB_OUTPUT"
+    echo "sarif-file=$sarif_file" >> "$GITHUB_OUTPUT"
+    
+    # Summary
+    if [ "$exit_code" -eq 0 ]; then
+        success "No errors found!"
+    else
+        warn "Found $error_count error(s) in $file_count file(s)"
+    fi
+    
+    rm -f "$output_file"
+    return "$exit_code"
+}
+
+# Main
+main() {
+    local command="${1:-}"
+    shift || true
+    
+    case "$command" in
+        setup)
+            cmd_setup "$@"
+            ;;
+        run)
+            cmd_run "$@"
+            ;;
+        *)
+            error "Unknown command: $command"
+            echo "Usage: $0 {setup|run} [args...]"
+            exit 1
+            ;;
+    esac
+}
+
+main "$@"

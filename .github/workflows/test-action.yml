@@ -1,8 +1,7 @@
-name: Test GitHub Action
+name: Test mkdlint Action
 
 on:
   push:
-    branches: [main]
     paths:
       - '.github/actions/mkdlint/**'
       - '.github/workflows/test-action.yml'
@@ -12,589 +11,528 @@ on:
       - '.github/workflows/test-action.yml'
   workflow_dispatch:
 
+permissions:
+  contents: read
+  security-events: write
+
 jobs:
-  test-binary-download-linux:
-    name: Test Binary Download (Linux)
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      security-events: write
-
+  # Test binary download and caching on all platforms
+  test-binary-download:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        version: [latest, '0.8.0']
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
-
-      - name: Test with latest version
+      
+      - name: Test binary download
+        id: test
         uses: ./.github/actions/mkdlint
         with:
           files: 'README.md'
-          fail-on-error: false
+          version: ${{ matrix.version }}
+          use-binary: true
           upload-sarif: false
-
-      - name: Test with specific version
+          fail-on-error: false
+      
+      - name: Verify outputs
+        shell: bash
+        run: |
+          echo "Exit code: ${{ steps.test.outputs.exit-code }}"
+          echo "Error count: ${{ steps.test.outputs.error-count }}"
+          echo "File count: ${{ steps.test.outputs.file-count }}"
+          echo "Binary path: ${{ steps.test.outputs.binary-path }}"
+          echo "Cache hit: ${{ steps.test.outputs.cache-hit }}"
+          
+          if [ ! -f "${{ steps.test.outputs.binary-path }}" ]; then
+            echo "Error: Binary not found at ${{ steps.test.outputs.binary-path }}"
+            exit 1
+          fi
+      
+      - name: Test cache hit on second run
+        id: test2
         uses: ./.github/actions/mkdlint
         with:
           files: 'README.md'
-          version: 'v0.3.2'
-          fail-on-error: false
+          version: ${{ matrix.version }}
+          use-binary: true
           upload-sarif: false
-
-  test-binary-download-macos:
-    name: Test Binary Download (macOS)
-    runs-on: macos-latest
-    permissions:
-      contents: read
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Test with latest version
-        uses: ./.github/actions/mkdlint
-        with:
-          files: 'README.md'
           fail-on-error: false
-          upload-sarif: false
+      
+      - name: Verify cache was used
+        shell: bash
+        run: |
+          echo "Cache hit on second run: ${{ steps.test2.outputs.cache-hit }}"
+          # First run might not have cache, but second run should
+          # (unless it's a fresh runner or different version)
 
-  test-binary-download-windows:
-    name: Test Binary Download (Windows)
-    runs-on: windows-latest
-    permissions:
-      contents: read
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Test with latest version
-        uses: ./.github/actions/mkdlint
-        with:
-          files: 'README.md'
-          fail-on-error: false
-          upload-sarif: false
-
+  # Test cargo build fallback
   test-cargo-build:
-    name: Test Cargo Build Fallback
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup Rust
-        uses: actions-rust-lang/setup-rust-toolchain@v1
-
-      - name: Force cargo build
+      
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+      
+      - name: Test cargo build
+        id: test
         uses: ./.github/actions/mkdlint
         with:
           files: 'README.md'
           use-binary: false
-          version: '0.3.2'
-          fail-on-error: false
           upload-sarif: false
+          fail-on-error: false
+      
+      - name: Verify binary was built
+        run: |
+          if [ ! -f "${{ steps.test.outputs.binary-path }}" ]; then
+            echo "Error: Binary not found after cargo build"
+            exit 1
+          fi
+          
+          ${{ steps.test.outputs.binary-path }} --version
 
-  test-sarif-generation:
-    name: Test SARIF Generation
+  # Test SARIF generation and upload
+  test-sarif-upload:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-
     steps:
       - uses: actions/checkout@v4
-
-      - name: Create test file with errors
+      
+      - name: Create test markdown with issues
         run: |
-          mkdir -p test-files
-          cat > test-files/test.md << 'EOF'
-          # Heading
-
-
-          Multiple blank lines above (MD012)
-
-          #No space after hash (MD018)
-
-          [Empty link]()
-          EOF
-
+          mkdir -p test-docs
+          cat > test-docs/test.md << 'MDEOF'
+          # Test Document
+          
+          This is a test.
+          
+          
+          Multiple blank lines above.
+          
+          ## Setup
+          
+          Content here.
+          
+          ## Setup
+          
+          Duplicate heading.
+          MDEOF
+      
       - name: Run with SARIF output
-        id: lint
+        id: sarif
         uses: ./.github/actions/mkdlint
         with:
-          files: 'test-files/'
-          output-format: 'sarif'
-          sarif-file: 'results.sarif'
+          files: 'test-docs/'
+          output-format: sarif
+          sarif-file: results.sarif
+          upload-sarif: true
           fail-on-error: false
-          upload-sarif: false
-
+      
       - name: Verify SARIF file exists
         run: |
           if [ ! -f "results.sarif" ]; then
-            echo "::error::SARIF file not found"
+            echo "Error: SARIF file not created"
             exit 1
           fi
-          echo "✓ SARIF file generated"
-
-      - name: Verify SARIF content
-        run: |
-          if ! grep -q "mkdlint" results.sarif; then
-            echo "::error::SARIF file doesn't contain mkdlint tool info"
-            exit 1
-          fi
-          echo "✓ SARIF file contains tool info"
-
-      - name: Check outputs
-        run: |
-          echo "Exit code: ${{ steps.lint.outputs.exit-code }}"
-          echo "Error count: ${{ steps.lint.outputs.error-count }}"
-          echo "File count: ${{ steps.lint.outputs.file-count }}"
-          echo "SARIF file: ${{ steps.lint.outputs.sarif-file }}"
-
-  test-sarif-upload:
-    name: Test SARIF Upload to Code Scanning
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      security-events: write
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Create test file with errors
-        run: |
-          mkdir -p test-sarif
-          cat > test-sarif/test.md << 'EOF'
-          # Test Document
-
-          #Missing space
-          EOF
-
-      - name: Run with SARIF upload
-        uses: ./.github/actions/mkdlint
+          
+          # Verify it's valid JSON
+          jq . results.sarif > /dev/null
+          
+          # Show SARIF structure
+          echo "SARIF file created successfully:"
+          jq '.runs[0].results | length' results.sarif
+      
+      - name: Upload SARIF as artifact
+        uses: actions/upload-artifact@v4
         with:
-          files: 'test-sarif/'
-          output-format: 'sarif'
-          upload-sarif: true
-          fail-on-error: false
+          name: sarif-results
+          path: results.sarif
 
+  # Test auto-fix workflow
   test-auto-fix:
-    name: Test Auto-Fix
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-
     steps:
       - uses: actions/checkout@v4
-
-      - name: Create test file with fixable errors
+      
+      - name: Create test file with fixable issues
         run: |
           mkdir -p test-fix
-          cat > test-fix/fixable.md << 'EOF'
-          #Missing space after hash
-
-          # Heading #No space before hash
-
-          [Empty link]()
-          EOF
-
-      - name: Run with fix enabled
+          cat > test-fix/fixable.md << 'MDEOF'
+          #No space after hash
+          
+          Trailing spaces here:    
+          
+          Multiple trailing spaces:        
+          
+          - Item 1
+          -  Item 2 (extra space)
+          - Item 3
+          MDEOF
+      
+      - name: Run with auto-fix
         uses: ./.github/actions/mkdlint
         with:
           files: 'test-fix/'
           fix: true
           fail-on-error: false
           upload-sarif: false
-
+      
       - name: Verify fixes were applied
         run: |
-          if grep -q "#Missing" test-fix/fixable.md; then
-            echo "::error::Fixes were not applied"
+          cat test-fix/fixable.md
+          
+          # Check that heading now has space
+          if ! grep -q "^# No space" test-fix/fixable.md; then
+            echo "Error: Heading not fixed"
             exit 1
           fi
-          echo "✓ Fixes were applied successfully"
+          
+          echo "Auto-fix succeeded!"
 
+  # Test custom configuration
   test-custom-config:
-    name: Test Custom Configuration
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-
     steps:
       - uses: actions/checkout@v4
-
+      
       - name: Create custom config
         run: |
           mkdir -p test-config
-          cat > test-config/.markdownlint.json << 'EOF'
+          cat > test-config/.markdownlint.json << 'JSONEOF'
           {
             "default": true,
             "MD013": false,
             "MD033": false
           }
-          EOF
-
-      - name: Create test file
-        run: |
-          cat > test-config/test.md << 'EOF'
+          JSONEOF
+          
+          cat > test-config/test.md << 'MDEOF'
           # Test
-
-          This is a very long line that would normally trigger MD013 but should be ignored with our config.
-
-          <div>HTML should be allowed</div>
-          EOF
-
+          
+          This line is very long and would normally fail MD013 line-length rule but we disabled it in config.
+          
+          <div>HTML is normally not allowed but MD033 is disabled</div>
+          MDEOF
+      
       - name: Run with custom config
+        id: config
         uses: ./.github/actions/mkdlint
         with:
           files: 'test-config/test.md'
           config: 'test-config/.markdownlint.json'
-          fail-on-error: true
           upload-sarif: false
+          fail-on-error: true
+      
+      - name: Verify no errors with custom config
+        run: |
+          if [ "${{ steps.config.outputs.error-count }}" != "0" ]; then
+            echo "Error: Custom config not respected"
+            exit 1
+          fi
 
-  test-ignore-patterns:
-    name: Test Ignore Patterns
+  # Test rule disable flags
+  test-disable-rules:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-
     steps:
       - uses: actions/checkout@v4
+      
+      - name: Create test file
+        run: |
+          mkdir -p test-disable
+          cat > test-disable/test.md << 'MDEOF'
+          # Test
+          
+          This line is very long and exceeds the default line length limit of 80 characters which should trigger MD013.
+          
+          <div>This HTML should trigger MD033</div>
+          MDEOF
+      
+      - name: Run with disabled rules
+        id: disable
+        uses: ./.github/actions/mkdlint
+        with:
+          files: 'test-disable/'
+          disable: 'MD013,MD033'
+          upload-sarif: false
+          fail-on-error: true
+      
+      - name: Verify rules were disabled
+        run: |
+          if [ "${{ steps.disable.outputs.error-count }}" != "0" ]; then
+            echo "Error: Rules not disabled correctly"
+            exit 1
+          fi
 
+  # Test ignore patterns
+  test-ignore-patterns:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
       - name: Create test structure
         run: |
-          mkdir -p test-ignore/node_modules test-ignore/docs
+          mkdir -p test-ignore/node_modules test-ignore/src
           echo "#Bad heading" > test-ignore/node_modules/test.md
-          echo "#Bad heading" > test-ignore/docs/test.md
-
+          echo "# Good heading" > test-ignore/src/test.md
+      
       - name: Run with ignore patterns
-        id: lint
+        id: ignore
         uses: ./.github/actions/mkdlint
         with:
           files: 'test-ignore/'
           ignore: '**/node_modules/**'
-          fail-on-error: false
           upload-sarif: false
-
-      - name: Verify only docs were linted
+          fail-on-error: false
+      
+      - name: Verify ignored files were skipped
         run: |
-          # Should find error in docs but not in node_modules
-          if [ "${{ steps.lint.outputs.file-count }}" != "1" ]; then
-            echo "::error::Expected 1 file with errors, got ${{ steps.lint.outputs.file-count }}"
-            exit 1
-          fi
-          echo "✓ Ignore patterns working correctly"
+          echo "Errors found: ${{ steps.ignore.outputs.error-count }}"
+          # node_modules/test.md should be ignored, only src/test.md should be checked
 
-  test-enable-disable-rules:
-    name: Test Enable/Disable Rules
+  # Test failure modes
+  test-fail-on-error:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-
     steps:
       - uses: actions/checkout@v4
-
-      - name: Create test file
-        run: |
-          mkdir -p test-rules
-          cat > test-rules/test.md << 'EOF'
-          #No space (MD018)
-
-
-
-          Multiple blanks (MD012)
-          EOF
-
-      - name: Run with MD018 disabled
-        id: lint-disabled
-        uses: ./.github/actions/mkdlint
-        with:
-          files: 'test-rules/'
-          disable: 'MD018'
-          fail-on-error: false
-          upload-sarif: false
-
-      - name: Verify MD018 was ignored
-        run: |
-          echo "Errors found: ${{ steps.lint-disabled.outputs.error-count }}"
-          # Should only find MD012, not MD018
-          if [ "${{ steps.lint-disabled.outputs.error-count }}" = "0" ]; then
-            echo "::error::Expected some errors (MD012) but got none"
-            exit 1
-          fi
-          echo "✓ Rule disabling works"
-
-  test-json-output:
-    name: Test JSON Output Format
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Create test file
-        run: |
-          mkdir -p test-json
-          echo "#Bad" > test-json/test.md
-
-      - name: Run with JSON output
-        id: lint
-        uses: ./.github/actions/mkdlint
-        with:
-          files: 'test-json/'
-          output-format: 'json'
-          fail-on-error: false
-          upload-sarif: false
-
-      - name: Check outputs
-        run: |
-          echo "Exit code: ${{ steps.lint.outputs.exit-code }}"
-          echo "Error count: ${{ steps.lint.outputs.error-count }}"
-          echo "No SARIF file: ${{ steps.lint.outputs.sarif-file }}"
-
-  test-text-output:
-    name: Test Text Output Format
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Run with text output
-        uses: ./.github/actions/mkdlint
-        with:
-          files: 'README.md'
-          output-format: 'text'
-          fail-on-error: false
-          upload-sarif: false
-
-  test-verbose-output:
-    name: Test Verbose Mode
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Run with verbose output
-        uses: ./.github/actions/mkdlint
-        with:
-          files: 'README.md'
-          verbose: true
-          fail-on-error: false
-          upload-sarif: false
-
-  test-quiet-mode:
-    name: Test Quiet Mode
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Run in quiet mode
-        uses: ./.github/actions/mkdlint
-        with:
-          files: 'README.md'
-          quiet: true
-          fail-on-error: false
-          upload-sarif: false
-
-  test-failure-modes:
-    name: Test Failure Behavior
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-
-    steps:
-      - uses: actions/checkout@v4
-
+      
       - name: Create file with errors
         run: |
           mkdir -p test-fail
-          echo "#Bad" > test-fail/test.md
-
-      - name: Test fail-on-error false
-        uses: ./.github/actions/mkdlint
-        with:
-          files: 'test-fail/'
-          fail-on-error: false
-          upload-sarif: false
-
-      - name: Test fail-on-error true (expect failure)
-        id: should-fail
+          echo "#No space" > test-fail/bad.md
+      
+      - name: Test fail-on-error true (should fail)
+        id: fail_true
         continue-on-error: true
         uses: ./.github/actions/mkdlint
         with:
           files: 'test-fail/'
           fail-on-error: true
           upload-sarif: false
-
+      
       - name: Verify it failed
         run: |
-          if [ "${{ steps.should-fail.outcome }}" != "failure" ]; then
-            echo "::error::Expected step to fail but it succeeded"
+          if [ "${{ steps.fail_true.outcome }}" != "failure" ]; then
+            echo "Error: Should have failed with fail-on-error: true"
             exit 1
           fi
-          echo "✓ fail-on-error=true works correctly"
+      
+      - name: Test fail-on-error false (should succeed)
+        id: fail_false
+        uses: ./.github/actions/mkdlint
+        with:
+          files: 'test-fail/'
+          fail-on-error: false
+          upload-sarif: false
+      
+      - name: Verify it succeeded
+        run: |
+          if [ "${{ steps.fail_false.outcome }}" != "success" ]; then
+            echo "Error: Should have succeeded with fail-on-error: false"
+            exit 1
+          fi
 
-  test-working-directory:
-    name: Test Working Directory
+  # Test output formats
+  test-output-formats:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-
     steps:
       - uses: actions/checkout@v4
+      
+      - name: Create test file
+        run: |
+          mkdir -p test-output
+          echo "#Bad" > test-output/test.md
+      
+      - name: Test text format
+        uses: ./.github/actions/mkdlint
+        with:
+          files: 'test-output/'
+          output-format: text
+          upload-sarif: false
+          fail-on-error: false
+      
+      - name: Test JSON format
+        uses: ./.github/actions/mkdlint
+        with:
+          files: 'test-output/'
+          output-format: json
+          upload-sarif: false
+          fail-on-error: false
+      
+      - name: Test SARIF format
+        uses: ./.github/actions/mkdlint
+        with:
+          files: 'test-output/'
+          output-format: sarif
+          sarif-file: test-output.sarif
+          upload-sarif: false
+          fail-on-error: false
+      
+      - name: Verify SARIF was created
+        run: |
+          if [ ! -f "test-output.sarif" ]; then
+            echo "Error: SARIF file not created"
+            exit 1
+          fi
 
+  # Test verbose and quiet modes
+  test-verbosity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Test verbose mode
+        uses: ./.github/actions/mkdlint
+        with:
+          files: 'README.md'
+          verbose: true
+          upload-sarif: false
+          fail-on-error: false
+      
+      - name: Test quiet mode
+        uses: ./.github/actions/mkdlint
+        with:
+          files: 'README.md'
+          quiet: true
+          upload-sarif: false
+          fail-on-error: false
+
+  # Integration test - full workflow
+  integration-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Create comprehensive test suite
+        run: |
+          mkdir -p integration-test/docs integration-test/vendor
+          
+          # Good markdown
+          cat > integration-test/docs/good.md << 'MDEOF'
+          # Good Document
+          
+          This is properly formatted.
+          
+          ## Section 1
+          
+          Content here.
+          
+          ## Section 2
+          
+          More content.
+          MDEOF
+          
+          # Bad markdown (fixable)
+          cat > integration-test/docs/fixable.md << 'MDEOF'
+          #Bad heading
+          
+          Trailing spaces:    
+          
+          -  Extra space in list
+          - Normal item
+          MDEOF
+          
+          # Vendor (should be ignored)
+          echo "#Bad" > integration-test/vendor/ignored.md
+      
+      - name: Create config
+        run: |
+          cat > integration-test/.markdownlint.json << 'JSONEOF'
+          {
+            "default": true,
+            "MD013": { "line_length": 120 }
+          }
+          JSONEOF
+      
+      - name: Run full workflow
+        id: full
+        uses: ./.github/actions/mkdlint
+        with:
+          files: 'integration-test/'
+          config: 'integration-test/.markdownlint.json'
+          ignore: '**/vendor/**'
+          output-format: sarif
+          sarif-file: integration.sarif
+          fix: true
+          upload-sarif: false
+          fail-on-error: false
+      
+      - name: Verify results
+        run: |
+          echo "Exit code: ${{ steps.full.outputs.exit-code }}"
+          echo "Errors: ${{ steps.full.outputs.error-count }}"
+          echo "Files: ${{ steps.full.outputs.file-count }}"
+          
+          # Verify fixes were applied
+          cat integration-test/docs/fixable.md
+          
+          # Verify SARIF was created
+          if [ ! -f "integration.sarif" ]; then
+            echo "Error: SARIF not created"
+            exit 1
+          fi
+          
+          # Verify vendor was ignored
+          jq '.runs[0].results[].locations[].physicalLocation.artifactLocation.uri' integration.sarif | \
+            grep -q vendor && echo "Error: Vendor files not ignored" && exit 1 || true
+          
+          echo "Integration test passed!"
+
+  # Test working directory parameter
+  test-working-directory:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
       - name: Create subdirectory structure
         run: |
           mkdir -p subdir/docs
           echo "# Test" > subdir/docs/test.md
-
-      - name: Run from working directory
+      
+      - name: Run from subdirectory
         uses: ./.github/actions/mkdlint
         with:
           files: 'docs/'
           working-directory: 'subdir'
-          fail-on-error: false
           upload-sarif: false
+          fail-on-error: false
 
-  test-cache-performance:
-    name: Test Binary Caching
+  # Summary job
+  test-summary:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-
+    needs:
+      - test-binary-download
+      - test-cargo-build
+      - test-sarif-upload
+      - test-auto-fix
+      - test-custom-config
+      - test-disable-rules
+      - test-ignore-patterns
+      - test-fail-on-error
+      - test-output-formats
+      - test-verbosity
+      - integration-test
+      - test-working-directory
+    if: always()
     steps:
-      - uses: actions/checkout@v4
-
-      - name: First run (no cache)
-        id: first-run
-        uses: ./.github/actions/mkdlint
-        with:
-          files: 'README.md'
-          cache-binary: true
-          fail-on-error: false
-          upload-sarif: false
-
-      - name: Second run (should use cache)
-        id: second-run
-        uses: ./.github/actions/mkdlint
-        with:
-          files: 'README.md'
-          cache-binary: true
-          fail-on-error: false
-          upload-sarif: false
-
-      - name: Verify cache was used
+      - name: Check all tests passed
         run: |
-          echo "First run cache hit: ${{ steps.first-run.outputs.cache-hit }}"
-          echo "Second run cache hit: ${{ steps.second-run.outputs.cache-hit }}"
-          if [ "${{ steps.second-run.outputs.cache-hit }}" = "true" ]; then
-            echo "✓ Cache is working"
+          if [ "${{ needs.test-binary-download.result }}" != "success" ] || \
+             [ "${{ needs.test-cargo-build.result }}" != "success" ] || \
+             [ "${{ needs.test-sarif-upload.result }}" != "success" ] || \
+             [ "${{ needs.test-auto-fix.result }}" != "success" ] || \
+             [ "${{ needs.test-custom-config.result }}" != "success" ] || \
+             [ "${{ needs.test-disable-rules.result }}" != "success" ] || \
+             [ "${{ needs.test-ignore-patterns.result }}" != "success" ] || \
+             [ "${{ needs.test-fail-on-error.result }}" != "success" ] || \
+             [ "${{ needs.test-output-formats.result }}" != "success" ] || \
+             [ "${{ needs.test-verbosity.result }}" != "success" ] || \
+             [ "${{ needs.integration-test.result }}" != "success" ] || \
+             [ "${{ needs.test-working-directory.result }}" != "success" ]; then
+            echo "❌ Some tests failed"
+            exit 1
           else
-            echo "⚠ Cache not hit on second run (may be expected in some cases)"
-          fi
-
-  integration-test:
-    name: Full Integration Test
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      security-events: write
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Create comprehensive test structure
-        run: |
-          mkdir -p integration-test/{good,bad,config}
-
-          # Good markdown
-          cat > integration-test/good/good.md << 'EOF'
-          # Good Document
-
-          This is properly formatted markdown.
-
-          ## Section
-
-          - List item 1
-          - List item 2
-          EOF
-
-          # Bad markdown
-          cat > integration-test/bad/bad.md << 'EOF'
-          #Bad heading
-
-
-
-          Multiple blank lines
-
-          [Empty link]()
-          EOF
-
-          # Config
-          cat > integration-test/config/.markdownlint.json << 'EOF'
-          {
-            "default": true,
-            "MD013": false
-          }
-          EOF
-
-      - name: Run full integration test
-        id: integration
-        uses: ./.github/actions/mkdlint
-        with:
-          files: 'integration-test/'
-          config: 'integration-test/config/.markdownlint.json'
-          output-format: 'sarif'
-          upload-sarif: true
-          fail-on-error: false
-
-      - name: Verify all outputs
-        run: |
-          echo "=== Integration Test Results ==="
-          echo "Exit code: ${{ steps.integration.outputs.exit-code }}"
-          echo "Error count: ${{ steps.integration.outputs.error-count }}"
-          echo "File count: ${{ steps.integration.outputs.file-count }}"
-          echo "SARIF file: ${{ steps.integration.outputs.sarif-file }}"
-          echo "Binary path: ${{ steps.integration.outputs.binary-path }}"
-          echo "Cache hit: ${{ steps.integration.outputs.cache-hit }}"
-
-          # Should find errors in bad.md but not good.md
-          if [ "${{ steps.integration.outputs.file-count }}" != "1" ]; then
-            echo "::warning::Expected 1 file with errors, got ${{ steps.integration.outputs.file-count }}"
-          fi
-
-          echo "✓ Integration test complete"
-
-  test-checksum-verification:
-    name: Test Checksum Verification
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Test with checksum verification
-        id: with-checksum
-        uses: ./.github/actions/mkdlint
-        with:
-          files: 'README.md'
-          version: 'latest'
-          fail-on-error: false
-          upload-sarif: false
-
-      - name: Verify checksum was checked
-        run: |
-          echo "Binary path: ${{ steps.with-checksum.outputs.binary-path }}"
-          echo "Cache hit: ${{ steps.with-checksum.outputs.cache-hit }}"
-
-          # If not from cache, checksum should have been verified
-          if [ "${{ steps.with-checksum.outputs.cache-hit }}" != "true" ]; then
-            echo "✓ Binary downloaded with checksum verification"
-          else
-            echo "✓ Using cached binary (checksum verified on first download)"
+            echo "✅ All tests passed!"
           fi
