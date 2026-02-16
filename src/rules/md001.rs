@@ -4,7 +4,7 @@
 //! For example, an h3 heading should not appear directly after an h1 heading.
 
 use crate::parser::{Token, TokenExt};
-use crate::types::{LintError, ParserType, Rule, RuleParams, Severity};
+use crate::types::{FixInfo, LintError, ParserType, Rule, RuleParams, Severity};
 use regex::Regex;
 
 pub struct MD001;
@@ -50,7 +50,7 @@ impl Rule for MD001 {
     }
 
     fn tags(&self) -> &[&'static str] {
-        &["headings"]
+        &["headings", "fixable"]
     }
 
     fn parser_type(&self) -> ParserType {
@@ -80,15 +80,55 @@ impl Rule for MD001 {
 
             // Only report error if level increases by more than 1
             if level > prev_level.saturating_add(1) {
+                let expected_level = prev_level + 1;
+                let is_setext = heading.metadata.get("setext")
+                    .and_then(|v| v.parse::<bool>().ok())
+                    .unwrap_or(false);
+
+                // Generate fix_info to adjust the heading level
+                let fix_info = if !is_setext {
+                    // ATX heading: change the number of # characters
+                    let line = params.lines.get(heading.start_line - 1)
+                        .map(|s| s.as_str())
+                        .unwrap_or("");
+
+                    // Find where the heading text starts (after leading # and spaces)
+                    if let Some(hash_count) = line.find(|c| c != '#' && c != ' ') {
+                        let new_prefix = "#".repeat(expected_level) + " ";
+                        Some(FixInfo {
+                            line_number: Some(heading.start_line),
+                            edit_column: Some(1),
+                            delete_count: Some(hash_count as i32),
+                            insert_text: Some(new_prefix),
+                        })
+                    } else {
+                        None
+                    }
+                } else {
+                    // Setext heading: convert to ATX format
+                    // Replace both the heading line and the underline
+                    let line = params.lines.get(heading.start_line - 1)
+                        .map(|s| s.trim_end())
+                        .unwrap_or("");
+
+                    let new_heading = format!("{} {}", "#".repeat(expected_level), line);
+                    Some(FixInfo {
+                        line_number: Some(heading.start_line),
+                        edit_column: Some(1),
+                        delete_count: Some(i32::MAX), // Delete entire line (will be handled by apply_fixes)
+                        insert_text: Some(new_heading),
+                    })
+                };
+
                 errors.push(LintError {
                     line_number: heading.start_line,
                     rule_names: self.names().iter().map(|s| s.to_string()).collect(),
                     rule_description: self.description().to_string(),
-                    error_detail: Some(format!("Expected: h{}; Actual: h{}", prev_level + 1, level)),
+                    error_detail: Some(format!("Expected: h{}; Actual: h{}", expected_level, level)),
                     error_context: None,
                     rule_information: self.information().map(|s| s.to_string()),
                     error_range: None,
-                    fix_info: None,
+                    fix_info,
                     severity: Severity::Error,
                 });
             }
@@ -300,5 +340,64 @@ mod tests {
         assert_eq!(errors.len(), 2);
         assert_eq!(errors[0].line_number, 2);
         assert_eq!(errors[1].line_number, 3);
+    }
+
+    #[test]
+    fn test_md001_fix_info_atx() {
+        let tokens = vec![
+            create_heading(1, 1, false),
+            create_heading(2, 3, false), // Skip from h1 to h3
+        ];
+
+        let lines = vec![
+            "# Heading 1\n".to_string(),
+            "### Heading 3\n".to_string(),
+        ];
+
+        let params = RuleParams {
+            name: "test.md",
+            version: "0.1.0",
+            lines: &lines,
+            front_matter_lines: &[],
+            tokens: &tokens,
+            config: &HashMap::new(),
+        };
+
+        let rule = MD001;
+        let errors = rule.lint(&params);
+
+        assert_eq!(errors.len(), 1);
+        assert!(errors[0].fix_info.is_some());
+        let fix = errors[0].fix_info.as_ref().unwrap();
+        assert_eq!(fix.line_number, Some(2));
+        assert_eq!(fix.edit_column, Some(1));
+        assert_eq!(fix.insert_text, Some("## ".to_string()));
+    }
+
+    #[test]
+    fn test_md001_fix_info_setext() {
+        let tokens = vec![
+            create_heading(1, 1, false),
+            create_heading(2, 2, true), // Setext h2 after h1 is ok, no error
+        ];
+
+        let lines = vec![
+            "# Heading 1\n".to_string(),
+            "Heading 2\n".to_string(),
+            "---------\n".to_string(),
+        ];
+
+        let params = RuleParams {
+            name: "test.md",
+            version: "0.1.0",
+            lines: &lines,
+            front_matter_lines: &[],
+            tokens: &tokens,
+            config: &HashMap::new(),
+        };
+
+        let rule = MD001;
+        let errors = rule.lint(&params);
+        assert_eq!(errors.len(), 0);
     }
 }

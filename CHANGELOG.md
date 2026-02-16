@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Auto-fix support** for 3 additional rules:
+  - MD001: Heading increment - adjusts heading levels automatically
+  - MD041: First-line heading - inserts top-level heading at document start
+  - MD047: Single trailing newline - adds missing newline at file end
+
 ## [0.2.0] - 2026-02-15
 
 ### Added

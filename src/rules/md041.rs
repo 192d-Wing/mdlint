@@ -3,7 +3,7 @@
 //! This rule checks that the first line of the file is a top-level (h1) heading.
 
 use crate::parser::TokenExt;
-use crate::types::{LintError, ParserType, Rule, RuleParams, Severity};
+use crate::types::{FixInfo, LintError, ParserType, Rule, RuleParams, Severity};
 
 pub struct MD041;
 
@@ -17,7 +17,7 @@ impl Rule for MD041 {
     }
 
     fn tags(&self) -> &[&'static str] {
-        &["headings"]
+        &["headings", "fixable"]
     }
 
     fn parser_type(&self) -> ParserType {
@@ -49,29 +49,40 @@ impl Rule for MD041 {
         if let Some(first_heading) = headings.first() {
             // Check if first heading is on the first content line
             if first_heading.start_line != first_content_line {
+                // Fix: insert a heading before the current content
                 errors.push(LintError {
-                    line_number: 1,
+                    line_number: first_content_line,
                     rule_names: self.names().iter().map(|s| s.to_string()).collect(),
                     rule_description: self.description().to_string(),
                     error_detail: None,
                     error_context: None,
                     rule_information: self.information().map(|s| s.to_string()),
                     error_range: None,
-                    fix_info: None,
+                    fix_info: Some(FixInfo {
+                        line_number: Some(first_content_line),
+                        edit_column: Some(1),
+                        delete_count: None,
+                        insert_text: Some("# Title\n\n".to_string()),
+                    }),
                     severity: Severity::Error,
                 });
             }
         } else {
-            // No heading found
+            // No heading found - insert one at the beginning
             errors.push(LintError {
-                line_number: 1,
+                line_number: first_content_line,
                 rule_names: self.names().iter().map(|s| s.to_string()).collect(),
                 rule_description: self.description().to_string(),
                 error_detail: None,
                 error_context: None,
                 rule_information: self.information().map(|s| s.to_string()),
                 error_range: None,
-                fix_info: None,
+                fix_info: Some(FixInfo {
+                    line_number: Some(first_content_line),
+                    edit_column: Some(1),
+                    delete_count: None,
+                    insert_text: Some("# Title\n\n".to_string()),
+                }),
                 severity: Severity::Error,
             });
         }
@@ -167,5 +178,63 @@ mod tests {
         let rule = MD041;
         let errors = rule.lint(&params);
         assert_eq!(errors.len(), 1);
+    }
+
+    #[test]
+    fn test_md041_fix_info_no_heading() {
+        let tokens = vec![];
+        let lines = vec!["Just some text\n".to_string()];
+
+        let params = RuleParams {
+            name: "test.md",
+            version: "0.1.0",
+            lines: &lines,
+            front_matter_lines: &[],
+            tokens: &tokens,
+            config: &HashMap::new(),
+        };
+
+        let rule = MD041;
+        let errors = rule.lint(&params);
+        assert_eq!(errors.len(), 1);
+        assert!(errors[0].fix_info.is_some());
+        let fix = errors[0].fix_info.as_ref().unwrap();
+        assert_eq!(fix.line_number, Some(1));
+        assert_eq!(fix.insert_text, Some("# Title\n\n".to_string()));
+    }
+
+    #[test]
+    fn test_md041_fix_info_heading_not_first() {
+        let tokens = vec![Token {
+            token_type: "heading".to_string(),
+            start_line: 3,
+            start_column: 1,
+            end_line: 3,
+            end_column: 10,
+            text: "# Heading".to_string(),
+            children: vec![],
+            parent: None,
+            metadata: HashMap::new(),
+        }];
+
+        let lines = vec![
+            "Some text\n".to_string(),
+            "\n".to_string(),
+            "# Heading\n".to_string(),
+        ];
+
+        let params = RuleParams {
+            name: "test.md",
+            version: "0.1.0",
+            lines: &lines,
+            front_matter_lines: &[],
+            tokens: &tokens,
+            config: &HashMap::new(),
+        };
+
+        let rule = MD041;
+        let errors = rule.lint(&params);
+        assert_eq!(errors.len(), 1);
+        assert!(errors[0].fix_info.is_some());
     }
 }

@@ -14,7 +14,7 @@ impl Rule for MD047 {
     }
 
     fn tags(&self) -> &[&'static str] {
-        &["blank_lines"]
+        &["blank_lines", "fixable"]
     }
 
     fn parser_type(&self) -> ParserType {

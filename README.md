@@ -1,6 +1,13 @@
 # mdlint
 
-[![CI](https://github.com/192d-Wing/mdlint/workflows/CI/badge.svg)](https://github.com/192d-Wing/mdlint/actions/workflows/ci.yml)
+[![docs.rs](https://img.shields.io/docsrs/mdlint?style=for-the-badge&logo=rust)](https://docs.rs/ntp-usg/latest/mdlint)
+[![Crates.io](https://img.shields.io/crates/v/mdlint.svg?style=for-the-badge&logo=rust)](https://crates.io/crates/mdlint)
+![Crates.io Total Downloads](https://img.shields.io/crates/d/mdlint?style=for-the-badge&logo=rust)
+[![License](https://img.shields.io/crates/l/mdlint.svg?style=for-the-badge)](https://github.com/192d-Wing/mdlint#license)
+[![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/192d-Wing/mdlint/ci.yml?branch=master&style=for-the-badge&logo=github)](https://github.com/192d-Wing/mdlint/actions/workflows/ci.yml)
+[![GitHub Issues or Pull Requests](https://img.shields.io/github/issues/192d-Wing/mdlint?style=for-the-badge&logo=github)](https://github.com/192d-Wing/mdlint/issues)
+[![GitHub Issues or Pull Requests](https://img.shields.io/github/issues-pr/192d-Wing/mdlint?style=for-the-badge&logo=github)](https://github.com/192d-Wing/mdlint/pulls)
+
 [![Security Audit](https://github.com/192d-Wing/mdlint/workflows/Security%20Audit/badge.svg)](https://github.com/192d-Wing/mdlint/actions/workflows/security.yml)
 [![codecov](https://codecov.io/gh/192d-Wing/mdlint/branch/main/graph/badge.svg)](https://codecov.io/gh/192d-Wing/mdlint)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
@@ -10,7 +17,7 @@ A fast Markdown linter written in Rust, inspired by [markdownlint](https://githu
 ## Features
 
 - **54 lint rules** (MD001-MD060) enforcing Markdown best practices
-- **Automatic fixing** for 24+ rules with `--fix` flag
+- **Automatic fixing** for 27 rules with `--fix` flag
 - **Rich error display** with source context and colored underlines pointing to errors
 - **Multiple output formats** — text (default), JSON, or SARIF
 - **Configuration** via JSON, YAML, or TOML files with auto-discovery
@@ -207,7 +214,7 @@ Rules can be enabled/disabled by name (`"MD013"`) or alias (`"line-length"`). Pa
 
 | Rule | Alias | Description | Fixable |
 |------|-------|-------------|---------|
-| MD001 | heading-increment | Heading levels should increment by one | |
+| MD001 | heading-increment | Heading levels should increment by one | ***Yes*** |
 | MD003 | heading-style | Heading style | |
 | MD004 | ul-style | Unordered list style | Yes |
 | MD005 | list-indent | Inconsistent indentation for list items | Yes |
@@ -239,12 +246,12 @@ Rules can be enabled/disabled by name (`"MD013"`) or alias (`"line-length"`). Pa
 | MD038 | no-space-in-code | Spaces inside code span elements | **Yes** |
 | MD039 | no-space-in-links | Spaces inside link text | **Yes** |
 | MD040 | fenced-code-language | Fenced code blocks should have a language specified | **Yes** |
-| MD041 | first-line-heading | First line in a file should be a top-level heading | |
+| MD041 | first-line-heading | First line in a file should be a top-level heading | ***Yes*** |
 | MD042 | no-empty-links | No empty links | |
 | MD044 | proper-names | Proper names should have correct capitalization | **Yes** |
 | MD045 | no-alt-text | Images should have alternate text | |
 | MD046 | code-block-style | Code block style | |
-| MD047 | single-trailing-newline | Files should end with a single trailing newline | Yes |
+| MD047 | single-trailing-newline | Files should end with a single trailing newline | ***Yes*** |
 | MD048 | code-fence-style | Code fence style | **Yes** |
 | MD049 | emphasis-style | Emphasis style | **Yes** |
 | MD050 | strong-style | Strong style | **Yes** |
@@ -256,7 +263,7 @@ Rules can be enabled/disabled by name (`"MD013"`) or alias (`"line-length"`). Pa
 | MD059 | emphasis-marker-style-math | Emphasis marker style in math | |
 | MD060 | dollar-in-code-fence | Dollar signs in fenced code blocks | |
 
-**Bold** entries indicate newly added auto-fix support.
+**Bold** entries indicate auto-fix added in v0.2.0. ***Bold+Italic*** entries are new in v0.3.0.
 
 ## License
 
