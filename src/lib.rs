@@ -18,7 +18,7 @@
 //! ### Sync API
 //!
 //! ```rust,no_run
-//! use mdlint::{lint_sync, LintOptions};
+//! use mkdlint::{lint_sync, LintOptions};
 //!
 //! let options = LintOptions {
 //!     files: vec!["README.md".to_string()],
@@ -33,7 +33,7 @@
 //! ### Async API (requires `async` feature)
 //!
 //! ```rust,ignore
-//! use mdlint::{lint_async, LintOptions};
+//! use mkdlint::{lint_async, LintOptions};
 //!
 //! # tokio_test::block_on(async {
 //! let options = LintOptions {

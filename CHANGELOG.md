@@ -7,9 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-02-15
+
+### Changed
+
+- **Package renamed from `mdlint` to `mkdlint`** due to naming conflict with existing crate on crates.io
+  - Repository moved to https://github.com/192d-Wing/mkdlint
+  - Binary renamed from `mdlint` to `mkdlint`
+  - All references updated in code, documentation, and CI/CD workflows
+
 ### Added
 
-- **Auto-fix support** for 3 additional rules:
+- **Auto-fix support** for 3 additional rules (27 total fixable):
   - MD001: Heading increment - adjusts heading levels automatically
   - MD041: First-line heading - inserts top-level heading at document start
   - MD047: Single trailing newline - adds missing newline at file end
@@ -126,6 +135,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Parallel file processing
 - Inline configuration comments support
 
-[Unreleased]: https://github.com/192d-Wing/mkdlint/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/192d-Wing/mkdlint/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/192d-Wing/mkdlint/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/192d-Wing/mkdlint/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/192d-Wing/mkdlint/releases/tag/v0.1.0
