@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-02-16
+
+### Added
+
+- **LSP "Fix All" Command**:
+  - New `mkdlint.fixAll` command to apply all auto-fixes in a document at once
+  - Appears in code action menu with fix count (e.g., "Fix all mkdlint issues (5 fixes)")
+  - Uses `CodeActionKind::SOURCE_FIX_ALL` for proper categorization
+  - Leverages existing `apply_fixes()` function for consistency with CLI
+  - All 34 auto-fixable rules supported
+
+### Fixed
+
+- Removed duplicate line in README CI/CD Integration section
+
+### Documentation
+
+- Added "Fix All" command to LSP feature list
+- Added usage tips section: quick-fix vs fix all
+- Documented `workspace/executeCommand` capability
+
 ## [0.4.0] - 2026-02-16
 
 ### Added
@@ -204,7 +225,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Parallel file processing
 - Inline configuration comments support
 
-[Unreleased]: https://github.com/192d-Wing/mkdlint/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/192d-Wing/mkdlint/compare/v0.4.1...HEAD
+[0.4.1]: https://github.com/192d-Wing/mkdlint/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/192d-Wing/mkdlint/compare/v0.3.2...v0.4.0
 [0.3.2]: https://github.com/192d-Wing/mkdlint/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/192d-Wing/mkdlint/compare/v0.3.0...v0.3.1
