@@ -1,5 +1,10 @@
 # mdlint
 
+[![CI](https://github.com/192d-Wing/mdlint/workflows/CI/badge.svg)](https://github.com/192d-Wing/mdlint/actions/workflows/ci.yml)
+[![Security Audit](https://github.com/192d-Wing/mdlint/workflows/Security%20Audit/badge.svg)](https://github.com/192d-Wing/mdlint/actions/workflows/security.yml)
+[![codecov](https://codecov.io/gh/192d-Wing/mdlint/branch/main/graph/badge.svg)](https://codecov.io/gh/192d-Wing/mdlint)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+
 A fast Markdown linter written in Rust, inspired by [markdownlint](https://github.com/DavidAnson/markdownlint).
 
 ## Features
