@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.2] - 2026-02-16
+
+### Added
+
+- **SHA256 Checksum Verification for GitHub Action**:
+  - Automatic verification of downloaded binaries using SHA256 checksums
+  - Release workflow generates `.sha256` files for all binary archives
+  - Action script downloads and verifies checksums before extraction
+  - Fail-safe: refuses to use binary if checksum doesn't match
+  - Graceful degradation: warns but continues if checksum file unavailable
+  - Uses platform-appropriate tools (`sha256sum` on Linux, `shasum` on macOS)
+
+### Security
+
+- **Binary Download Security**:
+  - All pre-built binaries now verified with SHA256 checksums
+  - Protects against tampered or corrupted downloads
+  - Checksums generated during release build process
+  - Published alongside each binary archive
+  - Verified before extraction and usage
+
+### Documentation
+
+- Added comprehensive Security section to GitHub Action README
+- Documented checksum verification process and security best practices
+- Added test-checksum-verification job to test workflow
+
 ## [0.4.1] - 2026-02-16
 
 ### Added
@@ -225,7 +252,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Parallel file processing
 - Inline configuration comments support
 
-[Unreleased]: https://github.com/192d-Wing/mkdlint/compare/v0.4.1...HEAD
+[Unreleased]: https://github.com/192d-Wing/mkdlint/compare/v0.4.2...HEAD
+[0.4.2]: https://github.com/192d-Wing/mkdlint/compare/v0.4.1...v0.4.2
 [0.4.1]: https://github.com/192d-Wing/mkdlint/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/192d-Wing/mkdlint/compare/v0.3.2...v0.4.0
 [0.3.2]: https://github.com/192d-Wing/mkdlint/compare/v0.3.1...v0.3.2
