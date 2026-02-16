@@ -5,7 +5,7 @@ A fast Markdown linter written in Rust, inspired by [markdownlint](https://githu
 ## Features
 
 - **54 lint rules** (MD001-MD060) enforcing Markdown best practices
-- **Automatic fixing** for 22+ rules with `--fix` flag
+- **Automatic fixing** for 24+ rules with `--fix` flag
 - **Rich error display** with source context and colored underlines pointing to errors
 - **Multiple output formats** — text (default), JSON, or SARIF
 - **Configuration** via JSON, YAML, or TOML files with auto-discovery
@@ -162,7 +162,7 @@ Rules can be enabled/disabled by name (`"MD013"`) or alias (`"line-length"`). Pa
 | MD037 | no-space-in-emphasis | Spaces inside emphasis markers | **Yes** |
 | MD038 | no-space-in-code | Spaces inside code span elements | **Yes** |
 | MD039 | no-space-in-links | Spaces inside link text | **Yes** |
-| MD040 | fenced-code-language | Fenced code blocks should have a language specified | |
+| MD040 | fenced-code-language | Fenced code blocks should have a language specified | **Yes** |
 | MD041 | first-line-heading | First line in a file should be a top-level heading | |
 | MD042 | no-empty-links | No empty links | |
 | MD044 | proper-names | Proper names should have correct capitalization | **Yes** |
@@ -176,7 +176,7 @@ Rules can be enabled/disabled by name (`"MD013"`) or alias (`"line-length"`). Pa
 | MD052 | reference-links-images | Reference links and images should use a label that is defined | |
 | MD053 | link-image-reference-definitions | Link and image reference definitions should be needed | |
 | MD054 | link-image-style | Link and image style | |
-| MD058 | blanks-around-tables | Tables should be surrounded by blank lines | |
+| MD058 | blanks-around-tables | Tables should be surrounded by blank lines | **Yes** |
 | MD059 | emphasis-marker-style-math | Emphasis marker style in math | |
 | MD060 | dollar-in-code-fence | Dollar signs in fenced code blocks | |
 

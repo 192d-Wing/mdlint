@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Auto-fix support** for 12 additional rules:
+- **Auto-fix support** for 14 additional rules:
   - MD011: Reversed link syntax - automatically swaps text and URL
   - MD023: Indented headings - removes leading whitespace
   - MD026: Trailing punctuation in headings - removes punctuation
@@ -18,10 +18,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - MD037: Spaces inside emphasis markers - trims spaces
   - MD038: Spaces inside code spans - trims spaces
   - MD039: Spaces inside link text - trims spaces
+  - MD040: Fenced code language - adds configurable default language (default: "text")
   - MD044: Proper names capitalization - fixes per-occurrence
   - MD048: Code fence style - converts ``` to ~~~ or vice versa
   - MD049: Emphasis style consistency - converts to preferred style
   - MD050: Strong style consistency - converts to preferred style
+  - MD058: Tables blank lines - inserts blank lines before/after tables
 
 - **Rich error display** with source context:
   - Shows the source line containing the error
@@ -61,9 +63,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Shows actual vs expected casing in error_detail
   - Provides fix_info with exact column and replacement text
 
-- **MD035 and MD048 auto-fix**:
+- **MD035, MD040, MD048, and MD058 auto-fix**:
   - MD035 converts horizontal rules to consistent style (e.g., all to `---`)
+  - MD040 adds default language to fenced code blocks (configurable via `default_language`, defaults to "text")
   - MD048 converts code fence markers to consistent style (all to ``` or ~~~)
+  - MD058 inserts blank lines before and after tables
 
 ### Performance
 

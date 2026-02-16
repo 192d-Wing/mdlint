@@ -1,6 +1,6 @@
 //! MD040 - Fenced code blocks should have a language specified
 
-use crate::types::{LintError, ParserType, Rule, RuleParams, Severity};
+use crate::types::{FixInfo, LintError, ParserType, Rule, RuleParams, Severity};
 
 pub struct MD040;
 
@@ -44,15 +44,30 @@ impl Rule for MD040 {
                     // This is an opening fence - check if it has a language
                     in_code_block = true;
                     if after_fence.is_empty() {
+                        // Get the configured default language (default: "text")
+                        let default_lang = params
+                            .config
+                            .get("default_language")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("text");
+
+                        let leading_spaces = line.len() - line.trim_start().len();
+                        let fence_len = fence_chars.len();
+
                         errors.push(LintError {
                             line_number,
                             rule_names: self.names().iter().map(|s| s.to_string()).collect(),
                             rule_description: self.description().to_string(),
-                            error_detail: None,
+                            error_detail: Some(format!("Missing language specification")),
                             error_context: Some(trimmed.to_string()),
                             rule_information: self.information().map(|s| s.to_string()),
-                            error_range: Some((1, trimmed.len())),
-                            fix_info: None,
+                            error_range: Some((leading_spaces + 1, trimmed.len())),
+                            fix_info: Some(FixInfo {
+                                line_number: Some(line_number),
+                                edit_column: Some(leading_spaces + fence_len + 1),
+                                delete_count: None,
+                                insert_text: Some(default_lang.to_string()),
+                            }),
                             severity: Severity::Error,
                         });
                     }
@@ -112,5 +127,64 @@ mod tests {
         let errors = rule.lint(&params);
         assert_eq!(errors.len(), 1); // Only the opening fence without language
         assert_eq!(errors[0].line_number, 1);
+    }
+
+    #[test]
+    fn test_md040_fix_info() {
+        let lines = vec![
+            "```\n".to_string(),
+            "code here\n".to_string(),
+            "```\n".to_string(),
+        ];
+
+        let params = RuleParams {
+            name: "test.md",
+            version: "0.1.0",
+            lines: &lines,
+            front_matter_lines: &[],
+            tokens: &[],
+            config: &HashMap::new(),
+        };
+
+        let rule = MD040;
+        let errors = rule.lint(&params);
+        assert_eq!(errors.len(), 1);
+
+        let fix = errors[0].fix_info.as_ref().expect("Should have fix_info");
+        assert_eq!(fix.line_number, Some(1));
+        assert_eq!(fix.edit_column, Some(4)); // After ```
+        assert_eq!(fix.delete_count, None);
+        assert_eq!(fix.insert_text, Some("text".to_string()));
+    }
+
+    #[test]
+    fn test_md040_custom_default_language() {
+        let lines = vec![
+            "~~~\n".to_string(),
+            "code here\n".to_string(),
+            "~~~\n".to_string(),
+        ];
+
+        let mut config = HashMap::new();
+        config.insert(
+            "default_language".to_string(),
+            serde_json::Value::String("plaintext".to_string()),
+        );
+
+        let params = RuleParams {
+            name: "test.md",
+            version: "0.1.0",
+            lines: &lines,
+            front_matter_lines: &[],
+            tokens: &[],
+            config: &config,
+        };
+
+        let rule = MD040;
+        let errors = rule.lint(&params);
+        assert_eq!(errors.len(), 1);
+
+        let fix = errors[0].fix_info.as_ref().expect("Should have fix_info");
+        assert_eq!(fix.insert_text, Some("plaintext".to_string()));
     }
 }
