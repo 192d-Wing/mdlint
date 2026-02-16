@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.1] - 2026-02-16
+
+### Added
+
+- **MD052 Auto-Fix** - Reference links now auto-fixable
+  - Undefined reference labels automatically get placeholder definitions
+  - Adds `[label]: #link` at end of document for undefined references
+  - Supports both full `[text][label]` and collapsed `[label][]` references
+  - **Coverage increase: 84.9% (45/53 rules)**
+
+### Fixed
+
+- MD052: Added `fixable` tag to enable auto-fix support
+- MD052: Added FixInfo generation for undefined reference errors
+
 ## [0.9.0] - 2026-02-16
 
 ### Added

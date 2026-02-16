@@ -32,7 +32,7 @@ impl Rule for MD052 {
     }
 
     fn tags(&self) -> &[&'static str] {
-        &["links", "images"]
+        &["links", "images", "fixable"]
     }
 
     fn parser_type(&self) -> ParserType {
@@ -81,6 +81,22 @@ impl Rule for MD052 {
             for caps in FULL_REF_RE.captures_iter(line) {
                 let label = caps[2].to_lowercase();
                 if !defined_labels.contains(&label) {
+                    // Append to the last non-empty line
+                    // Note: apply_fixes pops trailing empty lines (lines that are just "\n" or "\r\n")
+                    // so we need to target the line before it if it exists
+                    let last_line_idx = params.lines.len().saturating_sub(1);
+                    let is_trailing_empty = params.lines.get(last_line_idx)
+                        .map(|l| l == "\n" || l == "\r\n")
+                        .unwrap_or(false);
+                    let insert_line = if is_trailing_empty {
+                        last_line_idx.max(1)  // Target line before trailing empty
+                    } else {
+                        params.lines.len()    // Target the actual last line
+                    };
+                    let target_line = params.lines.get(insert_line - 1).map(|l| l.as_str()).unwrap_or("");
+                    let target_stripped = target_line.trim_end_matches('\n').trim_end_matches('\r');
+                    let insert_col = target_stripped.len() + 1;
+
                     errors.push(LintError {
                         line_number,
                         rule_names: self.names().iter().map(|s| s.to_string()).collect(),
@@ -92,7 +108,12 @@ impl Rule for MD052 {
                         error_context: Some(caps[0].to_string()),
                         rule_information: self.information().map(|s| s.to_string()),
                         error_range: None,
-                        fix_info: None,
+                        fix_info: Some(crate::types::FixInfo {
+                            line_number: Some(insert_line),
+                            edit_column: Some(insert_col),
+                            delete_count: None,
+                            insert_text: Some(format!("\n[{}]: #link\n", &caps[2])),
+                        }),
                         suggestion: Some(
                             "Define all link reference labels that are used".to_string(),
                         ),
@@ -105,6 +126,22 @@ impl Rule for MD052 {
             for caps in COLLAPSED_REF_RE.captures_iter(line) {
                 let label = caps[1].to_lowercase();
                 if !defined_labels.contains(&label) {
+                    // Append to the last non-empty line
+                    // Note: apply_fixes pops trailing empty lines (lines that are just "\n" or "\r\n")
+                    // so we need to target the line before it if it exists
+                    let last_line_idx = params.lines.len().saturating_sub(1);
+                    let is_trailing_empty = params.lines.get(last_line_idx)
+                        .map(|l| l == "\n" || l == "\r\n")
+                        .unwrap_or(false);
+                    let insert_line = if is_trailing_empty {
+                        last_line_idx.max(1)  // Target line before trailing empty
+                    } else {
+                        params.lines.len()    // Target the actual last line
+                    };
+                    let target_line = params.lines.get(insert_line - 1).map(|l| l.as_str()).unwrap_or("");
+                    let target_stripped = target_line.trim_end_matches('\n').trim_end_matches('\r');
+                    let insert_col = target_stripped.len() + 1;
+
                     errors.push(LintError {
                         line_number,
                         rule_names: self.names().iter().map(|s| s.to_string()).collect(),
@@ -116,7 +153,12 @@ impl Rule for MD052 {
                         error_context: Some(caps[0].to_string()),
                         rule_information: self.information().map(|s| s.to_string()),
                         error_range: None,
-                        fix_info: None,
+                        fix_info: Some(crate::types::FixInfo {
+                            line_number: Some(insert_line),
+                            edit_column: Some(insert_col),
+                            delete_count: None,
+                            insert_text: Some(format!("\n[{}]: #link\n", &caps[1])),
+                        }),
                         suggestion: Some(
                             "Define all link reference labels that are used".to_string(),
                         ),
@@ -193,5 +235,95 @@ mod tests {
         let rule = MD052;
         let errors = rule.lint(&params);
         assert_eq!(errors.len(), 0);
+    }
+
+    #[test]
+    fn test_md052_fix_full_reference() {
+        let lines: Vec<String> = vec![
+            "This has a [link][bar] reference.\n".to_string(),
+            "\n".to_string(),
+            "[foo]: https://example.com\n".to_string(),
+        ];
+        let config = HashMap::new();
+        let params = make_params(&lines, &config);
+
+        let rule = MD052;
+        let errors = rule.lint(&params);
+        assert_eq!(errors.len(), 1);
+        assert_eq!(errors[0].line_number, 1);
+
+        let fix_info = errors[0].fix_info.as_ref().unwrap();
+        assert_eq!(fix_info.line_number, Some(3));
+        assert!(fix_info.insert_text.as_ref().unwrap().contains("[bar]: #link"));
+    }
+
+    #[test]
+    fn test_md052_fix_collapsed_reference() {
+        let lines: Vec<String> = vec![
+            "This has a [link][] reference.\n".to_string(),
+            "\n".to_string(),
+            "[foo]: https://example.com\n".to_string(),
+        ];
+        let config = HashMap::new();
+        let params = make_params(&lines, &config);
+
+        let rule = MD052;
+        let errors = rule.lint(&params);
+        assert_eq!(errors.len(), 1);
+        assert_eq!(errors[0].line_number, 1);
+
+        let fix_info = errors[0].fix_info.as_ref().unwrap();
+        assert_eq!(fix_info.line_number, Some(3));
+        assert!(fix_info.insert_text.as_ref().unwrap().contains("[link]: #link"));
+    }
+
+    #[test]
+    fn test_md052_fix_multiple_undefined() {
+        let lines: Vec<String> = vec![
+            "This has [link1][ref1] and [link2][ref2].\n".to_string(),
+            "\n".to_string(),
+        ];
+        let config = HashMap::new();
+        let params = make_params(&lines, &config);
+
+        let rule = MD052;
+        let errors = rule.lint(&params);
+        assert_eq!(errors.len(), 2);
+
+        // Both should have fix_info
+        assert!(errors[0].fix_info.is_some());
+        assert!(errors[1].fix_info.is_some());
+    }
+
+    #[test]
+    fn test_md052_fix_integration() {
+        use crate::apply_fixes;
+
+        let content = "# Title\n\nSee [link][foo].\n";
+        // Simulate CLI line splitting (same as lint_content)
+        let lines: Vec<String> = content.split('\n').map(|s| format!("{}\n", s)).collect();
+        let config = HashMap::new();
+        let params = make_params(&lines, &config);
+
+        println!("Content: {:?}", content);
+        println!("Lines ({}): {:?}", lines.len(), lines);
+
+        let rule = MD052;
+        let errors = rule.lint(&params);
+        assert_eq!(errors.len(), 1);
+
+        // Debug fix_info
+        let fix_info = errors[0].fix_info.as_ref().unwrap();
+        println!("Fix info: line_number={:?}, edit_column={:?}, insert_text={:?}",
+                 fix_info.line_number, fix_info.edit_column, fix_info.insert_text);
+
+        // Apply the fix (use original content, not lines)
+        let fixed = apply_fixes(content, &errors);
+        println!("Original (len={}):\n{:?}", content.len(), content);
+        println!("Fixed (len={}):\n{:?}", fixed.len(), fixed);
+        println!("Changed: {}", fixed != content);
+
+        // The fixed content should contain the reference definition
+        assert!(fixed.contains("[foo]: #link"), "Fixed content should contain reference definition");
     }
 }
