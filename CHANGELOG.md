@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.3] - 2026-02-16
+
+### Added
+
+- **MD045 Auto-Fix** - Images without alt text:
+  - Automatically adds placeholder "image" alt text to images missing alt text
+  - Fixes accessibility issues with `![](image.png)` → `![image](image.png)`
+  - Helpful suggestion to use descriptive alt text
+
+- **MD025 Auto-Fix** - Multiple H1 headings:
+  - Automatically converts additional H1s to H2s
+  - Supports both ATX (`# Heading`) and Setext styles
+  - Maintains document structure while fixing hierarchy issues
+  - Suggestion to restructure document or convert to H2
+
+- **Auto-fix coverage: 40/54 rules (74%)** - up from 38/54 (70%)
+
 ## [0.5.2] - 2026-02-16
 
 ### Changed
@@ -308,7 +325,8 @@ This release makes existing auto-fixes discoverable by properly tagging them. No
 - Parallel file processing
 - Inline configuration comments support
 
-[Unreleased]: https://github.com/192d-Wing/mkdlint/compare/v0.5.2...HEAD
+[Unreleased]: https://github.com/192d-Wing/mkdlint/compare/v0.5.3...HEAD
+[0.5.3]: https://github.com/192d-Wing/mkdlint/compare/v0.5.2...v0.5.3
 [0.5.2]: https://github.com/192d-Wing/mkdlint/compare/v0.5.1...v0.5.2
 [0.5.1]: https://github.com/192d-Wing/mkdlint/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/192d-Wing/mkdlint/compare/v0.4.2...v0.5.0
