@@ -1,6 +1,6 @@
 //! MD053 - Link and image reference definitions should be needed
 
-use crate::types::{LintError, ParserType, Rule, RuleParams, Severity};
+use crate::types::{FixInfo, LintError, ParserType, Rule, RuleParams, Severity};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use std::collections::HashSet;
@@ -41,7 +41,7 @@ impl Rule for MD053 {
     }
 
     fn tags(&self) -> &[&'static str] {
-        &["links", "images"]
+        &["links", "images", "fixable"]
     }
 
     fn parser_type(&self) -> ParserType {
@@ -134,8 +134,13 @@ impl Rule for MD053 {
                     error_context: None,
                     rule_information: self.information().map(|s| s.to_string()),
                     error_range: None,
-                    fix_info: None,
-                    suggestion: None,
+                    fix_info: Some(FixInfo {
+                        line_number: Some(*line_number),
+                        edit_column: Some(1),
+                        delete_count: Some(-1), // Delete entire line
+                        insert_text: None,
+                    }),
+                    suggestion: Some("Remove this unused link definition".to_string()),
                     severity: Severity::Error,
                 });
             }
@@ -208,5 +213,66 @@ mod tests {
         let rule = MD053;
         let errors = rule.lint(&params);
         assert_eq!(errors.len(), 0);
+    }
+
+    #[test]
+    fn test_md053_fix_unused_definition() {
+        let lines: Vec<String> = vec![
+            "This is some text.\n".to_string(),
+            "\n".to_string(),
+            "[foo]: https://example.com\n".to_string(),
+        ];
+        let config = HashMap::new();
+        let params = make_params(&lines, &config);
+
+        let rule = MD053;
+        let errors = rule.lint(&params);
+        assert_eq!(errors.len(), 1);
+        assert!(errors[0].fix_info.is_some());
+
+        let fix = errors[0].fix_info.as_ref().unwrap();
+        assert_eq!(fix.line_number, Some(3));
+        assert_eq!(fix.edit_column, Some(1));
+        assert_eq!(fix.delete_count, Some(-1)); // Delete entire line
+        assert_eq!(fix.insert_text, None);
+    }
+
+    #[test]
+    fn test_md053_fix_multiple_unused() {
+        let lines: Vec<String> = vec![
+            "This has a [link][bar] reference.\n".to_string(),
+            "\n".to_string(),
+            "[foo]: https://example.com\n".to_string(),
+            "[bar]: https://example.org\n".to_string(),
+            "[baz]: https://example.net\n".to_string(),
+        ];
+        let config = HashMap::new();
+        let params = make_params(&lines, &config);
+
+        let rule = MD053;
+        let errors = rule.lint(&params);
+        assert_eq!(errors.len(), 2); // foo and baz are unused
+
+        // Both should have fix_info
+        for error in &errors {
+            assert!(error.fix_info.is_some());
+            let fix = error.fix_info.as_ref().unwrap();
+            assert_eq!(fix.delete_count, Some(-1));
+        }
+    }
+
+    #[test]
+    fn test_md053_no_fix_for_used() {
+        let lines: Vec<String> = vec![
+            "This has a [link][foo] reference.\n".to_string(),
+            "\n".to_string(),
+            "[foo]: https://example.com\n".to_string(),
+        ];
+        let config = HashMap::new();
+        let params = make_params(&lines, &config);
+
+        let rule = MD053;
+        let errors = rule.lint(&params);
+        assert_eq!(errors.len(), 0); // No errors, all definitions used
     }
 }
