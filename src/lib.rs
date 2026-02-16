@@ -82,6 +82,9 @@ pub mod parser;
 pub mod rules;
 pub mod types;
 
+#[cfg(feature = "lsp")]
+pub mod lsp;
+
 // Re-export main types and functions
 pub use config::{Config, ConfigParser, RuleConfig};
 pub use lint::{apply_fixes, lint_sync};

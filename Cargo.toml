@@ -64,8 +64,9 @@ globset = { version = "0.4", optional = true }
 
 # LSP dependencies (optional)
 tower-lsp = { version = "0.20", optional = true }
-lsp-types = { version = "0.97", optional = true }
+lsp-types = { version = "0.94", optional = true }
 tower = { version = "0.5", optional = true }
+url = { version = "2.5", optional = true }
 
 [dev-dependencies]
 tokio = { version = "1.41", features = ["rt", "macros", "fs"] }
@@ -79,7 +80,7 @@ insta = "1.41"                                                  # Snapshot testi
 default = ["cli"]
 cli = ["dep:clap", "dep:colored", "dep:walkdir", "dep:globset"]
 async = ["dep:tokio"]
-lsp = ["async", "dep:tower-lsp", "dep:lsp-types", "dep:tower"]
+lsp = ["async", "dep:tower-lsp", "dep:lsp-types", "dep:tower", "dep:url"]
 
 [[bench]]
 name = "lint_bench"
