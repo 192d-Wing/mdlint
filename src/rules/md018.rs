@@ -49,7 +49,10 @@ impl Rule for MD018 {
                             rule_description: self.description(),
                             error_detail: None,
                             error_context: Some(
-                                trimmed[..hash_count + 10.min(after_hash.len())].to_string(),
+                                trimmed
+                                    .chars()
+                                    .take(hash_count + 10.min(after_hash.chars().count()))
+                                    .collect(),
                             ),
                             rule_information: self.information(),
                             error_range: Some((hash_count + 1, 1)),

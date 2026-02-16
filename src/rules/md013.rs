@@ -61,8 +61,9 @@ impl Rule for MD013 {
                         "Expected: {}; Actual: {}",
                         line_length, actual_length
                     )),
-                    error_context: Some(if trimmed.len() > 78 {
-                        format!("{}...", &trimmed[..75])
+                    error_context: Some(if actual_length > 78 {
+                        let truncated: String = trimmed.chars().take(75).collect();
+                        format!("{}...", truncated)
                     } else {
                         trimmed.to_string()
                     }),

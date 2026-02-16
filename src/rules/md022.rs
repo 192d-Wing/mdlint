@@ -34,7 +34,7 @@ impl Rule for MD022 {
             let line_num = heading.start_line;
 
             // Check line before heading
-            if line_num > 1 {
+            if line_num > 1 && (line_num - 2) < params.lines.len() {
                 let prev_line = &params.lines[line_num - 2];
                 if !prev_line.trim().is_empty() {
                     errors.push(LintError {
