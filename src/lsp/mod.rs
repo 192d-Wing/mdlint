@@ -29,6 +29,7 @@
 
 mod backend;
 mod code_actions;
+mod config;
 mod diagnostics;
 mod document;
 mod utils;

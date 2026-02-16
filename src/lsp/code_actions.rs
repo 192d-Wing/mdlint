@@ -134,6 +134,7 @@ mod tests {
             rule_information: None,
             error_range: None,
             fix_info: Some(fix_info),
+            suggestion: Some("Apply fix".to_string()),
             severity: Severity::Error,
         }
     }

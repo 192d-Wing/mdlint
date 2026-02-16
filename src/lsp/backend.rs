@@ -2,10 +2,13 @@
 //!
 //! This module provides the main Language Server implementation.
 
-use super::{code_actions, diagnostics, document::DocumentManager, utils::Debouncer};
-use crate::{LintOptions, apply_fixes, lint_sync};
+use super::{
+    code_actions, config::ConfigManager, diagnostics, document::DocumentManager, utils::Debouncer,
+};
+use crate::{apply_fixes, lint_sync, LintOptions};
 use std::collections::HashMap;
-use std::sync::Arc;
+use std::path::PathBuf;
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use tower_lsp::jsonrpc::Result;
 use tower_lsp::lsp_types::*;
@@ -15,15 +18,18 @@ use tower_lsp::{Client, LanguageServer};
 pub struct MkdlintLanguageServer {
     client: Client,
     document_manager: Arc<DocumentManager>,
+    config_manager: Arc<Mutex<ConfigManager>>,
     debouncer: Arc<Debouncer>,
 }
 
 impl MkdlintLanguageServer {
     /// Create a new language server instance
     pub fn new(client: Client) -> Self {
+        // Start with empty workspace roots, will be set in initialize()
         Self {
             client,
             document_manager: Arc::new(DocumentManager::new()),
+            config_manager: Arc::new(Mutex::new(ConfigManager::new(vec![]))),
             debouncer: Arc::new(Debouncer::new(Duration::from_millis(300))),
         }
     }
@@ -43,11 +49,19 @@ impl MkdlintLanguageServer {
             .and_then(|p| p.to_str().map(String::from))
             .unwrap_or_else(|| uri.to_string());
 
+        // Discover config for this file
+        let config = self.config_manager.lock().unwrap().discover_config(&uri);
+
         // Lint the document using string content
         let mut options = LintOptions::default();
         options
             .strings
             .insert(file_name.clone(), doc.content.clone());
+
+        // Apply config if found
+        if let Some(config) = config {
+            options.config = Some(config);
+        }
 
         let results = match lint_sync(&options) {
             Ok(r) => r,
@@ -81,9 +95,41 @@ impl MkdlintLanguageServer {
 
 #[tower_lsp::async_trait]
 impl LanguageServer for MkdlintLanguageServer {
-    async fn initialize(&self, _params: InitializeParams) -> Result<InitializeResult> {
+    async fn initialize(&self, params: InitializeParams) -> Result<InitializeResult> {
         self.client
             .log_message(MessageType::INFO, "mkdlint LSP server initializing")
+            .await;
+
+        // Extract workspace roots from initialize params
+        let workspace_roots: Vec<PathBuf> = params
+            .workspace_folders
+            .unwrap_or_default()
+            .into_iter()
+            .filter_map(|folder| folder.uri.to_file_path().ok())
+            .collect();
+
+        // If no workspace folders, try root_uri
+        let workspace_roots = if workspace_roots.is_empty() {
+            params
+                .root_uri
+                .and_then(|uri| uri.to_file_path().ok())
+                .map(|path| vec![path])
+                .unwrap_or_default()
+        } else {
+            workspace_roots
+        };
+
+        // Update config manager with workspace roots
+        *self.config_manager.lock().unwrap() = ConfigManager::new(workspace_roots);
+
+        self.client
+            .log_message(
+                MessageType::INFO,
+                format!(
+                    "mkdlint LSP initialized with {} workspace root(s)",
+                    self.config_manager.lock().unwrap().workspace_roots.len()
+                ),
+            )
             .await;
 
         Ok(InitializeResult {
@@ -340,6 +386,7 @@ impl Clone for MkdlintLanguageServer {
         Self {
             client: self.client.clone(),
             document_manager: Arc::clone(&self.document_manager),
+            config_manager: Arc::clone(&self.config_manager),
             debouncer: Arc::clone(&self.debouncer),
         }
     }

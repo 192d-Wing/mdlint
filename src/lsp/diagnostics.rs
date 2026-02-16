@@ -89,6 +89,7 @@ mod tests {
             rule_information: None,
             error_range,
             fix_info: None,
+            suggestion: Some("Fix this issue".to_string()),
             severity,
         }
     }

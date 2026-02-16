@@ -5,6 +5,7 @@ Complete guide to using mkdlint for linting and auto-fixing Markdown files.
 ## Table of Contents
 
 - [Getting Started](#getting-started)
+- [Language Server Protocol (LSP)](#language-server-protocol-lsp)
 - [Configuration](#configuration)
 - [Auto-Fix Guide](#auto-fix-guide)
 - [IDE Integration](#ide-integration)
@@ -47,7 +48,7 @@ mkdlint --fix README.md
 
 mkdlint provides colored, detailed output for each error:
 
-```
+```text
 README.md:5:1 error MD001/heading-increment Heading levels should only increment by one level at a time [Expected: h2; Actual: h3]
   💡 Suggestion: Heading levels should increment by one level at a time
   🔧 Fix available - use --fix to apply automatically
@@ -60,6 +61,213 @@ README.md:5:1 error MD001/heading-increment Heading levels should only increment
 - **💡 Suggestion** - How to fix it manually
 - **🔧 Fix indicator** - Tells you `--fix` can auto-fix this
 
+## Language Server Protocol (LSP)
+
+mkdlint includes a full-featured LSP server for real-time linting in your editor.
+
+### Features
+
+- ✅ **Real-time diagnostics** as you type (300ms debounced)
+- ✅ **Code actions** (quick fixes) for all 44 auto-fixable rules
+- ✅ **"Fix All" command** to apply all fixes at once
+- ✅ **Automatic config discovery** (walks up to workspace root)
+- ✅ **Multi-workspace support**
+- ✅ **UTF-8 aware** range calculation
+
+### Quick Start
+
+```bash
+# Install with LSP support
+cargo install mkdlint --features lsp
+
+# Verify installation
+mkdlint-lsp --version
+```
+
+### Editor Setup
+
+#### VS Code
+
+Create `.vscode/extensions/mkdlint-lsp/package.json`:
+
+```json
+{
+  "name": "mkdlint-lsp",
+  "version": "1.0.0",
+  "engines": { "vscode": "^1.75.0" },
+  "activationEvents": ["onLanguage:markdown"],
+  "main": "./out/extension.js"
+}
+```
+
+Create `.vscode/extensions/mkdlint-lsp/src/extension.ts`:
+
+```typescript
+import { workspace, ExtensionContext } from 'vscode';
+import {
+  LanguageClient,
+  LanguageClientOptions,
+  ServerOptions,
+} from 'vscode-languageclient/node';
+
+let client: LanguageClient;
+
+export function activate(context: ExtensionContext) {
+  const serverOptions: ServerOptions = {
+    command: 'mkdlint-lsp',
+    args: [],
+  };
+
+  const clientOptions: LanguageClientOptions = {
+    documentSelector: [{ scheme: 'file', language: 'markdown' }],
+  };
+
+  client = new LanguageClient(
+    'mkdlint',
+    'mkdlint LSP',
+    serverOptions,
+    clientOptions
+  );
+
+  client.start();
+}
+
+export function deactivate() {
+  return client?.stop();
+}
+```
+
+#### Neovim
+
+Add to your config (`~/.config/nvim/init.lua`):
+
+```lua
+local lspconfig = require('lspconfig')
+local configs = require('lspconfig.configs')
+
+if not configs.mkdlint then
+  configs.mkdlint = {
+    default_config = {
+      cmd = { 'mkdlint-lsp' },
+      filetypes = { 'markdown' },
+      root_dir = lspconfig.util.root_pattern('.markdownlint.json', '.git'),
+    },
+  }
+end
+
+lspconfig.mkdlint.setup({
+  on_attach = function(client, bufnr)
+    -- Keybindings
+    local opts = { noremap = true, silent = true, buffer = bufnr }
+    vim.keymap.set('n', '<leader>ca', vim.lsp.buf.code_action, opts)
+    vim.keymap.set('n', '<leader>f', vim.lsp.buf.format, opts)
+  end,
+})
+```
+
+#### Emacs
+
+Add to your config:
+
+```elisp
+(use-package lsp-mode
+  :hook ((markdown-mode . lsp))
+  :config
+  (lsp-register-client
+   (make-lsp-client
+    :new-connection (lsp-stdio-connection "mkdlint-lsp")
+    :major-modes '(markdown-mode)
+    :server-id 'mkdlint)))
+```
+
+#### Helix
+
+Add to `~/.config/helix/languages.toml`:
+
+```toml
+[[language]]
+name = "markdown"
+language-servers = ["mkdlint-lsp"]
+
+[language-server.mkdlint-lsp]
+command = "mkdlint-lsp"
+```
+
+#### Zed
+
+Add to `~/.config/zed/settings.json`:
+
+```json
+{
+  "lsp": {
+    "mkdlint": {
+      "binary": { "path": "/usr/local/bin/mkdlint-lsp" }
+    }
+  },
+  "languages": {
+    "Markdown": { "language_servers": ["mkdlint"] }
+  }
+}
+```
+
+### Using the LSP
+
+Once configured, the LSP provides:
+
+**Diagnostics**: Errors appear as you type:
+
+```text
+README.md:5:1 error MD001/heading-increment
+```
+
+**Code Actions**: Click the lightbulb 💡 or press your editor's code action key:
+- Individual fixes: "Fix MD001: Add space after hash"
+- Fix All: "Fix all mkdlint issues (5 fixes)"
+
+**Commands**:
+- `mkdlint.fixAll` - Apply all auto-fixes to current document
+
+### Configuration Discovery
+
+The LSP automatically finds `.markdownlint.json` by walking up from the file's directory to the workspace root:
+
+```text
+/workspace/
+  .markdownlint.json      ← Found and cached
+  docs/
+    guides/
+      contributing.md     ← Uses parent config
+```
+
+Configs are cached per directory for performance.
+
+### Troubleshooting LSP
+
+**No diagnostics appearing:**
+- Ensure file is saved (some editors require save)
+- Check file extension is `.md`or`.markdown`
+- Verify config file has no syntax errors
+
+**LSP not starting:**
+
+```bash
+# Check binary exists
+which mkdlint-lsp
+
+# Test manually
+mkdlint-lsp --version
+
+# Enable debug logging
+RUST_LOG=debug mkdlint-lsp
+```
+
+**Performance issues:**
+- Increase debounce delay (currently 300ms, will be configurable)
+- Disable expensive rules in `.markdownlint.json`
+- Large files (10,000+ lines) may be slow
+
+See [docs/LSP.md](LSP.md) for complete LSP documentation.
+
 ## Configuration
 
 ### Configuration Files
@@ -67,7 +275,7 @@ README.md:5:1 error MD001/heading-increment Heading levels should only increment
 mkdlint automatically discovers configuration files:
 
 - `.markdownlint.json` (JSON)
-- `.markdownlint.yaml` or `.markdownlint.yml` (YAML)
+- `.markdownlint.yaml`or`.markdownlint.yml` (YAML)
 - `.markdownlint.toml` (TOML)
 
 Files are searched from the current directory up to the root.
@@ -314,7 +522,7 @@ The easiest way to integrate mkdlint is through your editor's task runner or bui
 
 ### Option 2: LSP Integration (Advanced)
 
-For real-time inline diagnostics and code actions, use `mkdlint-lsp` (built with `--features lsp`).
+For real-time inline diagnostics and code actions, use `mkdlint-lsp`(built with`--features lsp`).
 
 **Note:** The LSP server is currently in development. For now, use CLI integration with watch mode.
 
@@ -343,7 +551,9 @@ Create `.vscode/tasks.json`:
         "owner": "mkdlint",
         "fileLocation": "absolute",
         "pattern": {
+
           "regexp": "^(.+):(\\d+):(\\d+)\\s+(error|warning)\\s+(.+)$",
+
           "file": 1,
           "line": 2,
           "column": 3,
@@ -379,7 +589,7 @@ Create `.vscode/tasks.json`:
 
 **Usage:**
 1. Open Command Palette (`Cmd/Ctrl+Shift+P`)
-2. Run `Tasks: Run Task` → Select `mkdlint`
+2. Run `Tasks: Run Task`→ Select`mkdlint`
 3. Or bind to keyboard shortcut in `keybindings.json`:
 
 ```json
@@ -422,9 +632,10 @@ Requires: [Run on Save extension](https://marketplace.visualstudio.com/items?ite
 
 #### Method 1: ALE (Asynchronous Lint Engine)
 
-Add to your `init.vim` or `init.lua`:
+Add to your `init.vim`or`init.lua`:
 
 **Vim:**
+
 ```vim
 " Add mkdlint as a linter
 let g:ale_linters = {
@@ -443,6 +654,7 @@ let g:ale_markdown_mkdlint_options = ''
 ```
 
 **Lua (Neovim):**
+
 ```lua
 vim.g.ale_linters = {
   markdown = {'mkdlint'}
@@ -504,11 +716,12 @@ nnoremap <leader>ml :Mkdlint<CR>
 
 **Recommended Workflow:**
 - Use `:!mkdlint --watch --fix` in a tmux/screen split
-- Or run in `:terminal` split with `:split | terminal mkdlint --watch --fix`
+
+- Or run in `:terminal`split with`:split | terminal mkdlint --watch --fix`
 
 ---
 
-### Emacs
+### Emacs (2)
 
 #### Method 1: Flycheck
 
@@ -568,7 +781,7 @@ Add to your `init.el`:
 
 ---
 
-### Zed
+### Zed (2)
 
 Create `.zed/tasks.json`:
 
@@ -604,7 +817,9 @@ Create `mkdlint.sublime-build`:
 ```json
 {
   "shell_cmd": "mkdlint \"$file\"",
+
   "file_regex": "^(.+):(\\d+):(\\d+)\\s+(error|warning)\\s+(.+)$",
+
   "selector": "text.html.markdown",
   "variants": [
     {
@@ -630,11 +845,13 @@ Create `mkdlint.sublime-build`:
 Once `mkdlint-lsp` is stable, any LSP-compatible editor can use it:
 
 **Installation:**
+
 ```bash
 cargo install mkdlint --features lsp
 ```
 
 **LSP Configuration:**
+
 ```json
 {
   "command": "mkdlint-lsp",
@@ -669,7 +886,7 @@ cargo install mkdlint --features lsp
 1. Commit `.markdownlint.json` config
 2. Add pre-commit hook
 3. Configure CI/CD (see next section)
-4. Share editor configs in `.vscode/` or `.zed/`
+4. Share editor configs in `.vscode/`or`.zed/`
 
 ## CI/CD Integration
 
@@ -755,6 +972,7 @@ mkdlint --disable MD013 file.md
 - Tasks fail to run
 
 **Solution:**
+
 ```bash
 # Verify mkdlint is installed
 which mkdlint
@@ -776,10 +994,12 @@ source ~/.zshrc
 1. Check file extension (must be .md or .markdown)
 2. Verify watched path exists: `mkdlint --watch /path/to/docs`
 3. Check file system notifications work:
+
    ```bash
-   # Test with a simple change
+# Test with a simple change
    echo "# Test" >> test.md
    ```
+
 4. On macOS, ensure you have required permissions for file watching
 
 #### Auto-fix not working in editor
@@ -789,12 +1009,15 @@ source ~/.zshrc
 
 **Solution:**
 1. Verify `--fix` flag is in the command:
+
    ```bash
    mkdlint --fix file.md  # Good
    mkdlint file.md        # Won't fix
    ```
+
 2. Check that the rule is fixable (look for 🔧 icon in output)
 3. For Vim/Neovim: Ensure buffer is reloaded after fix:
+
    ```vim
    :e!  " Reload buffer
    ```
@@ -806,13 +1029,16 @@ source ~/.zshrc
 
 **Solution:**
 Ensure your problem matcher regex is correct:
+
 ```json
 {
   "problemMatcher": {
     "owner": "mkdlint",
     "fileLocation": "absolute",
     "pattern": {
+
       "regexp": "^(.+):(\\d+):(\\d+)\\s+(error|warning)\\s+(.+)$",
+
       "file": 1,
       "line": 2,
       "column": 3,
@@ -830,6 +1056,7 @@ Ensure your problem matcher regex is correct:
 
 **Solution:**
 Use a plugin that preserves undo history:
+
 ```lua
 -- For Neovim with null-ls
 local null_ls = require("null-ls")
@@ -858,6 +1085,7 @@ null_ls.setup({
 
 **Solution:**
 Add `revert-buffer` to your fix function:
+
 ```elisp
 (defun mkdlint-fix-buffer ()
   "Run mkdlint --fix on current buffer."
@@ -875,13 +1103,17 @@ Add `revert-buffer` to your fix function:
 
 **Solution:**
 1. Use ignore patterns to exclude large directories:
+
    ```bash
    mkdlint --watch --ignore "**/node_modules/**" --ignore "vendor/**" .
    ```
+
 2. Watch specific directories only:
+
    ```bash
    mkdlint --watch --watch-paths docs/ --watch-paths README.md
    ```
+
 3. Increase debounce time (future feature)
 
 #### LSP: "mkdlint-lsp not found"
@@ -950,7 +1182,7 @@ mkdlint --verbose .
 
 ## FAQ
 
-### Q: How do I disable a rule for just one line?
+### Q: How do I disable a rule for just one line
 
 A: Use inline comments:
 
@@ -963,15 +1195,15 @@ This is a very long line that would normally trigger MD013 but won't because of 
 <!-- markdownlint-enable MD033 -->
 ```
 
-### Q: Can I use mkdlint with pre-commit?
+### Q: Can I use mkdlint with pre-commit
 
 A: Yes! See the [Pre-commit Hook](#pre-commit-hook) section.
 
-### Q: Does mkdlint work with GitHub Flavored Markdown?
+### Q: Does mkdlint work with GitHub Flavored Markdown
 
 A: Yes! mkdlint uses the CommonMark spec which is compatible with GFM. It includes rules for tables and other GFM extensions.
 
-### Q: How do I fix only certain types of errors?
+### Q: How do I fix only certain types of errors
 
 A: Use the `--enable` flag:
 
@@ -979,15 +1211,15 @@ A: Use the `--enable` flag:
 mkdlint --fix --enable MD001 MD003 MD018 file.md
 ```
 
-### Q: Can I create custom rules?
+### Q: Can I create custom rules
 
 A: Not yet, but it's on the roadmap! Custom rule API is planned for v0.7.0.
 
-### Q: Why is auto-fix changing my code blocks?
+### Q: Why is auto-fix changing my code blocks
 
 A: Make sure your code blocks are properly fenced with \`\`\`. Indented code blocks (4 spaces) can sometimes be confused with regular indented text.
 
-### Q: How do I ignore specific files?
+### Q: How do I ignore specific files
 
 A: Use the `--ignore` flag or add to config:
 
@@ -1003,11 +1235,11 @@ Or in your config file:
 }
 ```
 
-### Q: Is mkdlint faster than markdownlint?
+### Q: Is mkdlint faster than markdownlint
 
 A: Yes! mkdlint is written in Rust and uses parallel processing, making it significantly faster on large repositories.
 
-### Q: Can I use mkdlint as a library?
+### Q: Can I use mkdlint as a library
 
 A: Yes! Add it to your `Cargo.toml`:
 
@@ -1018,9 +1250,9 @@ mkdlint = "0.6"
 
 See the [API documentation](https://docs.rs/mkdlint) for details.
 
-## Need More Help?
+## Need More Help
 
-- 📖 [Full documentation](https://github.com/192d-Wing/mkdlint)
-- 🐛 [Report issues](https://github.com/192d-Wing/mkdlint/issues)
-- 💬 [Discussions](https://github.com/192d-Wing/mkdlint/discussions)
-- 📧 Contact: [maintainers](https://github.com/192d-Wing/mkdlint/blob/main/MAINTAINERS.md)
+- 📖 [Full documentation](https://GitHub.com/192d-Wing/mkdlint)
+- 🐛 [Report issues](https://GitHub.com/192d-Wing/mkdlint/issues)
+- 💬 [Discussions](https://GitHub.com/192d-Wing/mkdlint/discussions)
+- 📧 Contact: [maintainers](https://GitHub.com/192d-Wing/mkdlint/blob/main/MAINTAINERS.md)

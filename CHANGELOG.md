@@ -7,6 +7,57 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-02-16
+
+### Added
+
+- **Language Server Protocol (LSP) Support** 🚀
+  - Full-featured LSP server (`mkdlint-lsp`) for real-time editor integration
+  - Real-time diagnostics with 300ms debounced updates
+  - Code actions (quick fixes) for all 44 auto-fixable rules
+  - "Fix All" command to apply all fixes at once
+  - Automatic config discovery (`.markdownlint.json`, `.yaml`, `.yml`)
+  - Workspace-aware with root detection and config caching
+  - Tested with VS Code, Neovim, Emacs, Helix, Zed
+  - **1,500+ lines of LSP implementation**
+  - **41 tests** (33 unit + 8 integration)
+
+- **Config Discovery Module** (`src/lsp/config.rs`)
+  - Walks up directory tree to find config files
+  - Caching with DashMap for performance
+  - Stops at workspace roots
+  - Invalidation support for config changes
+
+### Documentation
+
+- New [docs/LSP.md](docs/LSP.md) - Comprehensive LSP documentation
+  - Architecture overview
+  - Editor setup guides (VS Code, Neovim, Emacs, Helix, Zed, Sublime)
+  - Troubleshooting guide
+  - Performance benchmarks
+- Updated [docs/USER_GUIDE.md](docs/USER_GUIDE.md) with LSP section
+  - Quick start guide
+  - Configuration discovery explanation
+  - Common workflows
+
+### Technical
+
+- New `src/lsp/config.rs` module (330 lines)
+- Updated `src/lsp/backend.rs` to use ConfigManager
+- All 41 LSP tests passing (100% pass rate)
+- Integration tests for LSP lifecycle
+- Zero clippy warnings
+
+## [0.8.1] - 2026-02-16
+
+### Added
+
+- **GitHub Action** - SARIF Code Scanning integration
+  - Binary caching for 10-100x faster execution
+  - Cross-platform support (Linux/macOS/Windows)
+  - Auto-fix workflow support
+  - 12 comprehensive test jobs
+
 ## [0.8.0] - 2026-02-16
 
 ### Added

@@ -1,238 +1,385 @@
 # mkdlint Roadmap
 
-## Current State (v0.6.1)
+This document outlines the planned features and improvements for mkdlint.
 
-### ✅ Completed Features
+## Current Status: v0.8.1
 
-- **80% Auto-Fix Coverage** - 43 out of 54 rules automatically fixable
-- **Comprehensive Documentation** - User guide, README, FAQ
-- **Helpful Suggestions** - All 54 rules provide actionable guidance
-- **Multiple Output Formats** - Text (colored), JSON, SARIF
-- **Configuration System** - JSON, YAML, TOML with auto-discovery
-- **CLI Tool** - Full-featured command-line interface
-- **Library API** - Use as a Rust crate
-- **Performance** - Parallel processing, optimized rules
-- **GitHub Actions** - Native CI/CD integration
-
-### 📊 Statistics
-
-- **Rules**: 54 total (MD001-MD060, excluding 7 deprecated)
-- **Auto-Fix**: 43 rules (80% coverage)
-- **Tests**: 346 passing
-- **Code Quality**: Zero clippy warnings
-
-## Short-Term Roadmap (v0.7.x)
-
-### v0.7.0 - Developer Experience
-**Est. Time**: 2-3 weeks
-
-#### Watch Mode
-- `mkdlint --watch` for auto-lint on file changes
-- Debounced file system notifications (300ms)
-- Optional auto-fix: `mkdlint --watch --fix`
-- Filter specific paths: `--watch-paths`
-
-**Dependencies needed**:
-- `notify = "6.0"` for file watching
-- Debouncing logic with tokio
-
-#### Interactive Configuration Wizard
-- `mkdlint init --interactive` for guided setup
-- Questions about:
-  - Format preference (JSON/YAML/TOML)
-  - Line length limits
-  - Heading style preferences
-  - Common rule customizations
-- Generate optimal config based on answers
-
-**Implementation**:
-- Use `dialoguer` crate for CLI prompts
-- Template-based config generation
-- Validation and preview
-
-#### IDE Integration Improvements
-- **VS Code Extension** (separate repo)
-  - Real-time linting with LSP
-  - Quick-fix code actions
-  - Configuration UI
-- **Neovim Plugin** (separate repo)
-  - Native LSP integration
-  - Telescope integration
-  - Status line integration
-
-### v0.7.1 - Quality & Testing
-**Est. Time**: 1-2 weeks
-
-#### Fuzzing
-- Add `cargo-fuzz` targets
-- Fuzz `lint()` function
-- Fuzz configuration parsing
-- Fuzz `apply_fixes()` logic
-- Run fuzzing for extended periods
-
-#### Expanded Benchmarks
-- Large file benchmarks (10MB+ markdown)
-- Many errors scenarios (1000+ errors)
-- Complex tables and nested lists
-- Concurrent file processing
-- Comparison with markdownlint-cli
-
-#### End-to-End Tests
-- Full workflow tests (lint → fix → verify)
-- Configuration override precedence
-- SARIF output validation
-- Error recovery and edge cases
-- Multi-file project tests
-
-## Medium-Term Roadmap (v0.8.x-v0.9.x)
-
-### v0.8.0 - Advanced Auto-Fixes
-**Est. Time**: 3-4 weeks
-
-Goal: Push auto-fix coverage to 85%+ (46/54 rules)
-
-#### New Auto-Fixes
-1. **MD046** - Code block style conversion
-   - Convert between indented and fenced
-   - Preserve language hints
-   - Handle nested structures
-
-2. **MD024** - Duplicate heading disambiguation
-   - Append numbers: `## Title` → `## Title (2)`
-   - Or convert to lower level
-   - User-configurable strategy
-
-3. **MD013** - Intelligent line wrapping (hard!)
-   - Respect sentence boundaries
-   - Preserve inline code and links
-   - Configurable break points
-
-### v0.9.0 - Custom Rules API
-**Est. Time**: 4-6 weeks
-
-#### Plugin System
-```rust
-pub trait CustomRule {
-    fn names(&self) -> &[&'static str];
-    fn lint(&self, params: &RuleParams) -> Vec<LintError>;
-}
-```
-
-#### WASM Support
-- Load custom rules from WebAssembly
-- Sandbox execution for security
-- Example custom rules
-
-#### Rule Development Kit
-- Template generator
-- Testing utilities
-- Documentation generator
-
-## Long-Term Roadmap (v1.0+)
-
-### v1.0.0 - Production Ready
-**Est. Time**: 6-8 weeks
-
-#### Stability Goals
-- 100% test coverage for auto-fixes
-- No panics in production use
-- Comprehensive error handling
-- Stable public API (semver guarantees)
-
-#### Performance Goals
-- Sub-second linting for 1000+ files
-- Memory usage optimizations
-- Incremental linting (only changed files)
-
-#### Documentation Goals
-- Video tutorials
-- Interactive examples
-- Architecture documentation
-- Contributing guide improvements
-
-### v1.1.0 - Enterprise Features
-
-#### Advanced Configuration
-- Configuration profiles (strict, relaxed, custom)
-- Project-wide rule exemptions
-- Per-file rule overrides
-- Rule severity levels
-
-#### Reporting
-- HTML reports with visualizations
-- Trend analysis over time
-- Team-wide metrics
-- Integration with quality dashboards
-
-#### Integrations
-- GitHub App for PR comments
-- GitLab integration
-- Bitbucket support
-- Slack/Discord notifications
-
-### v1.2.0 - Ecosystem Growth
-
-#### Language Server Enhancements
-- Workspace diagnostics
-- Configuration from editor settings
-- "Fix all" command
-- Rule documentation on hover
-- Inline config suggestions
-
-#### Editor Extensions
-- IntelliJ IDEA plugin
-- Sublime Text package
-- Atom package
-- Zed integration
-
-#### Build Tool Plugins
-- Cargo plugin
-- Make integration
-- npm scripts helper
-- Pre-commit framework
-
-## Future Possibilities (v2.0+)
-
-### AI-Powered Features
-- Intelligent fix suggestions
-- Context-aware error messages
-- Auto-generate missing content
-- Style consistency learning
-
-### Multi-Format Support
-- AsciiDoc linting
-- reStructuredText support
-- Org-mode files
-- MDX (Markdown + JSX)
-
-### Cloud Features
-- Shared team configurations
-- Remote rule updates
-- Centralized reporting
-- API for integrations
-
-## Contributing
-
-Want to help with any of these features?
-
-1. Check [open issues](https://github.com/192d-Wing/mkdlint/issues)
-2. Discuss in [discussions](https://github.com/192d-Wing/mkdlint/discussions)
-3. Read [CONTRIBUTING.md](CONTRIBUTING.md)
-4. Submit PRs!
-
-## Release Schedule
-
-- **Patch releases** (0.6.x): Bug fixes, documentation - as needed
-- **Minor releases** (0.x.0): New features, improvements - monthly
-- **Major releases** (x.0.0): Breaking changes, major milestones - quarterly
-
-## Feedback
-
-Your input shapes the roadmap! Please:
-- 🐛 [Report bugs](https://github.com/192d-Wing/mkdlint/issues/new?template=bug_report.md)
-- 💡 [Suggest features](https://github.com/192d-Wing/mkdlint/issues/new?template=feature_request.md)
-- 💬 [Join discussions](https://github.com/192d-Wing/mkdlint/discussions)
+- ✅ 81.5% auto-fix coverage (44/54 rules)
+- ✅ Interactive configuration wizard
+- ✅ Watch mode with debounced file system notifications
+- ✅ Comprehensive IDE integration documentation
+- ✅ GitHub Action with SARIF Code Scanning support
+- ✅ Multi-platform binary releases
 
 ---
 
-Last updated: 2026-02-16
+## Option 1: LSP Server (v0.9.0) 🎯 HIGH PRIORITY
+
+**Status:** Planned
+**Effort:** 16-22 hours
+**Impact:** High - Enables real-time editor integration
+
+### Goals
+
+Implement a full-featured Language Server Protocol server for real-time linting in editors.
+
+### Features
+
+- **Real-time diagnostics** - Lint as you type with debounced updates
+- **Code actions** - Quick-fix integration for all auto-fixable rules
+- **Workspace awareness** - Config discovery and multi-file support
+- **Editor support** - VS Code, Neovim, Emacs, Zed, Sublime, etc.
+- **Performance** - Efficient caching and incremental updates
+
+### Implementation Components
+
+1. **Core LSP Backend** (`src/lsp/backend.rs`)
+   - LanguageServer trait implementation
+   - Document lifecycle handlers (open, change, save, close)
+   - Configuration management
+   - Workspace initialization
+
+2. **Diagnostics** (`src/lsp/diagnostics.rs`)
+   - Convert LintError → LSP Diagnostic
+   - Range calculation with UTF-8 support
+   - Severity mapping
+   - Related information
+
+3. **Code Actions** (`src/lsp/code_actions.rs`)
+   - Convert FixInfo → LSP TextEdit
+   - Quick-fix actions for all auto-fixable rules
+   - WorkspaceEdit generation
+
+4. **Document Management** (`src/lsp/document.rs`)
+   - In-memory document cache
+   - Version tracking
+   - Cached lint results
+
+5. **Config Discovery** (`src/lsp/config.rs`)
+   - Walk up directory tree to find config
+   - Cache configs by directory
+   - Invalidate on config file changes
+
+6. **Utilities** (`src/lsp/utils.rs`)
+   - Debouncer with tokio
+   - Position/Range helpers
+   - URI ↔ PathBuf conversion
+
+7. **Binary** (`src/bin/mkdlint-lsp.rs`)
+   - LSP server entry point
+   - stdio transport
+   - Logging to stderr
+
+### Dependencies
+
+- `tower-lsp` v0.20
+- `lsp-types` v0.97
+- `tokio` (extend existing with rt-multi-thread, fs, io-util, sync, time)
+- `tower` v0.5
+
+### Testing
+
+- Unit tests for each module
+- Integration tests for LSP lifecycle
+- Manual testing with VS Code, Neovim
+
+### Success Criteria
+
+- ✅ Real-time diagnostics in VS Code
+- ✅ Code actions apply fixes correctly
+- ✅ Config discovery works across workspaces
+- ✅ Debouncing prevents excessive re-linting
+- ✅ All tests pass
+
+---
+
+## Option 2: GitHub Action Enhancements (v0.8.2)
+
+**Status:** Planned
+**Effort:** 8-12 hours
+**Impact:** Medium - Improves CI/CD workflows
+
+### Features
+
+- **Incremental linting** - Only lint changed files in PRs
+- **PR comments** - Post review comments on violations
+- **Job summary** - Rich GitHub Actions summary with stats
+- **Performance metrics** - Report linting time and file counts
+- **Custom reporters** - Checkstyle, JUnit XML formats
+- **Binary checksum verification** - Verify downloaded binaries
+
+### Implementation
+
+1. **Incremental Linting**
+   - Integrate with `changed-files` action
+   - Filter files to only .md/.markdown
+   - Report only new violations
+
+2. **PR Comments**
+   - Use GitHub API to post review comments
+   - Map line numbers to PR diff
+   - Group by file and rule
+
+3. **Enhanced Reporting**
+   - Generate markdown tables for job summary
+   - Include before/after stats for auto-fix
+   - Add emoji indicators and progress bars
+
+4. **Additional Formats**
+   - Checkstyle XML format
+   - JUnit XML format
+   - ESLint JSON format
+
+### Success Criteria
+
+- ✅ Incremental linting works on PRs
+- ✅ Comments appear on correct PR lines
+- ✅ Job summary shows rich statistics
+- ✅ All output formats validated
+
+---
+
+## Option 3: Push Auto-Fix to 85%+ (v0.8.3)
+
+**Status:** Planned
+**Effort:** 10-14 hours
+**Impact:** Medium-High - Reduces manual fixes
+
+### Target
+
+Add auto-fix support to 3-5 more rules, reaching 47-49/54 (87-91% coverage).
+
+### Candidate Rules
+
+**High Priority (Straightforward):**
+
+1. **MD003** - Heading style consistency
+   - Convert ATX ↔ Setext based on config
+   - Normalize heading markers (# vs ##)
+
+2. **MD020** - Spaces inside hashes on closed ATX headings
+   - Insert space after opening #
+   - Insert space before closing #
+
+3. **MD021** - Multiple spaces inside hashes on closed ATX headings
+   - Delete extra spaces (keep only 1)
+
+4. **MD014** - Dollar signs used before commands
+   - Remove $ or $ prefix from code blocks
+
+**Medium Priority (More Complex):**
+
+5. **MD028** - Blank line inside blockquote
+   - Delete blank lines within blockquotes
+
+6. **MD036** - Emphasis used instead of heading
+   - Convert **text** or *text* to ## text
+
+7. **MD042** - No empty links
+   - Fill empty URLs with placeholder (#link)
+
+**Lower Priority (Requires Heuristics):**
+
+8. **MD013** - Line length (requires intelligent wrapping)
+9. **MD046** - Code block style (complex token manipulation)
+
+### Implementation Strategy
+
+Follow existing patterns from MD023, MD026, MD034:
+- Add FixInfo to error generation
+- Calculate edit_column (1-based)
+- Set delete_count and insert_text
+- Add "fixable" tag
+- Write 2-3 tests per rule
+
+### Success Criteria
+
+- ✅ Coverage reaches 85%+
+- ✅ All fixes roundtrip correctly
+- ✅ All tests pass
+- ✅ Zero clippy warnings
+
+---
+
+## Option 4: Performance Optimization (v0.8.4)
+
+**Status:** Planned
+**Effort:** 6-10 hours
+**Impact:** Medium - Faster execution
+
+### Goals
+
+Profile and optimize mkdlint for even faster linting, especially on large codebases.
+
+### Areas to Optimize
+
+1. **Parallel Processing**
+   - Use rayon for parallel file processing
+   - Benchmark single-threaded vs multi-threaded
+   - Optimal thread pool sizing
+
+2. **Parser Caching**
+   - Cache parse results for unchanged files
+   - Use file modification time for cache invalidation
+   - LRU cache for frequently accessed files
+
+3. **Rule Execution**
+   - Benchmark each rule's performance
+   - Optimize hot paths in expensive rules
+   - Consider rule dependencies for early termination
+
+4. **Memory Usage**
+   - Profile heap allocations
+   - Reduce cloning where possible
+   - Use Cow<str> for zero-copy operations
+
+5. **I/O Optimization**
+   - Batch file reads
+   - Memory-mapped files for very large documents
+   - Async I/O for concurrent file access
+
+### Benchmarking
+
+- Add comprehensive benchmarks (already have benches/lint_bench.rs)
+- Test on repos of varying sizes (10, 100, 1000+ files)
+- Measure both warm and cold cache performance
+
+### Success Criteria
+
+- ✅ 20%+ speedup on large codebases (100+ files)
+- ✅ Memory usage remains stable
+- ✅ Benchmarks show measurable improvements
+- ✅ No regressions in functionality
+
+---
+
+## Option 5: Advanced Features (v0.9.x)
+
+**Status:** Planned
+**Effort:** Varies
+**Impact:** Medium - Nice-to-have features
+
+### Potential Features
+
+1. **Custom Rules API**
+   - Plugin system for user-defined rules
+   - Trait-based rule definition
+   - Dynamic rule loading
+
+2. **Machine Learning Suggestions**
+   - Analyze patterns in markdown files
+   - Suggest style improvements
+   - Learn from user fixes
+
+3. **Markdown Formatter**
+   - Full document reformatting
+   - Preserve semantic meaning
+   - Configurable style preferences
+
+4. **Live Preview Integration**
+   - Preview markdown with violations highlighted
+   - Side-by-side before/after view
+   - Integration with markdown preview tools
+
+5. **Team Analytics**
+   - Track violation trends over time
+   - Most common issues by team/repo
+   - Dashboard for markdown health
+
+6. **VS Code Extension**
+   - Native VS Code extension (separate from LSP)
+   - Custom UI for rule management
+   - Inline previews and suggestions
+
+---
+
+## Option 6: Ecosystem Integration (v0.9.x)
+
+**Status:** Planned
+**Effort:** 8-16 hours
+**Impact:** Medium - Broader adoption
+
+### Integrations
+
+1. **pre-commit Hooks**
+   - Create .pre-commit-hooks.yaml
+   - Publish to pre-commit.com
+   - Documentation for setup
+
+2. **Docker Image**
+   - Official Docker image on Docker Hub
+   - Multi-arch support (amd64, arm64)
+   - Minimal Alpine-based image
+
+3. **Homebrew Formula**
+   - Create Homebrew tap
+   - Auto-update on releases
+   - cask for GUI tools
+
+4. **npm Package**
+   - Wrapper for Node.js projects
+   - npx mkdlint support
+   - package.json scripts integration
+
+5. **Rust Crate Publishing**
+   - Publish library to crates.io
+   - Comprehensive API docs
+   - Example usage in docs
+
+6. **Editor Plugins**
+   - Neovim plugin (separate from LSP)
+   - Emacs package
+   - IntelliJ IDEA plugin
+
+---
+
+## Long-Term Vision (v1.0+)
+
+### v1.0 Release Criteria
+
+- ✅ LSP server fully implemented and stable
+- ✅ 90%+ auto-fix coverage
+- ✅ Comprehensive test suite (95%+ coverage)
+- ✅ Full documentation (user guide, API docs, tutorials)
+- ✅ Production usage in 100+ repositories
+- ✅ Zero known critical bugs
+- ✅ Performance benchmarks published
+
+### Beyond v1.0
+
+- **Multi-language support** - Support for MDX, AsciiDoc, reStructuredText
+- **Cloud service** - SaaS for markdown linting with API
+- **Enterprise features** - Team management, SSO, audit logs
+- **AI-powered suggestions** - GPT-based style improvements
+- **Collaborative features** - Shared configs, team dashboards
+
+---
+
+## Priority Matrix
+
+| Feature | Impact | Effort | Priority |
+|---------|--------|--------|----------|
+| LSP Server | High | High | P0 🎯 |
+| Auto-Fix to 85%+ | Medium-High | Medium | P1 |
+| Performance Optimization | Medium | Medium | P2 |
+| GitHub Action Enhancements | Medium | Medium | P2 |
+| Advanced Features | Medium | High | P3 |
+| Ecosystem Integration | Medium | Medium | P3 |
+
+---
+
+## Contributing
+
+Want to help with any of these features? Check out:
+- [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines
+- [GitHub Issues](https://github.com/192d-Wing/mkdlint/issues) for current work
+- [Discussions](https://github.com/192d-Wing/mkdlint/discussions) for feature requests
+
+---
+
+## Feedback
+
+Have ideas for the roadmap? Open a discussion or issue on GitHub!
+
+**Last Updated:** 2026-02-16
+**Current Version:** v0.8.1
