@@ -1,0 +1,15 @@
+- id: mkdlint
+  name: mkdlint
+  description: Fast Markdown linter written in Rust
+  entry: mkdlint
+  language: rust
+  types: [markdown]
+  require_serial: false
+
+- id: mkdlint-fix
+  name: mkdlint (fix)
+  description: Fast Markdown linter with auto-fix
+  entry: mkdlint --fix
+  language: rust
+  types: [markdown]
+  require_serial: false

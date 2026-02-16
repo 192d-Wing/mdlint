@@ -14,20 +14,80 @@ A fast Markdown linter written in Rust, inspired by [markdownlint](https://githu
 
 ## Features
 
-- **54 lint rules** (MD001-MD060) enforcing Markdown best practices
-- **🎉 Automatic fixing** for **44 rules (81.5% coverage)** with `--fix` flag
-- **💡 Helpful suggestions** for all rules with actionable guidance
-- **Language Server Protocol (LSP)** — real-time linting in VS Code, Neovim, and other editors
-- **GitHub Action** — native integration with SARIF Code Scanning
-- **Rich error display** with source context and colored underlines pointing to errors
-- **Multiple output formats** — text (default), JSON, or SARIF
+- **53 lint rules** (MD001-MD060) enforcing Markdown best practices
+- **Automatic fixing** for **45 rules (84.9% coverage)** with `--fix` flag
+- **Helpful suggestions** for all rules with actionable guidance
+- **VS Code extension** with bundled LSP server
+- **Language Server Protocol (LSP)** for real-time linting in any editor
+- **GitHub Action** with SARIF Code Scanning, job summaries, and incremental linting
+- **Rich error display** with source context and colored underlines
+- **Multiple output formats** -- text (default), JSON, or SARIF
 - **Configuration** via JSON, YAML, or TOML files with auto-discovery
-- **High performance** — parallel file processing with optimized rules
-- **Library + CLI** — use as a Rust crate or standalone command-line tool
+- **High performance** -- zero-copy lines, static strings, conditional parsing
+- **Library + CLI** -- use as a Rust crate or standalone command-line tool
+
+## Installation
+
+### VS Code Extension
+
+Install from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=192d-wing.mkdlint) or search "mkdlint" in the Extensions panel. The extension bundles the LSP server -- no separate install needed.
+
+### CLI Tool
+
+```sh
+# From crates.io
+cargo install mkdlint
+
+# From source
+cargo install --path .
+
+# With Homebrew (macOS/Linux)
+brew install 192d-Wing/tap/mkdlint
+
+# With Docker
+docker run --rm -v $(pwd):/work ghcr.io/192d-wing/mkdlint .
+
+# With pre-commit
+# See pre-commit section below
+```
+
+### Language Server (LSP)
+
+```sh
+# Install with LSP feature
+cargo install mkdlint --features lsp
+
+# The binary will be available as: mkdlint-lsp
+```
+
+### GitHub Action
+
+Add to your workflow:
+
+```yaml
+- uses: 192d-Wing/mkdlint/.github/actions/mkdlint@main
+  with:
+    files: '.'
+```
+
+See [GitHub Action documentation](.github/actions/mkdlint/README.md) for full details.
+
+### As a library dependency
+
+```toml
+[dependencies]
+mkdlint = "0.9"
+
+# With async support
+mkdlint = { version = "0.9", features = ["async"] }
+
+# With LSP support
+mkdlint = { version = "0.9", features = ["lsp"] }
+```
 
 ## Auto-Fix Showcase
 
-mkdlint can automatically fix **44 out of 54 rules (81.5%)**! Here are some examples:
+mkdlint can automatically fix **45 out of 53 rules (84.9%)**! Here are some examples:
 
 ### Before Auto-Fix
 
@@ -80,52 +140,6 @@ echo "commands with dollar signs"
 - **Whitespace**: trailing spaces, blank lines, tabs
 - **Tables**: pipe consistency, surrounding blank lines
 - And much more!
-
-## Installation
-
-### CLI Tool
-
-```sh
-# From crates.io
-cargo install mkdlint
-
-# From source
-cargo install --path .
-```
-
-### Language Server (LSP)
-
-```sh
-# Install with LSP feature
-cargo install mkdlint --features lsp
-
-# The binary will be available as: mkdlint-lsp
-```
-
-### GitHub Action
-
-Add to your workflow:
-
-```yaml
-- uses: 192d-Wing/mkdlint/.github/actions/mkdlint@main
-  with:
-    files: '.'
-```
-
-See [GitHub Action documentation](.github/actions/mkdlint/README.md) for full details.
-
-### As a library dependency
-
-```toml
-[dependencies]
-mkdlint = "0.6"
-
-# With async support
-mkdlint = { version = "0.6", features = ["async"] }
-
-# With LSP support
-mkdlint = { version = "0.6", features = ["lsp"] }
-```
 
 ## CLI Usage
 
@@ -247,34 +261,29 @@ README.md: 58: MD034/no-bare-urls Bare URL used
 | `--no-color` | Disable colored output |
 | `--no-inline-config` | Disable inline configuration comments |
 
+## VS Code Extension
+
+Install from the Marketplace or use the bundled extension in `editors/vscode/`.
+
+**Features:**
+
+- Real-time diagnostics as you type
+- Quick-fix code actions (Ctrl+.)
+- "Fix All Issues" command
+- Status bar with error/warning counts
+- Respects `.markdownlint.json` config
+
+**Settings:**
+
+| Setting | Description | Default |
+|---------|-------------|---------|
+| `mkdlint.enable` | Enable/disable linting | `true` |
+| `mkdlint.path` | Override mkdlint-lsp binary path | `null` |
+| `mkdlint.trace.server` | LSP trace level for debugging | `off` |
+
 ## Language Server Protocol (LSP)
 
 mkdlint includes a full-featured Language Server for real-time linting in your editor.
-
-### VS Code Setup
-
-1. Install the LSP binary:
-
-   ```sh
-   cargo install mkdlint --features lsp
-   ```
-
-2. Configure VS Code (`.vscode/settings.json`):
-
-   ```json
-   {
-     "mkdlint.server.path": "/path/to/mkdlint-lsp",
-     "mkdlint.server.enable": true
-   }
-   ```
-
-3. Features:
-
-   - Real-time diagnostics as you type
-   - Quick-fix code actions (auto-fix on Ctrl+.)
-   - **"Fix All" command** - Fix all issues in a document at once
-   - Respects your `.markdownlint.json` config
-   - Debounced linting (300ms) for performance
 
 ### Neovim Setup
 
@@ -295,15 +304,9 @@ Any editor with LSP support can use `mkdlint-lsp`. The server uses stdio for com
 - `workspace/executeCommand` (for "Fix All" command)
 - Full document synchronization
 
-**Usage Tips:**
-
-- Use quick-fix (Ctrl+.) to fix individual issues
-- Use "Fix All" command to apply all fixes at once
-- All 34 auto-fixable rules are supported
-
 ## CI/CD Integration
 
-Use mkdlint in your CI/CD with native GitHub Code Scanning integration:
+### GitHub Action
 
 ```yaml
 name: Lint Markdown
@@ -322,7 +325,6 @@ jobs:
       - uses: 192d-Wing/mkdlint/.github/actions/mkdlint@main
         with:
           files: '.'
-          fix: true  # Optional: auto-fix issues
 ```
 
 **Features:**
@@ -330,10 +332,37 @@ jobs:
 - Pre-built binaries for Linux, macOS, Windows (x86_64, aarch64)
 - Automatic binary caching (10-100x faster subsequent runs)
 - SARIF output with automatic Code Scanning upload
+- Rich job summary with error counts and top violated rules
+- Incremental linting -- only lint changed files in PRs (`changed-only: true`)
+- Performance timing in outputs (`duration-ms`)
 - Auto-fix support with commit integration
-- Cargo fallback if binary download fails
 
 See [full documentation](.github/actions/mkdlint/README.md) for all options.
+
+### pre-commit
+
+Add to your `.pre-commit-config.yaml`:
+
+```yaml
+repos:
+  - repo: https://github.com/192d-Wing/mkdlint
+    rev: main
+    hooks:
+      - id: mkdlint
+```
+
+### Docker
+
+```sh
+# Lint current directory
+docker run --rm -v $(pwd):/work ghcr.io/192d-wing/mkdlint .
+
+# Lint with auto-fix
+docker run --rm -v $(pwd):/work ghcr.io/192d-wing/mkdlint --fix .
+
+# Lint specific files
+docker run --rm -v $(pwd):/work ghcr.io/192d-wing/mkdlint README.md docs/
+```
 
 ## Library Usage
 
@@ -390,58 +419,60 @@ Rules can be enabled/disabled by name (`"MD013"`) or alias (`"line-length"`). Pa
 
 | Rule | Alias | Description | Fixable |
 |------|-------|-------------|---------|
-| MD001 | heading-increment | Heading levels should increment by one | ***Yes*** |
+| MD001 | heading-increment | Heading levels should increment by one | Yes |
 | MD003 | heading-style | Heading style | |
 | MD004 | ul-style | Unordered list style | Yes |
 | MD005 | list-indent | Inconsistent indentation for list items | Yes |
 | MD007 | ul-indent | Unordered list indentation | Yes |
 | MD009 | no-trailing-spaces | Trailing spaces | Yes |
 | MD010 | no-hard-tabs | Hard tabs | Yes |
-| MD011 | no-reversed-links | Reversed link syntax | **Yes** |
+| MD011 | no-reversed-links | Reversed link syntax | Yes |
 | MD012 | no-multiple-blanks | Multiple consecutive blank lines | Yes |
 | MD013 | line-length | Line length | |
-| MD014 | commands-show-output | Dollar signs used before commands | ***Yes*** |
+| MD014 | commands-show-output | Dollar signs used before commands | Yes |
 | MD018 | no-missing-space-atx | No space after hash on atx heading | Yes |
 | MD019 | no-multiple-space-atx | Multiple spaces after hash on atx heading | Yes |
-| MD020 | no-missing-space-closed-atx | No space inside hashes on closed atx heading | ***Yes*** |
-| MD021 | no-multiple-space-closed-atx | Multiple spaces inside hashes on closed atx heading | ***Yes*** |
+| MD020 | no-missing-space-closed-atx | No space inside hashes on closed atx heading | Yes |
+| MD021 | no-multiple-space-closed-atx | Multiple spaces inside hashes on closed atx heading | Yes |
 | MD022 | blanks-around-headings | Headings should be surrounded by blank lines | Yes |
-| MD023 | heading-start-left | Headings must start at the beginning of the line | **Yes** |
+| MD023 | heading-start-left | Headings must start at the beginning of the line | Yes |
 | MD024 | no-duplicate-heading | No duplicate heading content | |
 | MD025 | single-title | Single title / single h1 | |
-| MD026 | no-trailing-punctuation | Trailing punctuation in heading | **Yes** |
+| MD026 | no-trailing-punctuation | Trailing punctuation in heading | Yes |
 | MD027 | no-multiple-space-blockquote | Multiple spaces after blockquote symbol | Yes |
-| MD028 | no-blanks-blockquote | Blank line inside blockquote | ***Yes*** |
+| MD028 | no-blanks-blockquote | Blank line inside blockquote | Yes |
 | MD029 | ol-prefix | Ordered list item prefix | Yes |
-| MD030 | list-marker-space | Spaces after list markers | ***Yes*** |
+| MD030 | list-marker-space | Spaces after list markers | Yes |
 | MD031 | blanks-around-fences | Fenced code blocks should be surrounded by blank lines | Yes |
 | MD032 | blanks-around-lists | Lists should be surrounded by blank lines | Yes |
 | MD033 | no-inline-html | Inline HTML | |
-| MD034 | no-bare-urls | Bare URL used | **Yes** |
-| MD035 | hr-style | Horizontal rule style | **Yes** |
-| MD036 | no-emphasis-as-heading | Emphasis used instead of a heading | ***Yes*** |
-| MD037 | no-space-in-emphasis | Spaces inside emphasis markers | **Yes** |
-| MD038 | no-space-in-code | Spaces inside code span elements | **Yes** |
-| MD039 | no-space-in-links | Spaces inside link text | **Yes** |
-| MD040 | fenced-code-language | Fenced code blocks should have a language specified | **Yes** |
-| MD041 | first-line-heading | First line in a file should be a top-level heading | ***Yes*** |
-| MD042 | no-empty-links | No empty links | ***Yes*** |
-| MD044 | proper-names | Proper names should have correct capitalization | **Yes** |
+| MD034 | no-bare-urls | Bare URL used | Yes |
+| MD035 | hr-style | Horizontal rule style | Yes |
+| MD036 | no-emphasis-as-heading | Emphasis used instead of a heading | Yes |
+| MD037 | no-space-in-emphasis | Spaces inside emphasis markers | Yes |
+| MD038 | no-space-in-code | Spaces inside code span elements | Yes |
+| MD039 | no-space-in-links | Spaces inside link text | Yes |
+| MD040 | fenced-code-language | Fenced code blocks should have a language specified | Yes |
+| MD041 | first-line-heading | First line in a file should be a top-level heading | Yes |
+| MD042 | no-empty-links | No empty links | Yes |
+| MD043 | required-headings | Required heading structure | |
+| MD044 | proper-names | Proper names should have correct capitalization | Yes |
 | MD045 | no-alt-text | Images should have alternate text | |
 | MD046 | code-block-style | Code block style | |
-| MD047 | single-trailing-newline | Files should end with a single trailing newline | ***Yes*** |
-| MD048 | code-fence-style | Code fence style | **Yes** |
-| MD049 | emphasis-style | Emphasis style | **Yes** |
-| MD050 | strong-style | Strong style | **Yes** |
+| MD047 | single-trailing-newline | Files should end with a single trailing newline | Yes |
+| MD048 | code-fence-style | Code fence style | Yes |
+| MD049 | emphasis-style | Emphasis style | Yes |
+| MD050 | strong-style | Strong style | Yes |
 | MD051 | link-fragments | Link fragments should be valid | |
-| MD052 | reference-links-images | Reference links and images should use a label that is defined | |
-| MD053 | link-image-reference-definitions | Link and image reference definitions should be needed | |
+| MD052 | reference-links-images | Reference links and images should use a defined label | Yes |
+| MD053 | link-image-reference-definitions | Link and image reference definitions should be needed | Yes |
 | MD054 | link-image-style | Link and image style | |
-| MD058 | blanks-around-tables | Tables should be surrounded by blank lines | **Yes** |
+| MD056 | table-column-count | Table column count | |
+| MD058 | blanks-around-tables | Tables should be surrounded by blank lines | Yes |
 | MD059 | emphasis-marker-style-math | Emphasis marker style in math | |
-| MD060 | dollar-in-code-fence | Dollar signs in fenced code blocks | |
+| MD060 | table-column-style | Table column style | |
 
-**Bold** entries indicate auto-fix added in v0.2.0. ***Bold+Italic*** entries are new in v0.3.0 and v0.4.0.
+**45 of 53 rules** have auto-fix support (84.9% coverage).
 
 ## License
 

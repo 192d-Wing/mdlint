@@ -1,0 +1,12 @@
+target/
+editors/
+.github/
+.git/
+docs/
+tests/
+Formula/
+*.md
+!README.md
+LICENSE
+.pre-commit-hooks.yaml
+.markdownlint.json
