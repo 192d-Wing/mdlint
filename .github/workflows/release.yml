@@ -49,22 +49,27 @@ jobs:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             artifact_name: mkdlint
+            lsp_artifact_name: mkdlint-lsp
             asset_name: mkdlint-linux-x86_64
           - os: ubuntu-latest
             target: aarch64-unknown-linux-gnu
             artifact_name: mkdlint
+            lsp_artifact_name: mkdlint-lsp
             asset_name: mkdlint-linux-aarch64
           - os: macos-latest
             target: x86_64-apple-darwin
             artifact_name: mkdlint
+            lsp_artifact_name: mkdlint-lsp
             asset_name: mkdlint-macos-x86_64
           - os: macos-latest
             target: aarch64-apple-darwin
             artifact_name: mkdlint
+            lsp_artifact_name: mkdlint-lsp
             asset_name: mkdlint-macos-aarch64
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             artifact_name: mkdlint.exe
+            lsp_artifact_name: mkdlint-lsp.exe
             asset_name: mkdlint-windows-x86_64.exe
 
     steps:
@@ -88,29 +93,35 @@ jobs:
           echo '[target.aarch64-unknown-linux-gnu]' >> .cargo/config.toml
           echo 'linker = "aarch64-linux-gnu-gcc"' >> .cargo/config.toml
 
-      - name: Build release binary
-        run: cargo build --release --target ${{ matrix.target }}
+      - name: Build release binaries (CLI + LSP)
+        run: cargo build --release --target ${{ matrix.target }} --features lsp
 
-      - name: Strip binary (Linux x86_64)
+      - name: Strip binaries (Linux x86_64)
         if: matrix.target == 'x86_64-unknown-linux-gnu'
-        run: strip target/${{ matrix.target }}/release/${{ matrix.artifact_name }}
+        run: |
+          strip target/${{ matrix.target }}/release/${{ matrix.artifact_name }}
+          strip target/${{ matrix.target }}/release/${{ matrix.lsp_artifact_name }}
 
-      - name: Strip binary (Linux ARM64)
+      - name: Strip binaries (Linux ARM64)
         if: matrix.target == 'aarch64-unknown-linux-gnu'
-        run: aarch64-linux-gnu-strip target/${{ matrix.target }}/release/${{ matrix.artifact_name }}
+        run: |
+          aarch64-linux-gnu-strip target/${{ matrix.target }}/release/${{ matrix.artifact_name }}
+          aarch64-linux-gnu-strip target/${{ matrix.target }}/release/${{ matrix.lsp_artifact_name }}
 
-      - name: Strip binary (macOS)
+      - name: Strip binaries (macOS)
         if: startsWith(matrix.os, 'macos')
-        run: strip target/${{ matrix.target }}/release/${{ matrix.artifact_name }}
+        run: |
+          strip target/${{ matrix.target }}/release/${{ matrix.artifact_name }}
+          strip target/${{ matrix.target }}/release/${{ matrix.lsp_artifact_name }}
 
       - name: Create archive
         shell: bash
         run: |
           cd target/${{ matrix.target }}/release
           if [ "${{ matrix.os }}" = "windows-latest" ]; then
-            7z a ../../../${{ matrix.asset_name }}.zip ${{ matrix.artifact_name }}
+            7z a ../../../${{ matrix.asset_name }}.zip ${{ matrix.artifact_name }} ${{ matrix.lsp_artifact_name }}
           else
-            tar czf ../../../${{ matrix.asset_name }}.tar.gz ${{ matrix.artifact_name }}
+            tar czf ../../../${{ matrix.asset_name }}.tar.gz ${{ matrix.artifact_name }} ${{ matrix.lsp_artifact_name }}
           fi
 
       - name: Generate SHA256 checksums
@@ -140,6 +151,140 @@ jobs:
           files: |
             ./${{ matrix.asset_name }}${{ matrix.os == 'windows-latest' && '.zip' || '.tar.gz' }}
             ./${{ matrix.asset_name }}${{ matrix.os == 'windows-latest' && '.zip' || '.tar.gz' }}.sha256
+
+      - name: Upload LSP binary artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: lsp-${{ matrix.target }}
+          path: target/${{ matrix.target }}/release/${{ matrix.lsp_artifact_name }}
+
+  build-vscode-extension:
+    name: Build VS Code Extension (${{ matrix.vscode_target }})
+    needs: build-release
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - vscode_target: linux-x64
+            rust_target: x86_64-unknown-linux-gnu
+            lsp_binary: mkdlint-lsp
+          - vscode_target: linux-arm64
+            rust_target: aarch64-unknown-linux-gnu
+            lsp_binary: mkdlint-lsp
+          - vscode_target: darwin-x64
+            rust_target: x86_64-apple-darwin
+            lsp_binary: mkdlint-lsp
+          - vscode_target: darwin-arm64
+            rust_target: aarch64-apple-darwin
+            lsp_binary: mkdlint-lsp
+          - vscode_target: win32-x64
+            rust_target: x86_64-pc-windows-msvc
+            lsp_binary: mkdlint-lsp.exe
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        working-directory: editors/vscode
+        run: npm ci
+
+      - name: Compile TypeScript
+        working-directory: editors/vscode
+        run: npm run compile
+
+      - name: Download LSP binary
+        uses: actions/download-artifact@v4
+        with:
+          name: lsp-${{ matrix.rust_target }}
+          path: editors/vscode/server/
+
+      - name: Make binary executable
+        if: matrix.vscode_target != 'win32-x64'
+        run: chmod +x editors/vscode/server/${{ matrix.lsp_binary }}
+
+      - name: Package VSIX
+        working-directory: editors/vscode
+        run: npx vsce package --target ${{ matrix.vscode_target }}
+
+      - name: Upload VSIX to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: editors/vscode/*.vsix
+
+      - name: Upload VSIX artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vsix-${{ matrix.vscode_target }}
+          path: editors/vscode/*.vsix
+
+  build-vscode-extension-universal:
+    name: Build VS Code Extension (universal)
+    needs: create-release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        working-directory: editors/vscode
+        run: npm ci
+
+      - name: Compile TypeScript
+        working-directory: editors/vscode
+        run: npm run compile
+
+      - name: Package universal VSIX
+        working-directory: editors/vscode
+        run: npx vsce package
+
+      - name: Upload VSIX to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: editors/vscode/*.vsix
+
+      - name: Upload VSIX artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vsix-universal
+          path: editors/vscode/*.vsix
+
+  publish-vscode-extension:
+    name: Publish to VS Code Marketplace
+    needs: [build-vscode-extension, build-vscode-extension-universal]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        working-directory: editors/vscode
+        run: npm ci
+
+      - name: Download all VSIX artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: vsix-*
+          path: editors/vscode/vsix/
+          merge-multiple: true
+
+      - name: Publish to Marketplace
+        working-directory: editors/vscode
+        run: npx vsce publish --packagePath vsix/*.vsix
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
 
   publish-crate:
     name: Publish to crates.io
