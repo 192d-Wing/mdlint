@@ -58,7 +58,7 @@ impl Rule for MD021 {
                                 delete_count: Some((start_spaces - 1) as i32),
                                 insert_text: None,
                             }),
-                            suggestion: None,
+                            suggestion: Some("Remove extra spaces after opening #".to_string()),
                             severity: Severity::Error,
                         });
                     }
@@ -79,7 +79,7 @@ impl Rule for MD021 {
                                 delete_count: Some((end_spaces - 1) as i32),
                                 insert_text: None,
                             }),
-                            suggestion: None,
+                            suggestion: Some("Remove extra spaces before closing #".to_string()),
                             severity: Severity::Error,
                         });
                     }
