@@ -54,6 +54,7 @@ impl Rule for MD023 {
                             delete_count: Some(indent_count as i32),
                             insert_text: None,
                         }),
+                        suggestion: None,
                         severity: Severity::Error,
                     });
                 }

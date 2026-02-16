@@ -72,6 +72,7 @@ impl Rule for MD005 {
                             rule_information: self.information().map(|s| s.to_string()),
                             error_range: Some(range),
                             fix_info: None, // No fixInfo; MD007 handles this scenario better
+                            suggestion: None,
                             severity: Severity::Error,
                         });
                     }
@@ -129,6 +130,7 @@ impl Rule for MD005 {
                                         None
                                     },
                                 }),
+                                suggestion: None,
                                 severity: Severity::Error,
                             });
                         }

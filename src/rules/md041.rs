@@ -64,6 +64,9 @@ impl Rule for MD041 {
                         delete_count: None,
                         insert_text: Some("# Title\n\n".to_string()),
                     }),
+                    suggestion: Some(
+                        "Start your document with a top-level heading (# Title)".to_string(),
+                    ),
                     severity: Severity::Error,
                 });
             }
@@ -83,6 +86,7 @@ impl Rule for MD041 {
                     delete_count: None,
                     insert_text: Some("# Title\n\n".to_string()),
                 }),
+                suggestion: None,
                 severity: Severity::Error,
             });
         }

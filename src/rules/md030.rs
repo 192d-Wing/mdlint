@@ -135,6 +135,7 @@ impl Rule for MD030 {
                             rule_information: self.information().map(|s| s.to_string()),
                             error_range: Some(range),
                             fix_info: Some(fix_info),
+                            suggestion: None,
                             severity: Severity::Error,
                         });
                     }

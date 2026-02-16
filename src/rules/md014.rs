@@ -62,6 +62,7 @@ impl Rule for MD014 {
                         delete_count: Some(delete_count),
                         insert_text: None,
                     }),
+                    suggestion: None,
                     severity: Severity::Error,
                 });
             }

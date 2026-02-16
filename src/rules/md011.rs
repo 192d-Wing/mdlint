@@ -58,6 +58,7 @@ impl Rule for MD011 {
                         delete_count: Some(mat.len() as i32),
                         insert_text: Some(corrected),
                     }),
+                    suggestion: None,
                     severity: Severity::Error,
                 });
             }

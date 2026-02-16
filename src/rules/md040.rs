@@ -72,6 +72,7 @@ impl Rule for MD040 {
                                 delete_count: None,
                                 insert_text: Some(default_lang.to_string()),
                             }),
+                            suggestion: None,
                             severity: Severity::Error,
                         });
                     }

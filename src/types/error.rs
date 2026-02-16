@@ -79,6 +79,9 @@ pub struct LintError {
     /// Fix information for automatic correction
     pub fix_info: Option<FixInfo>,
 
+    /// Helpful suggestion for how to fix the issue
+    pub suggestion: Option<String>,
+
     /// Severity level
     pub severity: Severity,
 }
@@ -128,6 +131,7 @@ impl Default for LintError {
             rule_information: None,
             error_range: None,
             fix_info: None,
+            suggestion: None,
             severity: Severity::Error,
         }
     }

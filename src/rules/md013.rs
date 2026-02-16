@@ -69,6 +69,7 @@ impl Rule for MD013 {
                     rule_information: self.information().map(|s| s.to_string()),
                     error_range: Some((line_length + 1, actual_length - line_length)),
                     fix_info: None,
+                    suggestion: None,
                     severity: Severity::Error,
                 });
             }

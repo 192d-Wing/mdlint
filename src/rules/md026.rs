@@ -68,6 +68,7 @@ impl Rule for MD026 {
                                 delete_count: Some(last_char.len_utf8() as i32),
                                 insert_text: None,
                             }),
+                            suggestion: None,
                             severity: Severity::Error,
                         });
                     }

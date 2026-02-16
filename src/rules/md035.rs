@@ -66,6 +66,7 @@ impl Rule for MD035 {
                         delete_count: Some(text.len() as i32),
                         insert_text: Some(style.clone()),
                     }),
+                    suggestion: None,
                     severity: Severity::Error,
                 });
             }

@@ -220,6 +220,7 @@ impl Rule for MD029 {
                                 delete_count: Some(num_len as i32),
                                 insert_text: Some(expected.to_string()),
                             }),
+                            suggestion: None,
                             severity: Severity::Error,
                         });
                     }

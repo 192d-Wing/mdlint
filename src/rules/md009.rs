@@ -55,6 +55,7 @@ impl Rule for MD009 {
                         delete_count: Some(trailing_count as i32),
                         insert_text: None,
                     }),
+                    suggestion: None,
                     severity: Severity::Error,
                 });
             }

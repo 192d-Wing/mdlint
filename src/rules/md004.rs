@@ -223,6 +223,7 @@ impl Rule for MD004 {
                             delete_count: Some(1),
                             insert_text: Some(expected_style.to_marker().to_string()),
                         }),
+                        suggestion: None,
                         severity: Severity::Error,
                     });
                 }

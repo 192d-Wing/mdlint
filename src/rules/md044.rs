@@ -105,6 +105,7 @@ impl Rule for MD044 {
                                 delete_count: Some(correct.len() as i32),
                                 insert_text: Some(correct.clone()),
                             }),
+                            suggestion: None,
                             severity: Severity::Error,
                         });
                     }

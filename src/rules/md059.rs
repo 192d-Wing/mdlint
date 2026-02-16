@@ -57,6 +57,7 @@ impl Rule for MD059 {
                             rule_information: self.information().map(|s| s.to_string()),
                             error_range: None,
                             fix_info: None,
+                            suggestion: None,
                             severity: Severity::Warning,
                         });
                     }
@@ -118,6 +119,7 @@ impl MD059 {
                         rule_information: self.information().map(|s| s.to_string()),
                         error_range: Some((abs_start + 1, abs_end + 2 - abs_start)),
                         fix_info: None,
+                        suggestion: None,
                         severity: Severity::Warning,
                     });
                 }
@@ -168,6 +170,7 @@ impl MD059 {
                             rule_information: self.information().map(|s| s.to_string()),
                             error_range: Some((start + 1, i + 1 - start)),
                             fix_info: None,
+                            suggestion: None,
                             severity: Severity::Warning,
                         });
                     }

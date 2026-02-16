@@ -93,6 +93,7 @@ impl Rule for MD052 {
                         rule_information: self.information().map(|s| s.to_string()),
                         error_range: None,
                         fix_info: None,
+                        suggestion: None,
                         severity: Severity::Error,
                     });
                 }
@@ -114,6 +115,7 @@ impl Rule for MD052 {
                         rule_information: self.information().map(|s| s.to_string()),
                         error_range: None,
                         fix_info: None,
+                        suggestion: None,
                         severity: Severity::Error,
                     });
                 }

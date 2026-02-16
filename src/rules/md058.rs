@@ -54,6 +54,7 @@ impl Rule for MD058 {
                                 delete_count: None,
                                 insert_text: Some("\n".to_string()),
                             }),
+                            suggestion: None,
                             severity: Severity::Error,
                         });
                     }
@@ -76,6 +77,7 @@ impl Rule for MD058 {
                             delete_count: None,
                             insert_text: Some("\n".to_string()),
                         }),
+                        suggestion: None,
                         severity: Severity::Error,
                     });
                 }

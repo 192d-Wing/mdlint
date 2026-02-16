@@ -53,6 +53,7 @@ impl Rule for MD019 {
                                 delete_count: Some((space_count - 1) as i32),
                                 insert_text: None,
                             }),
+                            suggestion: None,
                             severity: Severity::Error,
                         });
                     }

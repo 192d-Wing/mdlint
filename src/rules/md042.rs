@@ -123,6 +123,10 @@ impl Rule for MD042 {
                             delete_count: Some(url.len() as i32),
                             insert_text: Some("#link".to_string()),
                         }),
+                        suggestion: Some(
+                            "Provide a URL or use '#' as a placeholder for the link destination"
+                                .to_string(),
+                        ),
                         severity: Severity::Error,
                     });
                 }
@@ -167,6 +171,7 @@ impl Rule for MD042 {
                         rule_information: self.information().map(|s| s.to_string()),
                         error_range: Some((full_match.start() + 1, full_match.len())),
                         fix_info: None,
+                        suggestion: None,
                         severity: Severity::Error,
                     });
                 }

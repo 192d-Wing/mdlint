@@ -50,6 +50,7 @@ impl Rule for MD028 {
                             delete_count: Some(-1), // Delete entire line
                             insert_text: None,
                         }),
+                        suggestion: None,
                         severity: Severity::Error,
                     });
                 }

@@ -58,6 +58,7 @@ impl Rule for MD021 {
                                 delete_count: Some((start_spaces - 1) as i32),
                                 insert_text: None,
                             }),
+                            suggestion: None,
                             severity: Severity::Error,
                         });
                     }
@@ -78,6 +79,7 @@ impl Rule for MD021 {
                                 delete_count: Some((end_spaces - 1) as i32),
                                 insert_text: None,
                             }),
+                            suggestion: None,
                             severity: Severity::Error,
                         });
                     }

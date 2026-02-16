@@ -80,6 +80,7 @@ impl Rule for MD007 {
                             delete_count: Some(leading_spaces as i32),
                             insert_text: Some(" ".repeat(expected)),
                         }),
+                        suggestion: None,
                         severity: Severity::Error,
                     });
                 }

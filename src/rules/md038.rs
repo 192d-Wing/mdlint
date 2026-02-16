@@ -55,6 +55,7 @@ impl Rule for MD038 {
                         delete_count: Some(full_match.len() as i32),
                         insert_text: Some(corrected),
                     }),
+                    suggestion: None,
                     severity: Severity::Error,
                 });
             }

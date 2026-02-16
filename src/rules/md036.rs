@@ -160,6 +160,7 @@ impl Rule for MD036 {
                             rule_information: self.information().map(|s| s.to_string()),
                             error_range: None,
                             fix_info,
+                            suggestion: None,
                             severity: Severity::Error,
                         });
                     }

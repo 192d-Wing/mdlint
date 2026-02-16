@@ -168,6 +168,7 @@ impl Rule for MD050 {
                         delete_count: Some(sm.full_match.len() as i32),
                         insert_text: Some(corrected),
                     }),
+                    suggestion: None,
                     severity: Severity::Error,
                 });
             }

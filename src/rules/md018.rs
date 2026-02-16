@@ -59,6 +59,11 @@ impl Rule for MD018 {
                                 delete_count: None,
                                 insert_text: Some(" ".to_string()),
                             }),
+                            suggestion: Some(format!(
+                                "Add a space after the # symbol: '{} {}'",
+                                "#".repeat(hash_count),
+                                after_hash.trim()
+                            )),
                             severity: Severity::Error,
                         });
                     }

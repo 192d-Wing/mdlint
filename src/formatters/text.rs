@@ -51,6 +51,24 @@ pub fn format_text_with_context(
 
                 output.push(line);
 
+                // Show suggestion if available
+                if let Some(suggestion) = &error.suggestion {
+                    output.push(format!(
+                        "  {} {}",
+                        "💡".cyan(),
+                        format!("Suggestion: {}", suggestion).cyan()
+                    ));
+                }
+
+                // Show "fix available" indicator
+                if error.fix_info.is_some() {
+                    output.push(format!(
+                        "  {} {}",
+                        "🔧".green(),
+                        "Fix available - use --fix to apply automatically".green()
+                    ));
+                }
+
                 // Show source line and underline if we have both source and error_range
                 if let (Some(lines), Some((col_start, col_len))) =
                     (&source_lines, error.error_range)

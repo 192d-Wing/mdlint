@@ -58,6 +58,7 @@ impl Rule for MD020 {
                                 delete_count: None,
                                 insert_text: Some(" ".to_string()),
                             }),
+                            suggestion: None,
                             severity: Severity::Error,
                         });
                     }
@@ -78,6 +79,7 @@ impl Rule for MD020 {
                                 delete_count: None,
                                 insert_text: Some(" ".to_string()),
                             }),
+                            suggestion: None,
                             severity: Severity::Error,
                         });
                     }
