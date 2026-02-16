@@ -73,7 +73,7 @@ impl Rule for MD031 {
     }
 
     fn tags(&self) -> &[&'static str] {
-        &["code", "blank_lines"]
+        &["code", "blank_lines", "fixable"]
     }
 
     fn parser_type(&self) -> ParserType {

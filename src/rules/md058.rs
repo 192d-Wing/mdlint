@@ -14,7 +14,7 @@ impl Rule for MD058 {
     }
 
     fn tags(&self) -> &[&'static str] {
-        &["table", "blank_lines"]
+        &["table", "blank_lines", "fixable"]
     }
 
     fn parser_type(&self) -> ParserType {

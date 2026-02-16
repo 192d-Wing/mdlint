@@ -18,7 +18,7 @@ impl Rule for MD034 {
     }
 
     fn tags(&self) -> &[&'static str] {
-        &["links", "url"]
+        &["links", "url", "fixable"]
     }
 
     fn parser_type(&self) -> ParserType {

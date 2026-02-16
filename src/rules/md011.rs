@@ -21,7 +21,7 @@ impl Rule for MD011 {
     }
 
     fn tags(&self) -> &[&'static str] {
-        &["links"]
+        &["links", "fixable"]
     }
 
     fn parser_type(&self) -> ParserType {

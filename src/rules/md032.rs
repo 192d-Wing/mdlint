@@ -128,7 +128,7 @@ impl Rule for MD032 {
     }
 
     fn tags(&self) -> &[&'static str] {
-        &["bullet", "ul", "ol", "blank_lines"]
+        &["bullet", "ul", "ol", "blank_lines", "fixable"]
     }
 
     fn parser_type(&self) -> ParserType {

@@ -103,7 +103,7 @@ impl Rule for MD029 {
     }
 
     fn tags(&self) -> &[&'static str] {
-        &["ol"]
+        &["ol", "fixable"]
     }
 
     fn parser_type(&self) -> ParserType {

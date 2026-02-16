@@ -14,7 +14,7 @@ impl Rule for MD027 {
     }
 
     fn tags(&self) -> &[&'static str] {
-        &["blockquote", "whitespace", "indentation"]
+        &["blockquote", "whitespace", "indentation", "fixable"]
     }
 
     fn parser_type(&self) -> ParserType {

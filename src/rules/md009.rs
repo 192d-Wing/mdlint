@@ -16,7 +16,7 @@ impl Rule for MD009 {
     }
 
     fn tags(&self) -> &[&'static str] {
-        &["whitespace"]
+        &["whitespace", "fixable"]
     }
 
     fn parser_type(&self) -> ParserType {

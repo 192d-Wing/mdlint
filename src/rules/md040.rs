@@ -14,7 +14,7 @@ impl Rule for MD040 {
     }
 
     fn tags(&self) -> &[&'static str] {
-        &["code", "language"]
+        &["code", "language", "fixable"]
     }
 
     fn parser_type(&self) -> ParserType {

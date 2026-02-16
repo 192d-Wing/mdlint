@@ -20,7 +20,7 @@ impl Rule for MD005 {
     }
 
     fn tags(&self) -> &[&'static str] {
-        &["bullet", "ul", "indentation"]
+        &["bullet", "ul", "indentation", "fixable"]
     }
 
     fn parser_type(&self) -> ParserType {

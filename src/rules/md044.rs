@@ -14,7 +14,7 @@ impl Rule for MD044 {
     }
 
     fn tags(&self) -> &[&'static str] {
-        &["spelling"]
+        &["spelling", "fixable"]
     }
 
     fn parser_type(&self) -> ParserType {

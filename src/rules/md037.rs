@@ -19,7 +19,7 @@ impl Rule for MD037 {
     }
 
     fn tags(&self) -> &[&'static str] {
-        &["whitespace", "emphasis"]
+        &["whitespace", "emphasis", "fixable"]
     }
 
     fn parser_type(&self) -> ParserType {
