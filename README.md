@@ -240,8 +240,6 @@ Any editor with LSP support can use `mkdlint-lsp`. The server uses stdio for com
 
 Use mkdlint in your CI/CD with native GitHub Code Scanning integration:
 
-Use mkdlint in your CI/CD with native GitHub Code Scanning integration:
-
 ```yaml
 name: Lint Markdown
 on: [push, pull_request]
