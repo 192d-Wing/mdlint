@@ -68,7 +68,12 @@ impl Rule for MD022 {
                         error_context: None,
                         rule_information: self.information().map(|s| s.to_string()),
                         error_range: None,
-                        fix_info: None,
+                        fix_info: Some(FixInfo {
+                            line_number: Some(line_num + 1),
+                            edit_column: Some(1),
+                            delete_count: None,
+                            insert_text: Some("\n".to_string()),
+                        }),
                         severity: Severity::Error,
                     });
                 }
@@ -218,5 +223,33 @@ mod tests {
 
         let errors = MD022.lint(&params);
         assert_eq!(errors.len(), 0, "Heading at start of file with blank after should be fine");
+    }
+
+    #[test]
+    fn test_md022_fix_info_inserts_blank_after() {
+        let lines = vec![
+            "# Title\n".to_string(),
+            "Some text\n".to_string(),
+        ];
+        let tokens = vec![make_heading(1, 1)];
+        let params = RuleParams {
+            name: "test.md",
+            version: "0.1.0",
+            lines: &lines,
+            front_matter_lines: &[],
+            tokens: &tokens,
+            config: &HashMap::new(),
+        };
+
+        let errors = MD022.lint(&params);
+        let after_error = errors
+            .iter()
+            .find(|e| e.error_detail.as_deref() == Some("Expected blank line after heading"))
+            .expect("Should have an after-heading error");
+
+        let fix = after_error.fix_info.as_ref().expect("Should have fix_info");
+        assert_eq!(fix.line_number, Some(2));
+        assert_eq!(fix.edit_column, Some(1));
+        assert_eq!(fix.insert_text, Some("\n".to_string()));
     }
 }
