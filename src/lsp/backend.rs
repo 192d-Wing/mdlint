@@ -142,6 +142,7 @@ impl LanguageServer for MkdlintLanguageServer {
                     commands: vec!["mkdlint.fixAll".to_string()],
                     work_done_progress_options: WorkDoneProgressOptions::default(),
                 }),
+                hover_provider: Some(HoverProviderCapability::Simple(true)),
                 ..Default::default()
             },
             server_info: Some(ServerInfo {
@@ -152,6 +153,48 @@ impl LanguageServer for MkdlintLanguageServer {
     }
 
     async fn initialized(&self, _: InitializedParams) {
+        // Register for config file change notifications
+        let watchers = vec![
+            FileSystemWatcher {
+                glob_pattern: GlobPattern::String("**/.markdownlint.json".to_string()),
+                kind: Some(WatchKind::all()),
+            },
+            FileSystemWatcher {
+                glob_pattern: GlobPattern::String("**/.markdownlint.jsonc".to_string()),
+                kind: Some(WatchKind::all()),
+            },
+            FileSystemWatcher {
+                glob_pattern: GlobPattern::String("**/.markdownlint.yaml".to_string()),
+                kind: Some(WatchKind::all()),
+            },
+            FileSystemWatcher {
+                glob_pattern: GlobPattern::String("**/.markdownlint.yml".to_string()),
+                kind: Some(WatchKind::all()),
+            },
+            FileSystemWatcher {
+                glob_pattern: GlobPattern::String("**/.markdownlintrc".to_string()),
+                kind: Some(WatchKind::all()),
+            },
+        ];
+
+        let registration = Registration {
+            id: "config-watcher".to_string(),
+            method: "workspace/didChangeWatchedFiles".to_string(),
+            register_options: Some(
+                serde_json::to_value(DidChangeWatchedFilesRegistrationOptions { watchers })
+                    .unwrap(),
+            ),
+        };
+
+        if let Err(e) = self.client.register_capability(vec![registration]).await {
+            self.client
+                .log_message(
+                    MessageType::WARNING,
+                    format!("Failed to register file watchers: {}", e),
+                )
+                .await;
+        }
+
         self.client
             .log_message(MessageType::INFO, "mkdlint LSP server initialized")
             .await;
@@ -215,6 +258,87 @@ impl LanguageServer for MkdlintLanguageServer {
 
         // Clear diagnostics
         self.client.publish_diagnostics(uri, vec![], None).await;
+    }
+
+    async fn did_change_watched_files(&self, params: DidChangeWatchedFilesParams) {
+        // Config file changed — invalidate cache and re-lint all open documents
+        self.client
+            .log_message(
+                MessageType::INFO,
+                format!(
+                    "Config file change detected ({} file(s)), re-linting open documents",
+                    params.changes.len()
+                ),
+            )
+            .await;
+
+        self.config_manager.lock().unwrap().clear_cache();
+
+        // Re-lint all open documents
+        let uris = self.document_manager.all_uris();
+        for uri in uris {
+            self.lint_and_publish(uri).await;
+        }
+    }
+
+    async fn hover(&self, params: HoverParams) -> Result<Option<Hover>> {
+        let uri = params.text_document_position_params.text_document.uri;
+        let position = params.text_document_position_params.position;
+
+        let doc = match self.document_manager.get(&uri) {
+            Some(doc) => doc,
+            None => return Ok(None),
+        };
+
+        // Find errors at the hover position
+        let hover_line = position.line as usize + 1; // Convert 0-based to 1-based
+        let matching_errors: Vec<_> = doc
+            .cached_errors
+            .iter()
+            .filter(|e| e.line_number == hover_line)
+            .collect();
+
+        if matching_errors.is_empty() {
+            return Ok(None);
+        }
+
+        let mut sections = Vec::new();
+        for error in &matching_errors {
+            let rule_id = error.rule_names.first().unwrap_or(&"unknown");
+            let rule_alias = error.rule_names.get(1).unwrap_or(rule_id);
+
+            let mut md = format!("### {} / {}\n\n", rule_id, rule_alias);
+            md.push_str(error.rule_description);
+            md.push('\n');
+
+            if let Some(detail) = &error.error_detail {
+                md.push_str(&format!("\n**Detail:** {}\n", detail));
+            }
+
+            if let Some(suggestion) = &error.suggestion {
+                md.push_str(&format!("\n**Suggestion:** {}\n", suggestion));
+            }
+
+            if error.fix_info.is_some() {
+                md.push_str("\n*Auto-fixable* \u{1f527}\n");
+            }
+
+            if let Some(url) = error.rule_information {
+                md.push_str(&format!("\n[Documentation]({})\n", url));
+            }
+
+            sections.push(md);
+        }
+
+        let contents = sections.join("\n---\n\n");
+
+        Ok(Some(Hover {
+            contents: HoverContents::Markup(MarkupContent {
+                kind: MarkupKind::Markdown,
+                value: contents,
+            }),
+            range: None,
+        }))
     }
 
     async fn code_action(&self, params: CodeActionParams) -> Result<Option<CodeActionResponse>> {
