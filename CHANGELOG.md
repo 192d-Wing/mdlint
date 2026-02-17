@@ -16,6 +16,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Disables MD033 (inline HTML — conflicts with IAL `{: #id .class}` syntax) and
     MD041 (first heading — RFC preambles often start with metadata)
   - Enables 10 new Kramdown-specific lint rules (KMD001–KMD010, off by default)
+- **GitHub preset** (`--preset github`) for GitHub-hosted documentation:
+  - Sets MD003 heading style to `consistent`
+  - Disables MD013 (line length) and MD034 (bare URLs) — both common in GFM docs
 - **KMD001** (`definition-list-term-has-definition`): Definition list terms must be
   followed by a `: definition` line
 - **KMD002** (`footnote-refs-defined`): Footnote references `[^label]` must have
@@ -25,17 +28,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **KMD004** (`abbreviation-defs-used`): Abbreviation definitions `*[ABBR]: ...`
   must appear as text in the document
 - **KMD005** (`no-duplicate-heading-ids`): Heading IDs (explicit `{#id}` or
-  auto-generated slugs) must be unique
-- **KMD006** (`valid-ial-syntax`): Inline Attribute List lines `{: ...}` must be
-  well-formed (block-level)
+  auto-generated slugs) must be unique; detects both ATX and setext headings;
+  **auto-fixable** — appends `{#slug-N}` suffix to disambiguate
+- **KMD006** (`valid-ial-syntax`): Block-level IAL lines `{: ...}` must be
+  well-formed; **auto-fixable** — deletes the malformed IAL line
 - **KMD007** (`math-block-delimiters`): Block math `$$` fences must have a
-  matching closing `$$`
+  matching closing `$$`; **auto-fixable** — inserts closing `$$` at EOF
 - **KMD008** (`block-extension-syntax`): Block extensions `{::name}...{:/name}`
-  must be properly opened and closed; self-closing `{::name .../}` is valid
+  must be properly opened and closed; self-closing `{::name .../}` is valid;
+  **auto-fixable** — inserts closing `{:/name}` at EOF
 - **KMD009** (`ald-defs-used`): Attribute List Definitions `{:ref-name: attrs}`
-  must be referenced somewhere in the document
+  must be referenced somewhere in the document; **auto-fixable** — deletes the
+  unused ALD definition line
 - **KMD010** (`inline-ial-syntax`): IAL syntax used inline on spans
-  (e.g. `*text*{: .class}`) must be well-formed
+  (e.g. `*text*{: .class}`) must be well-formed; **auto-fixable** — removes the
+  malformed IAL span
+- **`--preset` CLI flag**: apply a named rule preset from the command line
+- **`--list-presets`**: show all available presets and their rule changes
+- **`--list-rules` improvements**: preset annotations (● enabled / ○ disabled),
+  KMD rules dimmed when off-by-default, MD/KMD groups separated, fixable count in footer
+- **LSP**: `mkdlint.preset` VS Code workspace setting — set the active preset
+  without a config file; hot-reloads when the setting changes
+  (`workspace/didChangeConfiguration`)
+- **Auto-fix coverage**: 54/63 rules now fixable (85.7%), up from 48/63
+
+### Fixed
+
+- **KMD006**: Block extension lines (`{::name}`, `{:/name}`) and ALD definition
+  lines (`{:id: ...}`) were incorrectly flagged as malformed IAL — now excluded
+- **MD023**: Panic on multi-byte UTF-8 heading context truncation — replaced
+  byte-index slice with char-boundary-safe `char_indices().nth(20)` slicing
 
 ## [0.10.3] - 2026-02-17
 

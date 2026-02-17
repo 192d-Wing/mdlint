@@ -1831,3 +1831,88 @@ fn test_kmd010_fix_round_trip() {
         "after fix, KMD010 should be gone; fixed:\n{fixed}"
     );
 }
+
+// ── GitHub preset ─────────────────────────────────────────────────────────────
+
+#[test]
+fn test_preset_github_disables_md013() {
+    // Long lines should not fire MD013 with the github preset
+    let long_line = format!("# H\n\n{}\n", "a".repeat(200));
+    let errors_default = lint_string(&long_line);
+    let errors_github = lint_with_preset(&long_line, "github");
+    assert!(
+        has_rule(&errors_default, "MD013"),
+        "MD013 should fire without preset"
+    );
+    assert!(
+        !has_rule(&errors_github, "MD013"),
+        "MD013 should not fire with github preset"
+    );
+}
+
+#[test]
+fn test_preset_github_disables_md034() {
+    // Bare URLs should not fire MD034 with the github preset
+    let content = "# H\n\nhttps://example.com\n";
+    let errors_default = lint_string(content);
+    let errors_github = lint_with_preset(content, "github");
+    assert!(
+        has_rule(&errors_default, "MD034"),
+        "MD034 should fire without preset"
+    );
+    assert!(
+        !has_rule(&errors_github, "MD034"),
+        "MD034 should not fire with github preset"
+    );
+}
+
+#[test]
+fn test_preset_github_md003_consistent() {
+    // With github preset, MD003 enforces consistent style (not a fixed style).
+    // Mixing atx and setext headings should still fire.
+    let content = "# ATX Heading\n\nSetext Heading\n==============\n\n## ATX Again\n";
+    let errors = lint_with_preset(content, "github");
+    assert!(
+        has_rule(&errors, "MD003"),
+        "MD003 should fire on mixed heading styles with github preset"
+    );
+}
+
+#[test]
+fn test_preset_github_consistent_atx_ok() {
+    // Pure ATX headings should be fine under the github consistent style
+    let content = "# Intro\n\n## Setup\n\n## Usage\n";
+    let errors = lint_with_preset(content, "github");
+    assert!(
+        !has_rule(&errors, "MD003"),
+        "MD003 should not fire on consistent ATX headings with github preset"
+    );
+}
+
+#[test]
+fn test_preset_github_does_not_enable_kmd_rules() {
+    // The github preset should not enable KMD rules
+    let content = "# H\n\nText[^1] here.\n";
+    let errors = lint_with_preset(content, "github");
+    assert!(
+        !has_rule(&errors, "KMD002"),
+        "KMD rules should not fire with github preset"
+    );
+}
+
+#[test]
+fn test_preset_github_via_config_key() {
+    let mut config = Config {
+        preset: Some("github".to_string()),
+        ..Config::default()
+    };
+    config.apply_preset();
+    assert!(
+        !config.is_rule_enabled("MD013"),
+        "github preset should disable MD013 via config key"
+    );
+    assert!(
+        !config.is_rule_enabled("MD034"),
+        "github preset should disable MD034 via config key"
+    );
+}

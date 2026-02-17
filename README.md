@@ -227,6 +227,26 @@ You can enable individual KMD rules without the full preset:
 }
 ```
 
+### GitHub Preset
+
+For documentation hosted on GitHub, using GitHub Flavored Markdown (GFM):
+
+```sh
+mkdlint --preset github doc.md
+```
+
+```json
+{
+  "preset": "github"
+}
+```
+
+The `github` preset:
+
+- **Sets** MD003 heading style to `consistent` — GFM renders both ATX and setext, but they should not be mixed
+- **Disables** MD013 (line length) — long lines are common in GFM tables and URLs
+- **Disables** MD034 (bare URLs) — GitHub auto-links bare URLs in some contexts
+
 ### Output Control
 
 ```sh
