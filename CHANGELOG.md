@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.2] - TBD
+
+### Added
+
+- **MD046** (code-block-style): `style` config option (`"consistent"`,
+  `"fenced"`, `"indented"`) and per-block error reporting
+- **LSP**: Hover support showing rule documentation, error details,
+  suggestions, fix availability, and documentation links
+- **LSP**: Config file watching — automatically re-lints when
+  `.markdownlint.*` files change
+
+### Changed
+
+- **MD046**: Reports errors per code block instead of single error at line 1
+- **MD046**: Properly detects indented code blocks per CommonMark spec
+
 ## [0.10.1] - 2026-02-16
 
 ### Added
