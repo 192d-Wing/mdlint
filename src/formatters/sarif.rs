@@ -92,10 +92,8 @@ pub fn format_sarif(results: &LintResults) -> String {
 
                 // Add fix suggestion if available
                 if error.fix_info.is_some() {
-                    let fix_description = error
-                        .suggestion
-                        .as_deref()
-                        .unwrap_or("Apply automatic fix");
+                    let fix_description =
+                        error.suggestion.as_deref().unwrap_or("Apply automatic fix");
                     result["fixes"] = serde_json::json!([{
                         "description": {
                             "text": fix_description
@@ -107,9 +105,8 @@ pub fn format_sarif(results: &LintResults) -> String {
                 if error.fix_info.is_none()
                     && let Some(suggestion) = &error.suggestion
                 {
-                    result["message"]["markdown"] = serde_json::json!(
-                        format!("{message_text}\n\n> {suggestion}")
-                    );
+                    result["message"]["markdown"] =
+                        serde_json::json!(format!("{message_text}\n\n> {suggestion}"));
                 }
 
                 sarif_results.push(result);
@@ -245,11 +242,15 @@ mod tests {
 
         let output = format_sarif(&results);
         let parsed: serde_json::Value = serde_json::from_str(&output).unwrap();
-        let uri = parsed["runs"][0]["results"][0]["locations"][0]["physicalLocation"]
-            ["artifactLocation"]["uri"]
-            .as_str()
-            .unwrap();
-        assert!(uri.starts_with("file://"), "absolute path should become file:// URI");
+        let uri =
+            parsed["runs"][0]["results"][0]["locations"][0]["physicalLocation"]["artifactLocation"]
+                ["uri"]
+                .as_str()
+                .unwrap();
+        assert!(
+            uri.starts_with("file://"),
+            "absolute path should become file:// URI"
+        );
     }
 
     #[test]

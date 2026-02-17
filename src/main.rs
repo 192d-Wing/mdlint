@@ -428,9 +428,7 @@ fn generate_config(format: &str, options: &ConfigOptions) -> String {
 fn generate_json_config(options: &ConfigOptions) -> String {
     let schema_url =
         "https://raw.githubusercontent.com/192d-Wing/mkdlint/main/schema/mkdlint-schema.json";
-    let mut config = format!(
-        "{{\n  \"$schema\": \"{schema_url}\",\n  \"default\": true"
-    );
+    let mut config = format!("{{\n  \"$schema\": \"{schema_url}\",\n  \"default\": true");
 
     // Disabled rules
     for rule in &options.disabled_rules {
@@ -1010,19 +1008,28 @@ fn generate_config_schema() -> String {
     }
 
     let mut properties = serde_json::Map::new();
-    properties.insert("default".to_string(), serde_json::json!({
-        "description": "Default enabled/disabled state for all rules not explicitly configured",
-        "type": "boolean"
-    }));
-    properties.insert("extends".to_string(), serde_json::json!({
-        "description": "Path to another config file to extend",
-        "type": "string"
-    }));
-    properties.insert("preset".to_string(), serde_json::json!({
-        "description": "Named preset to apply (e.g. 'kramdown', 'github')",
-        "type": "string",
-        "enum": ["kramdown", "github"]
-    }));
+    properties.insert(
+        "default".to_string(),
+        serde_json::json!({
+            "description": "Default enabled/disabled state for all rules not explicitly configured",
+            "type": "boolean"
+        }),
+    );
+    properties.insert(
+        "extends".to_string(),
+        serde_json::json!({
+            "description": "Path to another config file to extend",
+            "type": "string"
+        }),
+    );
+    properties.insert(
+        "preset".to_string(),
+        serde_json::json!({
+            "description": "Named preset to apply (e.g. 'kramdown', 'github')",
+            "type": "string",
+            "enum": ["kramdown", "github"]
+        }),
+    );
     for (k, v) in rule_props {
         properties.insert(k, v);
     }

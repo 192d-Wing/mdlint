@@ -8,17 +8,18 @@ YELLOW='\033[1;33m'
 CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
-# Logging functions
+# Logging functions — all write to stderr so they don't pollute
+# command-substitution captures (e.g. version=$(resolve_version ...))
 info() {
-    echo -e "${CYAN}ℹ${NC} $*"
+    echo -e "${CYAN}ℹ${NC} $*" >&2
 }
 
 success() {
-    echo -e "${GREEN}✓${NC} $*"
+    echo -e "${GREEN}✓${NC} $*" >&2
 }
 
 warn() {
-    echo -e "${YELLOW}⚠${NC} $*"
+    echo -e "${YELLOW}⚠${NC} $*" >&2
 }
 
 error() {

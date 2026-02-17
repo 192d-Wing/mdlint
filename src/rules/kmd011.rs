@@ -188,10 +188,7 @@ mod tests {
     #[test]
     fn test_kmd011_dollar_in_code_block_ignored() {
         let errors = lint("# H\n\n```\n$var = 1\n```\n");
-        assert!(
-            errors.is_empty(),
-            "$ inside code block should be ignored"
-        );
+        assert!(errors.is_empty(), "$ inside code block should be ignored");
     }
 
     #[test]
@@ -208,7 +205,10 @@ mod tests {
     fn test_kmd011_double_dollar_inline_ok() {
         // $$ used inline (two $, even count)
         let errors = lint("# H\n\nThe expression $$x$$ is inline.\n");
-        assert!(errors.is_empty(), "even number of $ in $$ inline should not fire");
+        assert!(
+            errors.is_empty(),
+            "even number of $ in $$ inline should not fire"
+        );
     }
 
     #[test]

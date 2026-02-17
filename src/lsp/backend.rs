@@ -660,8 +660,7 @@ impl LanguageServer for MkdlintLanguageServer {
                 let matched_diag = context_diagnostics.iter().find(|d| {
                     d.range.start.line == error_line
                         && error.rule_names.first().is_some_and(|name| {
-                            d.code
-                                == Some(NumberOrString::String(name.to_string()))
+                            d.code == Some(NumberOrString::String(name.to_string()))
                         })
                 });
 

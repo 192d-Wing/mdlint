@@ -2,7 +2,7 @@
 target/
 *.rs.bk
 *.pdb
-Cargo.lock
+# Cargo.lock is committed for reproducible binary builds
 
 # Node.js (VS Code extension)
 node_modules/
