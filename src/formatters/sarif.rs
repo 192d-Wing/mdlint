@@ -36,6 +36,13 @@ pub fn format_sarif(results: &LintResults) -> String {
             let uri = path_to_uri(file);
 
             for error in errors {
+                // Skip internal fix-only errors (e.g. setext underline deletion
+                // in MD003) that have no rule name or description.  These are
+                // not real diagnostics and would produce invalid SARIF results.
+                if error.rule_names.is_empty() || error.rule_description.is_empty() {
+                    continue;
+                }
+
                 let rule_id = error.rule_names.first().copied().unwrap_or("unknown");
 
                 // Register rule in the driver's rules array (deduped, ordered)
