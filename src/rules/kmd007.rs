@@ -147,4 +147,28 @@ mod tests {
         let errors = lint("# H\n\nPlain paragraph.\n");
         assert!(errors.is_empty(), "no math should not fire");
     }
+
+    #[test]
+    fn test_kmd007_fix_info_present() {
+        let errors = lint("# H\n\n$$\nx = 1\n");
+        let err = errors.iter().find(|e| e.rule_names[0] == "KMD007").unwrap();
+        assert!(err.fix_info.is_some(), "KMD007 error should have fix_info");
+        let fix = err.fix_info.as_ref().unwrap();
+        assert_eq!(fix.insert_text.as_deref(), Some("\n$$\n"));
+        assert!(fix.delete_count.is_none());
+    }
+
+    #[test]
+    fn test_kmd007_fix_round_trip() {
+        use crate::lint::apply_fixes;
+        let content = "# H\n\n$$\nx = 1\n";
+        let errors = lint(content);
+        assert!(!errors.is_empty(), "should have KMD007 errors before fix");
+        let fixed = apply_fixes(content, &errors);
+        let errors2 = lint(&fixed);
+        assert!(
+            errors2.iter().all(|e| e.rule_names[0] != "KMD007"),
+            "after fix, no KMD007 errors; fixed:\n{fixed}"
+        );
+    }
 }

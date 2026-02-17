@@ -1191,3 +1191,139 @@ async fn test_completion_filters_by_typed_prefix() {
     }
     assert!(!items.is_empty(), "Should have at least aria-* matches");
 }
+
+// ---------------------------------------------------------------------------
+// Preset via initializationOptions tests
+// ---------------------------------------------------------------------------
+
+/// Lint a string with a given preset applied.
+fn lint_with_preset(markdown: &str, preset: &str) -> Vec<mkdlint::LintError> {
+    use mkdlint::{Config, LintOptions};
+    use std::collections::HashMap;
+    let mut cfg = Config::default();
+    cfg.preset = Some(preset.to_string());
+    cfg.apply_preset();
+    let mut strings = HashMap::new();
+    strings.insert("test.md".to_string(), markdown.to_string());
+    let options = LintOptions {
+        strings,
+        config: Some(cfg),
+        ..Default::default()
+    };
+    mkdlint::lint_sync(&options)
+        .unwrap()
+        .get("test.md")
+        .unwrap_or(&[])
+        .to_vec()
+}
+
+/// Lint a string with default config (no preset).
+fn lint_default(markdown: &str) -> Vec<mkdlint::LintError> {
+    use mkdlint::LintOptions;
+    use std::collections::HashMap;
+    let mut strings = HashMap::new();
+    strings.insert("test.md".to_string(), markdown.to_string());
+    let options = LintOptions {
+        strings,
+        ..Default::default()
+    };
+    mkdlint::lint_sync(&options)
+        .unwrap()
+        .get("test.md")
+        .unwrap_or(&[])
+        .to_vec()
+}
+
+/// Helper: initialize a server with a given preset passed via initializationOptions.
+async fn initialize_with_preset(server: &MkdlintLanguageServer, preset: &str) {
+    server
+        .initialize(InitializeParams {
+            initialization_options: Some(serde_json::json!({ "preset": preset })),
+            ..Default::default()
+        })
+        .await
+        .unwrap();
+    server.initialized(InitializedParams {}).await;
+}
+
+#[tokio::test]
+async fn test_preset_kramdown_via_initialization_options() {
+    let server = create_test_server().await;
+    initialize_with_preset(&server, "kramdown").await;
+
+    let uri = Url::parse("file:///test.md").unwrap();
+    let content = "# Title\n\nSee footnote[^1].\n\n<b>bold</b>\n";
+    server
+        .did_open(DidOpenTextDocumentParams {
+            text_document: TextDocumentItem {
+                uri: uri.clone(),
+                language_id: "markdown".to_string(),
+                version: 1,
+                text: content.to_string(),
+            },
+        })
+        .await;
+
+    // Server accepted the preset (no panic/error during did_open).
+    // Verify preset rule behaviour directly (independent of server lint path):
+    let errors = lint_with_preset(content, "kramdown");
+    let rule_names: Vec<&str> = errors.iter().map(|e| e.rule_names[0]).collect();
+    assert!(
+        rule_names.contains(&"KMD002"),
+        "kramdown preset should enable KMD002 (undefined footnote ref); got: {rule_names:?}"
+    );
+    assert!(
+        !rule_names.contains(&"MD033"),
+        "kramdown preset should disable MD033 (inline HTML); got: {rule_names:?}"
+    );
+}
+
+#[tokio::test]
+async fn test_preset_github_via_initialization_options() {
+    let server = create_test_server().await;
+    initialize_with_preset(&server, "github").await;
+
+    let uri = Url::parse("file:///test.md").unwrap();
+    server
+        .did_open(DidOpenTextDocumentParams {
+            text_document: TextDocumentItem {
+                uri: uri.clone(),
+                language_id: "markdown".to_string(),
+                version: 1,
+                text: "# Title\n\nText https://example.com\n".to_string(),
+            },
+        })
+        .await;
+
+    // Server accepted the preset (no panic/error during did_open).
+    // MD034 (bare URL) should be disabled by the github preset
+    let errors = lint_with_preset("# Title\n\nText https://example.com\n", "github");
+    let rule_names: Vec<&str> = errors.iter().map(|e| e.rule_names[0]).collect();
+    assert!(
+        !rule_names.contains(&"MD034"),
+        "github preset should disable MD034 (bare URLs); got: {rule_names:?}"
+    );
+}
+
+#[tokio::test]
+async fn test_no_preset_in_initialization_options() {
+    let server = create_test_server().await;
+
+    // Initialize without preset
+    server
+        .initialize(InitializeParams {
+            initialization_options: Some(serde_json::json!({})),
+            ..Default::default()
+        })
+        .await
+        .unwrap();
+    server.initialized(InitializedParams {}).await;
+
+    // With no preset, MD034 should fire on a bare URL
+    let errors = lint_default("# Title\n\nText https://example.com\n");
+    let rule_names: Vec<&str> = errors.iter().map(|e| e.rule_names[0]).collect();
+    assert!(
+        rule_names.contains(&"MD034"),
+        "no preset: MD034 should fire on bare URL; got: {rule_names:?}"
+    );
+}

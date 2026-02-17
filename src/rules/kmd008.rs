@@ -209,4 +209,28 @@ mod tests {
         let errors = lint("# H\n\n```\n{::comment}\ntext\n```\n");
         assert!(errors.is_empty(), "should not fire inside code blocks");
     }
+
+    #[test]
+    fn test_kmd008_fix_info_present() {
+        let errors = lint("# H\n\n{::comment}\nsome text\n");
+        let err = errors.iter().find(|e| e.rule_names[0] == "KMD008").unwrap();
+        assert!(err.fix_info.is_some(), "KMD008 error should have fix_info");
+        let fix = err.fix_info.as_ref().unwrap();
+        assert_eq!(fix.insert_text.as_deref(), Some("\n{:/comment}\n"));
+        assert!(fix.delete_count.is_none());
+    }
+
+    #[test]
+    fn test_kmd008_fix_round_trip() {
+        use crate::lint::apply_fixes;
+        let content = "# H\n\n{::comment}\nsome text\n";
+        let errors = lint(content);
+        assert!(!errors.is_empty(), "should have KMD008 errors before fix");
+        let fixed = apply_fixes(content, &errors);
+        let errors2 = lint(&fixed);
+        assert!(
+            errors2.iter().all(|e| e.rule_names[0] != "KMD008"),
+            "after fix, no KMD008 errors; fixed:\n{fixed}"
+        );
+    }
 }

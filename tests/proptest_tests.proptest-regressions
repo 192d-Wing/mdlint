@@ -5,3 +5,4 @@
 # It is recommended to check this file in to source control so that
 # everyone who runs the test benefits from these saved cases.
 cc 6247d9fb00cad6da1c6bd12ed313c763e43e6ab91e8ca5245ce4fd3c64a6f861 # shrinks to input = "\t#¡𐀀𐀀¡𐀀𐀀"
+cc b58109f00d3943b9640bf09eaba27523ce3bbee4e90eef85bd0c4ae9a9b8b8dc # shrinks to doc = "a\n---\n[ ](aaa)\n# A\n[a](aaa)\n,\na\n---\n| A | 0 |\n[A](aaa)\na\n---\n"

@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.1] - 2026-02-17
+
 ### Added
 
 - **LSP `textDocument/completion`**: IAL attribute completions when the cursor is
@@ -14,6 +16,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   snippets, filtered by what the user has typed
 - **KMD001 auto-fix**: Automatically inserts a stub `:`-prefixed definition line after
   an orphaned definition list term (auto-fix coverage: 54 → 55/63 rules, 87.3%)
+- Round-trip fix tests for KMD007, KMD008, KMD009
+- LSP integration tests for preset via `initializationOptions`
+
+### Fixed
+
+- Proptest `apply_fixes_idempotent`: increased fix passes from 2 to 3 to account
+  for multi-step interactions between MD003 style conversion and MD022 spacing
 
 ## [0.11.0] - 2026-02-17
 

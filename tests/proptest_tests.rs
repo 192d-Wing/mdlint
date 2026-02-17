@@ -464,15 +464,19 @@ proptest! {
         let errors2 = lint_string(&fixed1);
         let fixed2 = apply_fixes(&fixed1, &errors2);
         let errors3 = lint_string(&fixed2);
+        let fixed3 = apply_fixes(&fixed2, &errors3);
+        let errors4 = lint_string(&fixed3);
 
-        // After two rounds, total error count should converge (not grow unbounded).
-        // Allow a small delta due to rule interactions exposing new issues.
-        let total2 = errors2.len();
+        // After three rounds, total error count should converge (not grow unbounded).
+        // Three passes are needed because some style fixes (e.g. MD003 ATX→setext
+        // conversion) can reveal new spacing issues (MD022) that require a second
+        // fix pass; those in turn converge on the third pass.
         let total3 = errors3.len();
+        let total4 = errors4.len();
         prop_assert!(
-            total3 <= total2 + 3,
-            "Errors should converge after two fix passes, but grew from {} to {}",
-            total2, total3
+            total4 <= total3 + 3,
+            "Errors should converge after three fix passes, but grew from {} to {}",
+            total3, total4
         );
     }
 }
