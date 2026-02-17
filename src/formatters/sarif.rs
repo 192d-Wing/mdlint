@@ -7,10 +7,14 @@ use crate::types::{LintResults, Severity};
 /// Absolute paths become `file:///...` URIs; relative paths are kept as-is
 /// (SARIF allows relative URIs resolved against `originalUriBaseIds`).
 fn path_to_uri(path: &str) -> String {
+    // Check using std::path first (handles Windows drive letters), and also
+    // treat any path that starts with '/' as absolute (Unix convention).
     let p = std::path::Path::new(path);
-    if p.is_absolute() {
-        // Encode as file URI — percent-encode spaces and other special chars
-        let encoded = path.replace(' ', "%20");
+    let is_abs = p.is_absolute() || path.starts_with('/');
+    if is_abs {
+        // Encode as file URI — percent-encode spaces and other special chars.
+        // Normalise backslashes to forward slashes for Windows paths.
+        let encoded = path.replace('\\', "/").replace(' ', "%20");
         format!("file://{encoded}")
     } else {
         path.to_string()
@@ -91,13 +95,45 @@ pub fn format_sarif(results: &LintResults) -> String {
                 });
 
                 // Add fix suggestion if available
-                if error.fix_info.is_some() {
+                if let Some(fix) = &error.fix_info {
                     let fix_description =
                         error.suggestion.as_deref().unwrap_or("Apply automatic fix");
+
+                    // Build a SARIF-compliant fix with artifactChanges
+                    let fix_line = fix.line_number.unwrap_or(error.line_number);
+                    let start_col: usize = fix.edit_column.unwrap_or(1);
+                    let end_col: usize = if let Some(del) = fix.delete_count {
+                        if del < 0 {
+                            // Delete to end of line: use a sentinel large column
+                            usize::MAX / 2
+                        } else {
+                            start_col + del as usize
+                        }
+                    } else {
+                        start_col
+                    };
+                    let inserted_text = fix.insert_text.as_deref().unwrap_or("");
+
                     result["fixes"] = serde_json::json!([{
                         "description": {
                             "text": fix_description
-                        }
+                        },
+                        "artifactChanges": [{
+                            "artifactLocation": {
+                                "uri": uri,
+                                "uriBaseId": "%SRCROOT%"
+                            },
+                            "replacements": [{
+                                "deletedRegion": {
+                                    "startLine": fix_line,
+                                    "startColumn": start_col,
+                                    "endColumn": end_col
+                                },
+                                "insertedContent": {
+                                    "text": inserted_text
+                                }
+                            }]
+                        }]
                     }]);
                 }
 
@@ -224,6 +260,10 @@ mod tests {
         // Fixable errors should have a fixes array
         assert!(result["fixes"].is_array());
         assert!(!result["fixes"].as_array().unwrap().is_empty());
+        // Each fix must have artifactChanges (required by SARIF schema)
+        let fix = &result["fixes"][0];
+        assert!(fix["artifactChanges"].is_array());
+        assert!(!fix["artifactChanges"].as_array().unwrap().is_empty());
     }
 
     #[test]

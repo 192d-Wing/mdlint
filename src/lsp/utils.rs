@@ -111,6 +111,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(unix)]
     fn test_path_to_uri() {
         let path = PathBuf::from("/tmp/test.md");
         let uri = path_to_uri(&path);
