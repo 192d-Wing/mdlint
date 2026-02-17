@@ -75,7 +75,7 @@ mkdlint includes a full-featured LSP server for real-time linting in your editor
 ### Features
 
 - ✅ **Real-time diagnostics** as you type (300ms debounced)
-- ✅ **Code actions** (quick fixes) for all 44 auto-fixable rules
+- ✅ **Code actions** (quick fixes) for all 48 auto-fixable rules
 - ✅ **"Fix All" command** to apply all fixes at once
 - ✅ **Hover information** — rule docs, suggestions, and
   fix availability on hover

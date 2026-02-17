@@ -15,7 +15,7 @@ A fast Markdown linter written in Rust, inspired by [markdownlint](https://githu
 ## Features
 
 - **53 lint rules** (MD001-MD060) enforcing Markdown best practices
-- **Automatic fixing** for **45 rules (84.9% coverage)** with `--fix` flag
+- **Automatic fixing** for **48 rules (90.6% coverage)** with `--fix` flag
 - **Helpful suggestions** for all rules with actionable guidance
 - **VS Code extension** with bundled LSP server
 - **Language Server Protocol (LSP)** for real-time linting in any editor
@@ -87,7 +87,7 @@ mkdlint = { version = "0.9", features = ["lsp"] }
 
 ## Auto-Fix Showcase
 
-mkdlint can automatically fix **45 out of 53 rules (84.9%)**! Here are some examples:
+mkdlint can automatically fix **48 out of 53 rules (90.6%)**! Here are some examples:
 
 ### Before Auto-Fix
 
@@ -458,7 +458,7 @@ Rules can be enabled/disabled by name (`"MD013"`) or alias (`"line-length"`). Pa
 | MD043 | required-headings | Required heading structure | |
 | MD044 | proper-names | Proper names should have correct capitalization | Yes |
 | MD045 | no-alt-text | Images should have alternate text | Yes |
-| MD046 | code-block-style | Code block style | |
+| MD046 | code-block-style | Code block style | Yes |
 | MD047 | single-trailing-newline | Files should end with a single trailing newline | Yes |
 | MD048 | code-fence-style | Code fence style | Yes |
 | MD049 | emphasis-style | Emphasis style | Yes |
@@ -466,14 +466,14 @@ Rules can be enabled/disabled by name (`"MD013"`) or alias (`"line-length"`). Pa
 | MD051 | link-fragments | Link fragments should be valid | |
 | MD052 | reference-links-images | Reference links and images should use a defined label | Yes |
 | MD053 | link-image-reference-definitions | Link and image reference definitions should be needed | Yes |
-| MD054 | link-image-style | Link and image style | |
+| MD054 | link-image-style | Link and image style | Yes |
 | MD055 | table-pipe-style | Table pipe style | Yes |
 | MD056 | table-column-count | Table column count | |
 | MD058 | blanks-around-tables | Tables should be surrounded by blank lines | Yes |
-| MD059 | emphasis-marker-style-math | Emphasis marker style in math | |
+| MD059 | emphasis-marker-style-math | Emphasis marker style in math | Yes |
 | MD060 | dollar-in-code-fence | Dollar signs in fenced code blocks | Yes |
 
-**45 of 53 rules** have auto-fix support (84.9% coverage).
+**48 of 53 rules** have auto-fix support (90.6% coverage).
 
 ## License
 

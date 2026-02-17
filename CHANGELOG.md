@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **MD046** (code-block-style): Auto-fix support for converting between
+  fenced and indented code block styles
+- **MD054** (link-image-style): Auto-fix support for safe style conversions
+  (collapsed ↔ shortcut, autolink → inline)
+- **MD059** (emphasis-marker-style-math): Auto-fix support for escaping
+  emphasis underscores in math contexts
+- Auto-fix coverage increased from 45/53 (84.9%) to 48/53 (90.6%)
+
 ## [0.10.2] - 2026-02-16
 
 ### Added

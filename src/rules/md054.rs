@@ -1,6 +1,6 @@
 //! MD054 - Link and image style
 
-use crate::types::{LintError, ParserType, Rule, RuleParams, Severity};
+use crate::types::{FixInfo, LintError, ParserType, Rule, RuleParams, Severity};
 use once_cell::sync::Lazy;
 use regex::Regex;
 
@@ -37,7 +37,7 @@ impl Rule for MD054 {
     }
 
     fn tags(&self) -> &[&'static str] {
-        &["links", "images"]
+        &["links", "images", "fixable"]
     }
 
     fn parser_type(&self) -> ParserType {
@@ -123,8 +123,23 @@ impl Rule for MD054 {
 
             // Autolink: <https://...>
             if !allow_autolink {
-                for mat in AUTOLINK_RE.find_iter(&processed) {
+                for caps in AUTOLINK_RE.captures_iter(&processed) {
+                    let mat = caps.get(0).unwrap();
+                    let url = caps.get(1).unwrap().as_str();
                     matched_ranges.push((mat.start(), mat.end()));
+
+                    // Fix: autolink -> inline if inline is allowed
+                    let fix_info = if allow_inline {
+                        Some(FixInfo {
+                            line_number: None,
+                            edit_column: Some(mat.start() + 1),
+                            delete_count: Some(mat.len() as i32),
+                            insert_text: Some(format!("[{}]({})", url, url)),
+                        })
+                    } else {
+                        None
+                    };
+
                     errors.push(LintError {
                         line_number,
                         rule_names: self.names(),
@@ -133,7 +148,7 @@ impl Rule for MD054 {
                         error_context: Some(mat.as_str().to_string()),
                         rule_information: self.information(),
                         error_range: Some((mat.start() + 1, mat.len())),
-                        fix_info: None,
+                        fix_info,
                         suggestion: Some(
                             "Use consistent link and image reference style".to_string(),
                         ),
@@ -159,7 +174,7 @@ impl Rule for MD054 {
                             error_context: Some(mat.as_str().to_string()),
                             rule_information: self.information(),
                             error_range: Some((mat.start() + 1, mat.len())),
-                            fix_info: None,
+                            fix_info: None, // No safe conversion without reference definitions
                             suggestion: Some(
                                 "Use consistent link and image reference style".to_string(),
                             ),
@@ -180,6 +195,22 @@ impl Rule for MD054 {
                 for mat in COLLAPSED_REF_RE.find_iter(&processed) {
                     if !overlaps(&matched_ranges, mat.start(), mat.end()) {
                         matched_ranges.push((mat.start(), mat.end()));
+
+                        // Fix: collapsed -> shortcut if shortcut is allowed
+                        // [text][] -> [text]
+                        let fix_info = if allow_shortcut {
+                            let full = mat.as_str();
+                            let replacement = &full[..full.len() - 2]; // Remove trailing "[]"
+                            Some(FixInfo {
+                                line_number: None,
+                                edit_column: Some(mat.start() + 1),
+                                delete_count: Some(full.len() as i32),
+                                insert_text: Some(replacement.to_string()),
+                            })
+                        } else {
+                            None
+                        };
+
                         errors.push(LintError {
                             line_number,
                             rule_names: self.names(),
@@ -190,7 +221,7 @@ impl Rule for MD054 {
                             error_context: Some(mat.as_str().to_string()),
                             rule_information: self.information(),
                             error_range: Some((mat.start() + 1, mat.len())),
-                            fix_info: None,
+                            fix_info,
                             suggestion: Some(
                                 "Use consistent link and image reference style".to_string(),
                             ),
@@ -219,7 +250,7 @@ impl Rule for MD054 {
                             error_context: Some(mat.as_str().to_string()),
                             rule_information: self.information(),
                             error_range: Some((mat.start() + 1, mat.len())),
-                            fix_info: None,
+                            fix_info: None, // No safe conversion without context
                             suggestion: Some(
                                 "Use consistent link and image reference style".to_string(),
                             ),
@@ -237,9 +268,30 @@ impl Rule for MD054 {
 
             // Shortcut reference: [text] not followed by ( or [
             if !allow_shortcut {
-                for mat in SHORTCUT_REF_RE.find_iter(&processed) {
+                for caps in SHORTCUT_REF_RE.captures_iter(&processed) {
+                    let mat = caps.get(0).unwrap();
                     if !overlaps(&matched_ranges, mat.start(), mat.end()) {
                         matched_ranges.push((mat.start(), mat.end()));
+
+                        // Fix: shortcut -> collapsed if collapsed is allowed
+                        // [text] -> [text][]
+                        // The regex match includes one trailing char, so the actual
+                        // link is mat without the last char
+                        let fix_info = if allow_collapsed {
+                            let text = caps.get(1).unwrap().as_str();
+                            // Insert [] right after the closing ] of [text]
+                            // The closing ] is at mat.start() + 1 + text.len()
+                            let bracket_end = mat.start() + 1 + text.len() + 1; // [text]
+                            Some(FixInfo {
+                                line_number: None,
+                                edit_column: Some(bracket_end + 1), // 1-based, after ]
+                                delete_count: Some(0),
+                                insert_text: Some("[]".to_string()),
+                            })
+                        } else {
+                            None
+                        };
+
                         errors.push(LintError {
                             line_number,
                             rule_names: self.names(),
@@ -250,7 +302,7 @@ impl Rule for MD054 {
                             error_context: Some(mat.as_str().to_string()),
                             rule_information: self.information(),
                             error_range: Some((mat.start() + 1, mat.len())),
-                            fix_info: None,
+                            fix_info,
                             suggestion: Some(
                                 "Use consistent link and image reference style".to_string(),
                             ),
@@ -340,6 +392,87 @@ mod tests {
                 .as_ref()
                 .unwrap()
                 .contains("Autolink")
+        );
+    }
+
+    #[test]
+    fn test_md054_fix_collapsed_to_shortcut() {
+        // Collapsed disabled, shortcut allowed -> fix removes []
+        let lines = vec!["[text][] is a link\n"];
+        let mut config = HashMap::new();
+        config.insert("collapsed".to_string(), serde_json::Value::Bool(false));
+        let params = make_params(&lines, &config);
+        let errors = MD054.lint(&params);
+        assert_eq!(errors.len(), 1);
+        let fix = errors[0].fix_info.as_ref().expect("Should have fix_info");
+        assert_eq!(fix.edit_column, Some(1));
+        assert_eq!(fix.delete_count, Some(8)); // "[text][]" is 8 chars
+        assert_eq!(fix.insert_text, Some("[text]".to_string()));
+    }
+
+    #[test]
+    fn test_md054_fix_shortcut_to_collapsed() {
+        // Shortcut disabled, collapsed allowed -> fix inserts []
+        let lines = vec!["[text] is a link\n"];
+        let mut config = HashMap::new();
+        config.insert("shortcut".to_string(), serde_json::Value::Bool(false));
+        let params = make_params(&lines, &config);
+        let errors = MD054.lint(&params);
+        assert_eq!(errors.len(), 1);
+        let fix = errors[0].fix_info.as_ref().expect("Should have fix_info");
+        // Insert [] after the ] at position 6 (1-based: 7)
+        assert_eq!(fix.edit_column, Some(7));
+        assert_eq!(fix.delete_count, Some(0));
+        assert_eq!(fix.insert_text, Some("[]".to_string()));
+    }
+
+    #[test]
+    fn test_md054_fix_autolink_to_inline() {
+        // Autolink disabled, inline allowed -> fix converts to inline
+        let lines = vec!["<https://example.com>\n"];
+        let mut config = HashMap::new();
+        config.insert("autolink".to_string(), serde_json::Value::Bool(false));
+        let params = make_params(&lines, &config);
+        let errors = MD054.lint(&params);
+        assert_eq!(errors.len(), 1);
+        let fix = errors[0].fix_info.as_ref().expect("Should have fix_info");
+        assert_eq!(fix.edit_column, Some(1));
+        assert_eq!(fix.delete_count, Some(21)); // "<https://example.com>"
+        assert_eq!(
+            fix.insert_text,
+            Some("[https://example.com](https://example.com)".to_string())
+        );
+    }
+
+    #[test]
+    fn test_md054_no_fix_when_no_safe_target() {
+        // Both collapsed and shortcut disabled -> no fix for collapsed
+        let lines = vec!["[text][] is a link\n"];
+        let mut config = HashMap::new();
+        config.insert("collapsed".to_string(), serde_json::Value::Bool(false));
+        config.insert("shortcut".to_string(), serde_json::Value::Bool(false));
+        let params = make_params(&lines, &config);
+        let errors = MD054.lint(&params);
+        assert_eq!(errors.len(), 1);
+        assert!(
+            errors[0].fix_info.is_none(),
+            "Should have no fix_info when no safe target"
+        );
+    }
+
+    #[test]
+    fn test_md054_fix_autolink_no_fix_when_inline_disabled() {
+        // Autolink disabled AND inline disabled -> no fix
+        let lines = vec!["<https://example.com>\n"];
+        let mut config = HashMap::new();
+        config.insert("autolink".to_string(), serde_json::Value::Bool(false));
+        config.insert("inline".to_string(), serde_json::Value::Bool(false));
+        let params = make_params(&lines, &config);
+        let errors = MD054.lint(&params);
+        assert_eq!(errors.len(), 1);
+        assert!(
+            errors[0].fix_info.is_none(),
+            "Should have no fix when inline is also disabled"
         );
     }
 }

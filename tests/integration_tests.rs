@@ -661,3 +661,107 @@ fn test_crlf_conflicting_fixes_no_corruption() {
         }
     }
 }
+
+// ---- MD059 auto-fix round-trip ----
+
+#[test]
+fn test_apply_fixes_round_trip_md059_inline_math() {
+    let content = "# Title\n\n$_text_$\n";
+    let errors = lint_string(content);
+    assert!(has_rule(&errors, "MD059"), "Should have MD059 initially");
+
+    let fixed = apply_fixes(content, &errors);
+    let errors_after = lint_string(&fixed);
+    assert!(
+        !has_rule(&errors_after, "MD059"),
+        "After apply_fixes, MD059 should be gone. Fixed content: {:?}",
+        fixed
+    );
+}
+
+#[test]
+fn test_apply_fixes_round_trip_md059_display_math() {
+    let content = "# Title\n\n$$\n_text_\n$$\n";
+    let errors = lint_string(content);
+    assert!(has_rule(&errors, "MD059"), "Should have MD059 initially");
+
+    let fixed = apply_fixes(content, &errors);
+    let errors_after = lint_string(&fixed);
+    assert!(
+        !has_rule(&errors_after, "MD059"),
+        "After apply_fixes, MD059 should be gone. Fixed content: {:?}",
+        fixed
+    );
+}
+
+// ---- MD054 auto-fix round-trip ----
+
+#[test]
+fn test_apply_fixes_round_trip_md054_collapsed_to_shortcut() {
+    let json = r#"{"default": false, "MD054": {"collapsed": false}}"#;
+    let config: Config = serde_json::from_str(json).unwrap();
+    let content = "# Title\n\n[text][] is a link\n\n[text]: https://example.com\n";
+    let errors = lint_string_with_config(content, config.clone());
+    assert!(has_rule(&errors, "MD054"), "Should have MD054 initially");
+
+    let fixed = apply_fixes(content, &errors);
+    let errors_after = lint_string_with_config(&fixed, config);
+    assert!(
+        !has_rule(&errors_after, "MD054"),
+        "After apply_fixes, MD054 should be gone. Fixed content: {:?}",
+        fixed
+    );
+}
+
+#[test]
+fn test_apply_fixes_round_trip_md054_autolink_to_inline() {
+    let json = r#"{"default": false, "MD054": {"autolink": false}}"#;
+    let config: Config = serde_json::from_str(json).unwrap();
+    let content = "# Title\n\n<https://example.com>\n";
+    let errors = lint_string_with_config(content, config.clone());
+    assert!(has_rule(&errors, "MD054"), "Should have MD054 initially");
+
+    let fixed = apply_fixes(content, &errors);
+    let errors_after = lint_string_with_config(&fixed, config);
+    assert!(
+        !has_rule(&errors_after, "MD054"),
+        "After apply_fixes, MD054 should be gone. Fixed content: {:?}",
+        fixed
+    );
+}
+
+// ---- MD046 auto-fix round-trip ----
+
+#[test]
+fn test_apply_fixes_round_trip_md046_indented_to_fenced() {
+    let json = r#"{"default": false, "MD046": {"style": "fenced"}}"#;
+    let config: Config = serde_json::from_str(json).unwrap();
+    let content = "# Title\n\n    indented code\n    more code\n";
+    let errors = lint_string_with_config(content, config.clone());
+    assert!(has_rule(&errors, "MD046"), "Should have MD046 initially");
+
+    let fixed = apply_fixes(content, &errors);
+    let errors_after = lint_string_with_config(&fixed, config);
+    assert!(
+        !has_rule(&errors_after, "MD046"),
+        "After apply_fixes, MD046 should be gone. Fixed content: {:?}",
+        fixed
+    );
+}
+
+#[test]
+fn test_apply_fixes_round_trip_md046_fenced_to_indented() {
+    let json = r#"{"default": false, "MD046": {"style": "indented"}}"#;
+    let config: Config = serde_json::from_str(json).unwrap();
+    let content = "# Title\n\n```\nfenced code\nmore code\n```\n";
+    let errors = lint_string_with_config(content, config.clone());
+    assert!(has_rule(&errors, "MD046"), "Should have MD046 initially");
+
+    let fixed = apply_fixes(content, &errors);
+    let errors_after = lint_string_with_config(&fixed, config);
+    assert!(
+        !has_rule(&errors_after, "MD046"),
+        "After apply_fixes, MD046 should be gone. Fixed content: {:?}",
+        fixed
+    );
+}

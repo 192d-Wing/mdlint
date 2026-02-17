@@ -474,9 +474,7 @@ async fn test_capabilities_include_hover() {
 
 #[tokio::test]
 async fn test_did_change_watched_files_invalidates_cache() {
-    use tower_lsp::lsp_types::{
-        DidChangeWatchedFilesParams, FileChangeType, FileEvent, Url,
-    };
+    use tower_lsp::lsp_types::{DidChangeWatchedFilesParams, FileChangeType, FileEvent, Url};
 
     let server = create_test_server().await;
 
@@ -522,9 +520,7 @@ async fn test_did_change_watched_files_invalidates_cache() {
 
 #[tokio::test]
 async fn test_multiple_config_file_changes() {
-    use tower_lsp::lsp_types::{
-        DidChangeWatchedFilesParams, FileChangeType, FileEvent, Url,
-    };
+    use tower_lsp::lsp_types::{DidChangeWatchedFilesParams, FileChangeType, FileEvent, Url};
 
     let server = create_test_server().await;
 
@@ -575,9 +571,7 @@ async fn test_multiple_config_file_changes() {
 
 #[tokio::test]
 async fn test_config_deletion_triggers_relint() {
-    use tower_lsp::lsp_types::{
-        DidChangeWatchedFilesParams, FileChangeType, FileEvent, Url,
-    };
+    use tower_lsp::lsp_types::{DidChangeWatchedFilesParams, FileChangeType, FileEvent, Url};
 
     let server = create_test_server().await;
 

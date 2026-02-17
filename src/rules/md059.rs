@@ -1,11 +1,14 @@
 //! MD059 - Emphasis marker style in math
 
-use crate::types::{LintError, ParserType, Rule, RuleParams, Severity};
+use crate::types::{FixInfo, LintError, ParserType, Rule, RuleParams, Severity};
 use once_cell::sync::Lazy;
 use regex::Regex;
 
 // Pattern to detect emphasis-style underscores: _text_ within math
-static EMPHASIS_UNDERSCORE_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"_[^_]+_").unwrap());
+// Uses a non-backslash char (or start) before the opening _, and the closing _
+// must also not be preceded by a backslash.
+static EMPHASIS_UNDERSCORE_RE: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"(?:^|[^\\])(_[^_\\]+_)").unwrap());
 
 pub struct MD059;
 
@@ -19,7 +22,7 @@ impl Rule for MD059 {
     }
 
     fn tags(&self) -> &[&'static str] {
-        &["emphasis", "math"]
+        &["emphasis", "math", "fixable"]
     }
 
     fn parser_type(&self) -> ParserType {
@@ -33,8 +36,6 @@ impl Rule for MD059 {
     fn lint(&self, params: &RuleParams) -> Vec<LintError> {
         let mut errors = Vec::new();
         let mut in_display_math = false;
-        let mut display_math_content = String::new();
-        let mut display_math_start_line: usize = 0;
 
         for (idx, line) in params.lines.iter().enumerate() {
             let line_number = idx + 1;
@@ -43,37 +44,13 @@ impl Rule for MD059 {
             // Handle display math blocks ($$...$$)
             // Check for $$ delimiters on a line
             if trimmed.trim() == "$$" {
-                if in_display_math {
-                    // Closing $$: check accumulated content
-                    if EMPHASIS_UNDERSCORE_RE.is_match(&display_math_content) {
-                        errors.push(LintError {
-                            line_number: display_math_start_line,
-                            rule_names: self.names(),
-                            rule_description: self.description(),
-                            error_detail: Some(
-                                "Emphasis-style underscore found in display math".to_string(),
-                            ),
-                            error_context: Some(display_math_content.trim().to_string()),
-                            rule_information: self.information(),
-                            error_range: None,
-                            fix_info: None,
-                            suggestion: Some("Use backslash to escape $ for literal dollar signs when using math".to_string()),
-                            severity: Severity::Warning,
-                        });
-                    }
-                    in_display_math = false;
-                    display_math_content.clear();
-                } else {
-                    // Opening $$
-                    in_display_math = true;
-                    display_math_start_line = line_number;
-                }
+                in_display_math = !in_display_math;
                 continue;
             }
 
             if in_display_math {
-                display_math_content.push_str(trimmed);
-                display_math_content.push(' ');
+                // Check this content line for emphasis underscores
+                self.check_line_for_emphasis(trimmed, line_number, 0, "display math", &mut errors);
                 continue;
             }
 
@@ -89,6 +66,44 @@ impl Rule for MD059 {
 }
 
 impl MD059 {
+    /// Check a string for emphasis underscores and emit errors with fix_info.
+    /// `base_offset` is the 0-based offset within the original line where `content` starts.
+    fn check_line_for_emphasis(
+        &self,
+        content: &str,
+        line_number: usize,
+        base_offset: usize,
+        math_type: &str,
+        errors: &mut Vec<LintError>,
+    ) {
+        for caps in EMPHASIS_UNDERSCORE_RE.captures_iter(content) {
+            let em_match = caps.get(1).unwrap();
+            let matched_text = em_match.as_str();
+            // Escape the underscores: _text_ -> \_text\_
+            let inner = &matched_text[1..matched_text.len() - 1];
+            let escaped = format!("\\_{}\\_", inner);
+            let abs_col = base_offset + em_match.start();
+
+            errors.push(LintError {
+                line_number,
+                rule_names: self.names(),
+                rule_description: self.description(),
+                error_detail: Some(format!("Emphasis-style underscore found in {}", math_type)),
+                error_context: Some(matched_text.to_string()),
+                rule_information: self.information(),
+                error_range: Some((abs_col + 1, matched_text.len())),
+                fix_info: Some(FixInfo {
+                    line_number: None,
+                    edit_column: Some(abs_col + 1),
+                    delete_count: Some(matched_text.len() as i32),
+                    insert_text: Some(escaped),
+                }),
+                suggestion: Some("Escape underscores with backslash in math context".to_string()),
+                severity: Severity::Warning,
+            });
+        }
+    }
+
     /// Check for emphasis underscores in single-line $$...$$ math
     fn check_inline_display_math(
         &self,
@@ -107,25 +122,13 @@ impl MD059 {
             if let Some(end) = line[after_open..].find("$$") {
                 let abs_end = after_open + end;
                 let math_content = &line[after_open..abs_end];
-                if EMPHASIS_UNDERSCORE_RE.is_match(math_content) {
-                    errors.push(LintError {
-                        line_number,
-                        rule_names: self.names(),
-                        rule_description: self.description(),
-                        error_detail: Some(
-                            "Emphasis-style underscore found in display math".to_string(),
-                        ),
-                        error_context: Some(format!("$${}$$", math_content)),
-                        rule_information: self.information(),
-                        error_range: Some((abs_start + 1, abs_end + 2 - abs_start)),
-                        fix_info: None,
-                        suggestion: Some(
-                            "Use backslash to escape $ for literal dollar signs when using math"
-                                .to_string(),
-                        ),
-                        severity: Severity::Warning,
-                    });
-                }
+                self.check_line_for_emphasis(
+                    math_content,
+                    line_number,
+                    after_open,
+                    "display math",
+                    errors,
+                );
                 search_start = abs_end + 2;
             } else {
                 break;
@@ -161,21 +164,14 @@ impl MD059 {
                 }
                 if i < bytes.len() && bytes[i] == b'$' {
                     let math_content = &line[start + 1..i];
-                    if !math_content.is_empty() && EMPHASIS_UNDERSCORE_RE.is_match(math_content) {
-                        errors.push(LintError {
+                    if !math_content.is_empty() {
+                        self.check_line_for_emphasis(
+                            math_content,
                             line_number,
-                            rule_names: self.names(),
-                            rule_description: self.description(),
-                            error_detail: Some(
-                                "Emphasis-style underscore found in math".to_string(),
-                            ),
-                            error_context: Some(format!("${}$", math_content)),
-                            rule_information: self.information(),
-                            error_range: Some((start + 1, i + 1 - start)),
-                            fix_info: None,
-                            suggestion: Some("Use backslash to escape $ for literal dollar signs when using math".to_string()),
-                            severity: Severity::Warning,
-                        });
+                            start + 1,
+                            "math",
+                            errors,
+                        );
                     }
                     i += 1;
                 }
@@ -232,5 +228,76 @@ mod tests {
                 .unwrap()
                 .contains("underscore")
         );
+    }
+
+    #[test]
+    fn test_md059_fix_info_inline_math() {
+        // "$_text_$" — underscore match at column 2 (1-based), length 6
+        let lines = vec!["$_text_$"];
+        let config = HashMap::new();
+        let params = make_params(&lines, &config);
+        let errors = MD059.lint(&params);
+        assert_eq!(errors.len(), 1);
+        let fix = errors[0].fix_info.as_ref().expect("Should have fix_info");
+        assert_eq!(fix.edit_column, Some(2)); // 1-based: after the $
+        assert_eq!(fix.delete_count, Some(6)); // "_text_" is 6 chars
+        assert_eq!(fix.insert_text, Some("\\_text\\_".to_string()));
+    }
+
+    #[test]
+    fn test_md059_fix_info_display_math_block() {
+        // The fix should target the content line (line 2), not the $$ start line
+        let lines = vec!["$$\n", "_text_\n", "$$\n"];
+        let config = HashMap::new();
+        let params = make_params(&lines, &config);
+        let errors = MD059.lint(&params);
+        assert_eq!(errors.len(), 1);
+        assert_eq!(errors[0].line_number, 2, "Error should be on content line");
+        let fix = errors[0].fix_info.as_ref().expect("Should have fix_info");
+        assert_eq!(fix.edit_column, Some(1));
+        assert_eq!(fix.delete_count, Some(6));
+        assert_eq!(fix.insert_text, Some("\\_text\\_".to_string()));
+    }
+
+    #[test]
+    fn test_md059_fix_info_inline_display_math() {
+        // "$$_x_$$" — underscore match inside $$...$$
+        let lines = vec!["$$_x_$$"];
+        let config = HashMap::new();
+        let params = make_params(&lines, &config);
+        let errors = MD059.lint(&params);
+        assert_eq!(errors.len(), 1);
+        let fix = errors[0].fix_info.as_ref().expect("Should have fix_info");
+        assert_eq!(fix.edit_column, Some(3)); // after $$
+        assert_eq!(fix.delete_count, Some(3)); // "_x_"
+        assert_eq!(fix.insert_text, Some("\\_x\\_".to_string()));
+    }
+
+    #[test]
+    fn test_md059_multiple_underscores() {
+        // Two emphasis patterns in one math span
+        let lines = vec!["$_a_ + _b_$"];
+        let config = HashMap::new();
+        let params = make_params(&lines, &config);
+        let errors = MD059.lint(&params);
+        assert_eq!(errors.len(), 2);
+        assert_eq!(
+            errors[0].fix_info.as_ref().unwrap().insert_text,
+            Some("\\_a\\_".to_string())
+        );
+        assert_eq!(
+            errors[1].fix_info.as_ref().unwrap().insert_text,
+            Some("\\_b\\_".to_string())
+        );
+    }
+
+    #[test]
+    fn test_md059_subscript_no_trigger() {
+        // Single underscore (subscript like x_1) should not trigger — needs _text_ pattern
+        let lines = vec!["$x_1$"];
+        let config = HashMap::new();
+        let params = make_params(&lines, &config);
+        let errors = MD059.lint(&params);
+        assert_eq!(errors.len(), 0);
     }
 }
