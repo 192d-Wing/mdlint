@@ -103,6 +103,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(unix)]
     fn test_uri_to_path() {
         let uri = Url::parse("file:///tmp/test.md").unwrap();
         let path = uri_to_path(&uri);
