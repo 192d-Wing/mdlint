@@ -16,6 +16,8 @@ pub struct ConfigManager {
     cache: Arc<DashMap<PathBuf, Option<Config>>>,
     /// Workspace roots (from LSP initialize)
     pub(crate) workspace_roots: Vec<PathBuf>,
+    /// Optional preset override from workspace settings (e.g. `mkdlint.preset`)
+    pub(crate) preset_override: Option<String>,
 }
 
 impl ConfigManager {
@@ -24,6 +26,16 @@ impl ConfigManager {
         Self {
             cache: Arc::new(DashMap::new()),
             workspace_roots,
+            preset_override: None,
+        }
+    }
+
+    /// Create a new config manager with a preset override
+    pub fn with_preset(workspace_roots: Vec<PathBuf>, preset: Option<String>) -> Self {
+        Self {
+            cache: Arc::new(DashMap::new()),
+            workspace_roots,
+            preset_override: preset,
         }
     }
 
@@ -31,6 +43,9 @@ impl ConfigManager {
     ///
     /// Walks up the directory tree from the file's directory to the workspace root,
     /// looking for known config file names. Results are cached by directory.
+    ///
+    /// If `preset_override` is set and the discovered config has no preset,
+    /// the override preset is applied.
     pub fn discover_config(&self, uri: &Url) -> Option<Config> {
         let file_path = uri.to_file_path().ok()?;
         let dir = file_path.parent()?;
@@ -41,7 +56,16 @@ impl ConfigManager {
         }
 
         // Walk up directory tree to workspace root
-        let config = self.find_config(dir);
+        let mut config = self.find_config(dir);
+
+        // Apply preset override if no file-based preset is set
+        if let Some(ref preset) = self.preset_override {
+            let cfg = config.get_or_insert_with(Config::default);
+            if cfg.preset.is_none() {
+                cfg.preset = Some(preset.clone());
+                cfg.apply_preset();
+            }
+        }
 
         // Cache result (even if None)
         self.cache.insert(dir.to_path_buf(), config.clone());

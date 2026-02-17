@@ -59,6 +59,20 @@
           "default": "off",
           "scope": "window",
           "description": "Trace level for LSP communication (for debugging)."
+        },
+        "mkdlint.preset": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            null,
+            "kramdown",
+            "github"
+          ],
+          "default": null,
+          "scope": "resource",
+          "description": "Named rule preset to apply (e.g. \"kramdown\" for RFC documents, \"github\" for GitHub-hosted docs). Overridden by a preset key in your .markdownlint config file."
         }
       }
     },

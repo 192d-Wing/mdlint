@@ -29,6 +29,9 @@ export function createClient(
     },
   };
 
+  const config = vscode.workspace.getConfiguration("mkdlint");
+  const preset = config.get<string | null>("preset") ?? null;
+
   const clientOptions: LanguageClientOptions = {
     documentSelector: [
       { scheme: "file", language: "markdown" },
@@ -40,6 +43,9 @@ export function createClient(
       ),
     },
     outputChannelName: "mkdlint",
+    initializationOptions: {
+      ...(preset ? { preset } : {}),
+    },
   };
 
   return new LanguageClient(

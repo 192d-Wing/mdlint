@@ -11,7 +11,7 @@
 //! This rule fires when an opening `{::name}` has no matching `{:/name}`,
 //! when a closing tag has no opener, or when names are mismatched.
 
-use crate::types::{LintError, ParserType, Rule, RuleParams, Severity};
+use crate::types::{FixInfo, LintError, ParserType, Rule, RuleParams, Severity};
 use once_cell::sync::Lazy;
 use regex::Regex;
 
@@ -110,6 +110,10 @@ impl Rule for KMD008 {
         }
 
         // Report any unclosed extensions
+        let last_line_len = lines
+            .last()
+            .map(|l| l.trim_end_matches('\n').trim_end_matches('\r').len())
+            .unwrap_or(0);
         for (name, open_line) in stack {
             errors.push(LintError {
                 line_number: open_line,
@@ -119,6 +123,12 @@ impl Rule for KMD008 {
                     "Unclosed block extension '{{::{name}}}' opened on line {open_line}"
                 )),
                 severity: Severity::Error,
+                fix_info: Some(FixInfo {
+                    line_number: Some(lines.len()),
+                    edit_column: Some(last_line_len + 1),
+                    delete_count: None,
+                    insert_text: Some(format!("\n{{:/{name}}}\n")),
+                }),
                 ..Default::default()
             });
         }

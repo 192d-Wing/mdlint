@@ -14,7 +14,7 @@
 //! - ALD definition: `{:identifier: ...}` — identifier immediately followed by `:`
 //! - Regular IAL:    `{: #id .class ...}` — starts with space, `#`, `.`, or `key=`
 
-use crate::types::{LintError, ParserType, Rule, RuleParams, Severity};
+use crate::types::{FixInfo, LintError, ParserType, Rule, RuleParams, Severity};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use std::collections::HashMap;
@@ -101,6 +101,12 @@ impl Rule for KMD009 {
                     "ALD '{{:{name}:}}' is defined but never referenced"
                 )),
                 severity: Severity::Error,
+                fix_info: Some(FixInfo {
+                    line_number: Some(line_number),
+                    edit_column: Some(1),
+                    delete_count: Some(-1), // Delete entire line
+                    insert_text: None,
+                }),
                 ..Default::default()
             });
         }

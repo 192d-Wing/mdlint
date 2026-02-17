@@ -12,7 +12,7 @@
 //!
 //! This rule fires when an opening `$$` fence has no matching closing `$$`.
 
-use crate::types::{LintError, ParserType, Rule, RuleParams, Severity};
+use crate::types::{FixInfo, LintError, ParserType, Rule, RuleParams, Severity};
 
 pub struct KMD007;
 
@@ -70,6 +70,10 @@ impl Rule for KMD007 {
 
         // If still open at EOF, report the unclosed block
         if let Some(open_line) = math_open_line {
+            let last_line_len = lines
+                .last()
+                .map(|l| l.trim_end_matches('\n').trim_end_matches('\r').len())
+                .unwrap_or(0);
             errors.push(LintError {
                 line_number: open_line,
                 rule_names: self.names(),
@@ -78,6 +82,12 @@ impl Rule for KMD007 {
                     "Unclosed math block: opening '$$' on line {open_line} has no matching closing '$$'"
                 )),
                 severity: Severity::Error,
+                fix_info: Some(FixInfo {
+                    line_number: Some(lines.len()),
+                    edit_column: Some(last_line_len + 1),
+                    delete_count: None,
+                    insert_text: Some("\n$$\n".to_string()),
+                }),
                 ..Default::default()
             });
         }

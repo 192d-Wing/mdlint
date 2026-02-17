@@ -119,8 +119,17 @@ impl LanguageServer for MkdlintLanguageServer {
             workspace_roots
         };
 
-        // Update config manager with workspace roots
-        *self.config_manager.lock().unwrap() = ConfigManager::new(workspace_roots);
+        // Extract preset from initialization options (e.g. from VS Code setting `mkdlint.preset`)
+        let preset_override: Option<String> = params
+            .initialization_options
+            .as_ref()
+            .and_then(|o| o.get("preset"))
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string());
+
+        // Update config manager with workspace roots and optional preset override
+        *self.config_manager.lock().unwrap() =
+            ConfigManager::with_preset(workspace_roots, preset_override);
 
         self.client
             .log_message(

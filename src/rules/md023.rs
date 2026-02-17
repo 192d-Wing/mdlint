@@ -43,9 +43,14 @@ impl Rule for MD023 {
                         rule_names: self.names(),
                         rule_description: self.description(),
                         error_detail: Some(format!("Expected: 0; Actual: {}", indent_count)),
-                        error_context: Some(
-                            trimmed_no_newline[..20.min(trimmed_no_newline.len())].to_string(),
-                        ),
+                        error_context: Some({
+                            let char_limit = trimmed_no_newline
+                                .char_indices()
+                                .nth(20)
+                                .map(|(i, _)| i)
+                                .unwrap_or(trimmed_no_newline.len());
+                            trimmed_no_newline[..char_limit].to_string()
+                        }),
                         rule_information: self.information(),
                         error_range: Some((1, indent_count)),
                         fix_info: Some(FixInfo {

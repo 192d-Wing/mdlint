@@ -3,7 +3,7 @@
 //! These tests lint fixture files and snapshot the error output so that
 //! any regressions in rule behavior are immediately visible as snapshot diffs.
 
-use mkdlint::{LintOptions, lint_sync};
+use mkdlint::{Config, LintOptions, lint_sync};
 use std::collections::HashMap;
 
 /// Helper: lint a markdown string and return a deterministic text representation of the errors.
@@ -48,6 +48,53 @@ fn lint_fixture(name: &str) -> String {
     let content = std::fs::read_to_string(&path)
         .unwrap_or_else(|e| panic!("Failed to read fixture {}: {}", path, e));
     lint_snapshot(&content)
+}
+
+/// Helper: lint a fixture file with a named preset applied.
+fn lint_fixture_with_preset(name: &str, preset: &str) -> String {
+    let path = format!("{}/tests/fixtures/{}", env!("CARGO_MANIFEST_DIR"), name);
+    let content = std::fs::read_to_string(&path)
+        .unwrap_or_else(|e| panic!("Failed to read fixture {}: {}", path, e));
+
+    let mut config = Config {
+        preset: Some(preset.to_string()),
+        ..Config::default()
+    };
+    config.apply_preset();
+
+    let mut strings = HashMap::new();
+    strings.insert("test.md".to_string(), content);
+    let options = LintOptions {
+        strings,
+        config: Some(config),
+        ..Default::default()
+    };
+    let results = lint_sync(&options).unwrap();
+    let errors = results.get("test.md").unwrap_or(&[]);
+
+    let mut lines = Vec::new();
+    for e in errors {
+        let mut line = format!(
+            "test.md:{}: {} {}",
+            e.line_number,
+            e.rule_names.join("/"),
+            e.rule_description,
+        );
+        if let Some(detail) = &e.error_detail {
+            line.push_str(&format!(" [{}]", detail));
+        }
+        if let Some(ctx) = &e.error_context {
+            line.push_str(&format!(" [Context: \"{}\"]", ctx));
+        }
+        if let Some((col, len)) = e.error_range {
+            line.push_str(&format!(" (col {}, len {})", col, len));
+        }
+        if e.fix_info.is_some() {
+            line.push_str(" [fixable]");
+        }
+        lines.push(line);
+    }
+    lines.join("\n")
 }
 
 #[test]
@@ -213,5 +260,11 @@ fn snapshot_md051_broken_fragment() {
 #[test]
 fn snapshot_md060_dollar_in_fence() {
     let output = lint_snapshot("# Title\n\n```bash\n$ echo hello\n$ npm install\n```\n");
+    insta::assert_snapshot!(output);
+}
+
+#[test]
+fn snapshot_kramdown_rules() {
+    let output = lint_fixture_with_preset("kramdown_rules.md", "kramdown");
     insta::assert_snapshot!(output);
 }

@@ -84,6 +84,8 @@ impl Rule for KMD005 {
         // id → first line number
         let mut seen: HashMap<String, usize> = HashMap::new();
         let mut in_code_block = false;
+        // Track previous non-empty line for setext heading detection
+        let mut prev_text: Option<(&str, usize)> = None; // (text, line_number)
 
         for (idx, line) in lines.iter().enumerate() {
             let line_number = idx + 1;
@@ -92,13 +94,49 @@ impl Rule for KMD005 {
             // Track code fences
             if trimmed.starts_with("```") || trimmed.starts_with("~~~") {
                 in_code_block = !in_code_block;
+                prev_text = None;
                 continue;
             }
             if in_code_block {
                 continue;
             }
 
-            // Only process ATX headings
+            // Detect setext heading underlines: === (h1) or --- (h2, ≥2 chars)
+            let is_setext_h1 = !trimmed.is_empty() && trimmed.chars().all(|c| c == '=');
+            let is_setext_h2 =
+                trimmed.len() >= 2 && !trimmed.is_empty() && trimmed.chars().all(|c| c == '-');
+
+            if (is_setext_h1 || is_setext_h2) && prev_text.is_some() {
+                if let Some((heading_text, heading_line)) = prev_text.take() {
+                    // Setext heading: use prev_text_line as the heading text
+                    let id = if let Some(explicit) = EXPLICIT_ID_RE.captures(heading_text) {
+                        explicit[1].to_string()
+                    } else {
+                        kramdown_slug(heading_text)
+                    };
+
+                    if !id.is_empty() {
+                        if let Some(&first_line) = seen.get(&id) {
+                            errors.push(LintError {
+                                line_number: heading_line,
+                                rule_names: self.names(),
+                                rule_description: self.description(),
+                                error_detail: Some(format!(
+                                    "Duplicate heading ID '{id}' (first defined on line {first_line})"
+                                )),
+                                severity: Severity::Error,
+                                ..Default::default()
+                            });
+                        } else {
+                            seen.insert(id, heading_line);
+                        }
+                    }
+                }
+                prev_text = None;
+                continue;
+            }
+
+            // ATX headings
             if let Some(cap) = ATX_RE.captures(trimmed) {
                 let heading_text = cap[2].trim();
 
@@ -110,6 +148,7 @@ impl Rule for KMD005 {
                 };
 
                 if id.is_empty() {
+                    prev_text = None;
                     continue;
                 }
 
@@ -127,6 +166,15 @@ impl Rule for KMD005 {
                 } else {
                     seen.insert(id, line_number);
                 }
+                prev_text = None;
+                continue;
+            }
+
+            // Track previous non-empty line for setext detection
+            if trimmed.is_empty() {
+                prev_text = None;
+            } else {
+                prev_text = Some((trimmed, line_number));
             }
         }
 
@@ -182,5 +230,34 @@ mod tests {
         assert_eq!(kramdown_slug("Hello World"), "hello-world");
         assert_eq!(kramdown_slug("Setup & Config!"), "setup-config");
         assert_eq!(kramdown_slug("  Leading spaces  "), "leading-spaces");
+    }
+
+    #[test]
+    fn test_kmd005_setext_duplicate() {
+        let errors = lint("Title\n=====\n\nTitle\n=====\n");
+        assert!(
+            errors.iter().any(|e| e.rule_names[0] == "KMD005"),
+            "should fire on duplicate setext headings"
+        );
+    }
+
+    #[test]
+    fn test_kmd005_setext_atx_collision() {
+        // ATX # Title and setext Title\n----- produce the same slug
+        let errors = lint("# Title\n\nTitle\n-----\n");
+        assert!(
+            errors.iter().any(|e| e.rule_names[0] == "KMD005"),
+            "should fire when setext and ATX heading share the same slug"
+        );
+    }
+
+    #[test]
+    fn test_kmd005_setext_thematic_break_ok() {
+        // A bare --- with no preceding content line is a thematic break, not a heading
+        let errors = lint("# Intro\n\n---\n\nParagraph\n");
+        assert!(
+            errors.is_empty(),
+            "bare --- after blank line should not be treated as setext heading"
+        );
     }
 }

@@ -9,13 +9,41 @@ use std::collections::HashMap;
 pub fn resolve_preset(name: &str) -> Option<Config> {
     match name {
         "kramdown" => Some(kramdown_preset()),
+        "github" => Some(github_preset()),
         _ => None,
     }
 }
 
 /// Returns a list of known preset names (for help text / `--list-rules`).
 pub fn preset_names() -> &'static [&'static str] {
-    &["kramdown"]
+    &["kramdown", "github"]
+}
+
+/// GitHub Flavored Markdown preset — configures the linter for GitHub-hosted
+/// documentation and repositories.
+///
+/// Disables rules that produce noisy results for typical GFM documents and
+/// configures heading style to `consistent` (GFM renders both ATX and setext).
+fn github_preset() -> Config {
+    let mut rules: HashMap<String, RuleConfig> = HashMap::new();
+
+    // GFM allows long lines (tables, URLs are common) — disable the line-length rule
+    rules.insert("MD013".to_string(), RuleConfig::Enabled(false));
+
+    // GitHub auto-links bare URLs in some contexts — MD034 produces false positives
+    rules.insert("MD034".to_string(), RuleConfig::Enabled(false));
+
+    // GFM renders both ATX and setext headings; require consistent style within docs
+    let mut md003_opts = HashMap::new();
+    md003_opts.insert("style".to_string(), serde_json::json!("consistent"));
+    rules.insert("MD003".to_string(), RuleConfig::Options(md003_opts));
+
+    Config {
+        default: None,
+        extends: None,
+        preset: None,
+        rules,
+    }
 }
 
 /// Kramdown preset — designed for RFC and technical documents using
@@ -75,5 +103,16 @@ mod tests {
     #[test]
     fn test_preset_names() {
         assert!(preset_names().contains(&"kramdown"));
+        assert!(preset_names().contains(&"github"));
+    }
+
+    #[test]
+    fn test_resolve_github() {
+        let config = resolve_preset("github").unwrap();
+        // MD013 and MD034 are disabled
+        assert!(!config.is_rule_enabled("MD013"));
+        assert!(!config.is_rule_enabled("MD034"));
+        // Standard rules still enabled
+        assert!(config.is_rule_enabled("MD001"));
     }
 }
