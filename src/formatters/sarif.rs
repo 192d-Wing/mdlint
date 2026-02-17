@@ -41,7 +41,7 @@ pub fn format_sarif(results: &LintResults) -> String {
                     let idx = rule_map.len();
                     let rule_entry = serde_json::json!({
                         "id": rule_id,
-                        "name": error.rule_names.get(1).unwrap_or(&error.rule_names[0]),
+                        "name": error.rule_names.get(1).or_else(|| error.rule_names.first()).copied().unwrap_or("unknown"),
                         "shortDescription": {
                             "text": error.rule_description
                         },

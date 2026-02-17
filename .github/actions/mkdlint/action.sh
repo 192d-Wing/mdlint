@@ -290,7 +290,7 @@ cmd_run() {
     start_time=$(date +%s%N 2>/dev/null || date +%s)
 
     if [ "$output_format" = "sarif" ]; then
-        "${cmd[@]}" > "$sarif_file" 2>&1 || exit_code=$?
+        "${cmd[@]}" > "$sarif_file" 2>/dev/null || exit_code=$?
         cp "$sarif_file" "$output_file"
     else
         "${cmd[@]}" > "$output_file" 2>&1 || exit_code=$?
