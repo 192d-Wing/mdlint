@@ -1,0 +1,175 @@
+name: 'mkdlint - Markdown Linter'
+description: 'Fast and comprehensive Markdown linter written in Rust'
+author: '192d-Wing'
+branding:
+  icon: 'check-circle'
+  color: 'blue'
+
+inputs:
+  files:
+    description: 'Files or glob patterns to lint (space-separated)'
+    required: false
+    default: '**/*.md'
+
+  config:
+    description: 'Path to configuration file (.markdownlint.json)'
+    required: false
+    default: ''
+
+  fix:
+    description: 'Automatically fix errors where possible'
+    required: false
+    default: 'false'
+
+  fail-on-error:
+    description: 'Fail the action if errors are found'
+    required: false
+    default: 'true'
+
+  output-format:
+    description: 'Output format (default, json, sarif, github)'
+    required: false
+    default: 'github'
+
+  version:
+    description: 'mkdlint version to use (default: latest)'
+    required: false
+    default: 'latest'
+
+outputs:
+  errors-found:
+    description: 'Number of errors found'
+    value: ${{ steps.lint.outputs.errors }}
+
+  files-checked:
+    description: 'Number of files checked'
+    value: ${{ steps.lint.outputs.files }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup mkdlint
+      id: setup
+      shell: bash
+      run: |
+        set -e
+
+        # Determine version to install
+        VERSION="${{ inputs.version }}"
+        if [ "$VERSION" = "latest" ]; then
+          echo "Fetching latest version..."
+          VERSION=$(curl -s https://api.github.com/repos/192d-Wing/mkdlint/releases/latest | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/')
+          echo "Latest version: $VERSION"
+        fi
+
+        # Determine platform
+        OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+        ARCH=$(uname -m)
+
+        case "$OS" in
+          linux)
+            case "$ARCH" in
+              x86_64) PLATFORM="x86_64-unknown-linux-gnu" ;;
+              aarch64) PLATFORM="aarch64-unknown-linux-gnu" ;;
+              *) echo "Unsupported architecture: $ARCH"; exit 1 ;;
+            esac
+            ;;
+          darwin)
+            case "$ARCH" in
+              x86_64) PLATFORM="x86_64-apple-darwin" ;;
+              arm64) PLATFORM="aarch64-apple-darwin" ;;
+              *) echo "Unsupported architecture: $ARCH"; exit 1 ;;
+            esac
+            ;;
+          *)
+            echo "Unsupported OS: $OS"
+            exit 1
+            ;;
+        esac
+
+        echo "Installing mkdlint $VERSION for $PLATFORM..."
+
+        # Download and extract
+        DOWNLOAD_URL="https://github.com/192d-Wing/mkdlint/releases/download/v${VERSION}/mkdlint-${PLATFORM}.tar.gz"
+        curl -sL "$DOWNLOAD_URL" | tar xz -C /tmp
+
+        # Install to PATH
+        sudo mv /tmp/mkdlint /usr/local/bin/
+        sudo chmod +x /usr/local/bin/mkdlint
+
+        # Verify installation
+        mkdlint --version
+
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+    - name: Run mkdlint
+      id: lint
+      shell: bash
+      run: |
+        set +e  # Don't exit on error - we'll handle it
+
+        # Build command
+        CMD="mkdlint"
+
+        # Add config if specified
+        if [ -n "${{ inputs.config }}" ]; then
+          CMD="$CMD --config ${{ inputs.config }}"
+        fi
+
+        # Add fix flag if enabled
+        if [ "${{ inputs.fix }}" = "true" ]; then
+          CMD="$CMD --fix"
+        fi
+
+        # Set output format
+        FORMAT="${{ inputs.output-format }}"
+        if [ "$FORMAT" = "github" ]; then
+          CMD="$CMD --format json"
+        else
+          CMD="$CMD --format $FORMAT"
+        fi
+
+        # Add files
+        CMD="$CMD ${{ inputs.files }}"
+
+        echo "Running: $CMD"
+
+        # Run linter and capture output
+        OUTPUT=$($CMD 2>&1)
+        EXIT_CODE=$?
+
+        # Parse output for GitHub annotations if format is github
+        if [ "$FORMAT" = "github" ]; then
+          # Parse JSON output and create GitHub annotations
+          echo "$OUTPUT" | jq -r '.[] | .[] |
+            "::error file=\(.file),line=\(.line_number),title=\(.rule_names[0])::\(.rule_description)\(.error_detail // "")"' || true
+
+          # Count errors and files
+          ERRORS=$(echo "$OUTPUT" | jq '[.[] | length] | add // 0' 2>/dev/null || echo "0")
+          FILES=$(echo "$OUTPUT" | jq 'length' 2>/dev/null || echo "0")
+        else
+          echo "$OUTPUT"
+          ERRORS="unknown"
+          FILES="unknown"
+        fi
+
+        echo "errors=$ERRORS" >> $GITHUB_OUTPUT
+        echo "files=$FILES" >> $GITHUB_OUTPUT
+
+        # Set summary
+        if [ "$ERRORS" != "0" ] && [ "$ERRORS" != "unknown" ]; then
+          echo "### ❌ Markdown Linting Failed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Found **$ERRORS** error(s) in **$FILES** file(s)" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "### ✅ Markdown Linting Passed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "No errors found in **$FILES** file(s)" >> $GITHUB_STEP_SUMMARY
+        fi
+
+        # Exit with appropriate code
+        if [ "${{ inputs.fail-on-error }}" = "true" ] && [ $EXIT_CODE -ne 0 ]; then
+          exit $EXIT_CODE
+        fi
+
+        exit 0

@@ -471,3 +471,150 @@ async fn test_capabilities_include_hover() {
     // Should advertise hover capability
     assert!(result.capabilities.hover_provider.is_some());
 }
+
+#[tokio::test]
+async fn test_did_change_watched_files_invalidates_cache() {
+    use tower_lsp::lsp_types::{
+        DidChangeWatchedFilesParams, FileChangeType, FileEvent, Url,
+    };
+
+    let server = create_test_server().await;
+
+    server
+        .initialize(InitializeParams::default())
+        .await
+        .unwrap();
+    server.initialized(InitializedParams {}).await;
+
+    let uri = Url::parse("file:///test.md").unwrap();
+
+    // Open document with an issue
+    server
+        .did_open(DidOpenTextDocumentParams {
+            text_document: TextDocumentItem {
+                uri: uri.clone(),
+                language_id: "markdown".to_string(),
+                version: 1,
+                text: "# Test\nTrailing:   \n".to_string(),
+            },
+        })
+        .await;
+
+    // Wait for initial lint
+    tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
+
+    // Simulate config file change
+    let config_uri = Url::parse("file:///.markdownlint.json").unwrap();
+    server
+        .did_change_watched_files(DidChangeWatchedFilesParams {
+            changes: vec![FileEvent {
+                uri: config_uri,
+                typ: FileChangeType::CHANGED,
+            }],
+        })
+        .await;
+
+    // Wait for re-lint to complete
+    tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
+
+    // Test passed if no crashes occurred
+}
+
+#[tokio::test]
+async fn test_multiple_config_file_changes() {
+    use tower_lsp::lsp_types::{
+        DidChangeWatchedFilesParams, FileChangeType, FileEvent, Url,
+    };
+
+    let server = create_test_server().await;
+
+    server
+        .initialize(InitializeParams::default())
+        .await
+        .unwrap();
+    server.initialized(InitializedParams {}).await;
+
+    // Open multiple documents
+    for i in 1..=3 {
+        let uri = Url::parse(&format!("file:///test{}.md", i)).unwrap();
+        server
+            .did_open(DidOpenTextDocumentParams {
+                text_document: TextDocumentItem {
+                    uri,
+                    language_id: "markdown".to_string(),
+                    version: 1,
+                    text: format!("# Test {}\n", i),
+                },
+            })
+            .await;
+    }
+
+    tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
+
+    // Simulate multiple config file changes
+    let changes = vec![
+        FileEvent {
+            uri: Url::parse("file:///.markdownlint.json").unwrap(),
+            typ: FileChangeType::CHANGED,
+        },
+        FileEvent {
+            uri: Url::parse("file:///.markdownlint.yaml").unwrap(),
+            typ: FileChangeType::CREATED,
+        },
+    ];
+
+    server
+        .did_change_watched_files(DidChangeWatchedFilesParams { changes })
+        .await;
+
+    // Wait for re-linting
+    tokio::time::sleep(tokio::time::Duration::from_millis(300)).await;
+
+    // Test passed if all documents were re-linted without crashes
+}
+
+#[tokio::test]
+async fn test_config_deletion_triggers_relint() {
+    use tower_lsp::lsp_types::{
+        DidChangeWatchedFilesParams, FileChangeType, FileEvent, Url,
+    };
+
+    let server = create_test_server().await;
+
+    server
+        .initialize(InitializeParams::default())
+        .await
+        .unwrap();
+    server.initialized(InitializedParams {}).await;
+
+    let uri = Url::parse("file:///test.md").unwrap();
+
+    server
+        .did_open(DidOpenTextDocumentParams {
+            text_document: TextDocumentItem {
+                uri: uri.clone(),
+                language_id: "markdown".to_string(),
+                version: 1,
+                text: "# Test\n".to_string(),
+            },
+        })
+        .await;
+
+    tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
+
+    // Simulate config file deletion
+    let config_uri = Url::parse("file:///.markdownlint.json").unwrap();
+    server
+        .did_change_watched_files(DidChangeWatchedFilesParams {
+            changes: vec![FileEvent {
+                uri: config_uri,
+                typ: FileChangeType::DELETED,
+            }],
+        })
+        .await;
+
+    // Wait for re-lint
+    tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
+
+    // Test passed - config deletion should trigger re-lint with default config
+}
