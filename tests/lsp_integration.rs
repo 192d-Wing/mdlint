@@ -1200,8 +1200,10 @@ async fn test_completion_filters_by_typed_prefix() {
 fn lint_with_preset(markdown: &str, preset: &str) -> Vec<mkdlint::LintError> {
     use mkdlint::{Config, LintOptions};
     use std::collections::HashMap;
-    let mut cfg = Config::default();
-    cfg.preset = Some(preset.to_string());
+    let mut cfg = Config {
+        preset: Some(preset.to_string()),
+        ..Default::default()
+    };
     cfg.apply_preset();
     let mut strings = HashMap::new();
     strings.insert("test.md".to_string(), markdown.to_string());

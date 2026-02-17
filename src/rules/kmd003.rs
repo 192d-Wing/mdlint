@@ -3,7 +3,7 @@
 //! In Kramdown, footnote definitions that are never referenced add noise.
 //! This rule fires when a `[^label]:` definition has no corresponding `[^label]` reference.
 
-use crate::types::{LintError, ParserType, Rule, RuleParams, Severity};
+use crate::types::{FixInfo, LintError, ParserType, Rule, RuleParams, Severity};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use std::collections::{HashMap, HashSet};
@@ -26,7 +26,7 @@ impl Rule for KMD003 {
     }
 
     fn tags(&self) -> &[&'static str] {
-        &["kramdown", "footnotes"]
+        &["kramdown", "footnotes", "fixable"]
     }
 
     fn parser_type(&self) -> ParserType {
@@ -89,6 +89,12 @@ impl Rule for KMD003 {
                     "Footnote definition '[^{label}]' is never referenced"
                 )),
                 severity: Severity::Error,
+                fix_info: Some(FixInfo {
+                    line_number: Some(line_number),
+                    edit_column: Some(1),
+                    delete_count: Some(-1),
+                    insert_text: None,
+                }),
                 ..Default::default()
             });
         }
@@ -141,5 +147,29 @@ mod tests {
     fn test_kmd003_def_in_code_block_ignored() {
         let errors = lint("# H\n\n```\n[^1]: inside code\n```\n");
         assert!(errors.is_empty(), "should not fire for defs in code blocks");
+    }
+
+    #[test]
+    fn test_kmd003_fix_info_present() {
+        let errors = lint("# H\n\nText here.\n\n[^1]: An unused note.\n");
+        let err = errors.iter().find(|e| e.rule_names[0] == "KMD003").unwrap();
+        assert!(err.fix_info.is_some(), "KMD003 error should have fix_info");
+        let fix = err.fix_info.as_ref().unwrap();
+        assert_eq!(fix.delete_count, Some(-1));
+        assert!(fix.insert_text.is_none());
+    }
+
+    #[test]
+    fn test_kmd003_fix_round_trip() {
+        use crate::lint::apply_fixes;
+        let content = "# H\n\nText here.\n\n[^1]: An unused note.\n";
+        let errors = lint(content);
+        assert!(!errors.is_empty(), "should have KMD003 errors before fix");
+        let fixed = apply_fixes(content, &errors);
+        let errors2 = lint(&fixed);
+        assert!(
+            errors2.iter().all(|e| e.rule_names[0] != "KMD003"),
+            "after fix, no KMD003 errors; fixed:\n{fixed}"
+        );
     }
 }

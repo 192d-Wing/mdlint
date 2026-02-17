@@ -6,7 +6,7 @@
 //!
 //! This rule fires when a footnote reference has no corresponding definition.
 
-use crate::types::{LintError, ParserType, Rule, RuleParams, Severity};
+use crate::types::{FixInfo, LintError, ParserType, Rule, RuleParams, Severity};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use std::collections::{HashMap, HashSet};
@@ -29,7 +29,7 @@ impl Rule for KMD002 {
     }
 
     fn tags(&self) -> &[&'static str] {
-        &["kramdown", "footnotes"]
+        &["kramdown", "footnotes", "fixable"]
     }
 
     fn parser_type(&self) -> ParserType {
@@ -86,6 +86,12 @@ impl Rule for KMD002 {
             .collect();
         undefined.sort_by_key(|(_, line)| *line);
 
+        let last_line = lines.len();
+        let last_line_len = lines
+            .last()
+            .map(|l| l.trim_end_matches('\n').trim_end_matches('\r').len())
+            .unwrap_or(0);
+
         for (label, line_number) in undefined {
             errors.push(LintError {
                 line_number,
@@ -93,6 +99,12 @@ impl Rule for KMD002 {
                 rule_description: self.description(),
                 error_detail: Some(format!("Footnote reference '[^{label}]' has no definition")),
                 severity: Severity::Error,
+                fix_info: Some(FixInfo {
+                    line_number: Some(last_line),
+                    edit_column: Some(last_line_len + 1),
+                    delete_count: None,
+                    insert_text: Some(format!("\n[^{label}]: ")),
+                }),
                 ..Default::default()
             });
         }
@@ -145,5 +157,29 @@ mod tests {
     fn test_kmd002_ref_in_code_block_ignored() {
         let errors = lint("# H\n\n```\n[^1] inside code\n```\n");
         assert!(errors.is_empty(), "should not fire for refs in code blocks");
+    }
+
+    #[test]
+    fn test_kmd002_fix_info_present() {
+        let errors = lint("# H\n\nText[^1] here.\n");
+        let err = errors.iter().find(|e| e.rule_names[0] == "KMD002").unwrap();
+        assert!(err.fix_info.is_some(), "KMD002 error should have fix_info");
+        let fix = err.fix_info.as_ref().unwrap();
+        assert_eq!(fix.insert_text.as_deref(), Some("\n[^1]: "));
+        assert!(fix.delete_count.is_none());
+    }
+
+    #[test]
+    fn test_kmd002_fix_round_trip() {
+        use crate::lint::apply_fixes;
+        let content = "# H\n\nText[^1] here.\n";
+        let errors = lint(content);
+        assert!(!errors.is_empty(), "should have KMD002 errors before fix");
+        let fixed = apply_fixes(content, &errors);
+        let errors2 = lint(&fixed);
+        assert!(
+            errors2.iter().all(|e| e.rule_names[0] != "KMD002"),
+            "after fix, no KMD002 errors; fixed:\n{fixed}"
+        );
     }
 }

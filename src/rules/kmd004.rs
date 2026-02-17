@@ -6,7 +6,7 @@
 //! This rule fires when an abbreviation is defined but the abbreviation term
 //! never appears in the document body.
 
-use crate::types::{LintError, ParserType, Rule, RuleParams, Severity};
+use crate::types::{FixInfo, LintError, ParserType, Rule, RuleParams, Severity};
 use once_cell::sync::Lazy;
 use regex::Regex;
 
@@ -25,7 +25,7 @@ impl Rule for KMD004 {
     }
 
     fn tags(&self) -> &[&'static str] {
-        &["kramdown", "abbreviations"]
+        &["kramdown", "abbreviations", "fixable"]
     }
 
     fn parser_type(&self) -> ParserType {
@@ -83,6 +83,12 @@ impl Rule for KMD004 {
                         "Abbreviation '{term}' is defined but never used in text"
                     )),
                     severity: Severity::Error,
+                    fix_info: Some(FixInfo {
+                        line_number: Some(line_number),
+                        edit_column: Some(1),
+                        delete_count: Some(-1),
+                        insert_text: None,
+                    }),
                     ..Default::default()
                 });
             }
@@ -133,5 +139,29 @@ mod tests {
     fn test_kmd004_no_abbr_ok() {
         let errors = lint("# H\n\nPlain paragraph.\n");
         assert!(errors.is_empty(), "should not fire when no abbreviations");
+    }
+
+    #[test]
+    fn test_kmd004_fix_info_present() {
+        let errors = lint("# H\n\nSome text.\n\n*[HTML]: HyperText Markup Language\n");
+        let err = errors.iter().find(|e| e.rule_names[0] == "KMD004").unwrap();
+        assert!(err.fix_info.is_some(), "KMD004 error should have fix_info");
+        let fix = err.fix_info.as_ref().unwrap();
+        assert_eq!(fix.delete_count, Some(-1));
+        assert!(fix.insert_text.is_none());
+    }
+
+    #[test]
+    fn test_kmd004_fix_round_trip() {
+        use crate::lint::apply_fixes;
+        let content = "# H\n\nSome text.\n\n*[HTML]: HyperText Markup Language\n";
+        let errors = lint(content);
+        assert!(!errors.is_empty(), "should have KMD004 errors before fix");
+        let fixed = apply_fixes(content, &errors);
+        let errors2 = lint(&fixed);
+        assert!(
+            errors2.iter().all(|e| e.rule_names[0] != "KMD004"),
+            "after fix, no KMD004 errors; fixed:\n{fixed}"
+        );
     }
 }

@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.2] - 2026-02-17
+
+### Added
+
+- **KMD002 auto-fix**: Insert stub `[^label]:` definition at end of document for
+  undefined footnote references
+- **KMD003 auto-fix**: Delete unused footnote definition lines
+- **KMD004 auto-fix**: Delete unused abbreviation definition lines
+- Auto-fix coverage: 55 → 58/63 rules (92.1%)
+
+### Fixed
+
+- Clippy: unused `ial_col` parameter in `ial_completion_items()` prefixed with `_`
+- Clippy: struct field assignment after `Default::default()` in LSP integration test
+
 ## [0.11.1] - 2026-02-17
 
 ### Added

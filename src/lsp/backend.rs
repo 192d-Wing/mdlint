@@ -776,11 +776,11 @@ impl LanguageServer for MkdlintLanguageServer {
 /// - Common HTML/aria attributes with `=` snippets
 ///
 /// `typed` is what the user has typed after `{: ` (used to filter).
-/// `line`, `ial_col`, `cursor_col` are used to compute the replace range.
+/// `line` and `cursor_col` are used to compute the replace range.
 fn ial_completion_items(
     typed: &str,
     line: u32,
-    ial_col: u32,
+    _ial_col: u32,
     cursor_col: u32,
 ) -> Vec<CompletionItem> {
     // Replace range: from the start of what the user typed (after `{:` + whitespace) to the cursor.
