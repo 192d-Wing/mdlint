@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Kramdown preset** (`--preset kramdown`) for RFC and technical document authors:
+  - Activatable via `--preset kramdown` CLI flag or `"preset": "kramdown"` in config
+  - Disables MD033 (inline HTML — conflicts with IAL `{: #id .class}` syntax) and
+    MD041 (first heading — RFC preambles often start with metadata)
+  - Enables 6 new Kramdown-specific lint rules (KMD001–KMD006, off by default)
+- **KMD001** (`definition-list-term-has-definition`): Definition list terms must be
+  followed by a `: definition` line
+- **KMD002** (`footnote-refs-defined`): Footnote references `[^label]` must have
+  matching `[^label]:` definitions
+- **KMD003** (`footnote-defs-used`): Footnote definitions must be referenced in
+  the document body
+- **KMD004** (`abbreviation-defs-used`): Abbreviation definitions `*[ABBR]: ...`
+  must appear as text in the document
+- **KMD005** (`no-duplicate-heading-ids`): Heading IDs (explicit `{#id}` or
+  auto-generated slugs) must be unique
+- **KMD006** (`valid-ial-syntax`): Inline Attribute List lines `{: ...}` must be
+  well-formed
+
 ## [0.10.3] - 2026-02-17
 
 ### Added

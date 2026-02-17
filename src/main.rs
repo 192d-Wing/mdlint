@@ -76,6 +76,10 @@ struct Args {
     #[arg(short, long, global = true)]
     quiet: bool,
 
+    /// Apply a named rule preset (e.g., "kramdown")
+    #[arg(long, global = true)]
+    preset: Option<String>,
+
     /// Watch mode - re-lint files on changes
     #[arg(short, long, global = true)]
     watch: bool,
@@ -930,6 +934,12 @@ fn lint_files_once(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
             .insert(rule.to_uppercase(), RuleConfig::Enabled(false));
     }
 
+    // Apply --preset flag
+    if let Some(ref preset_name) = args.preset {
+        config.preset = Some(preset_name.clone());
+    }
+    config.apply_preset();
+
     let options = LintOptions {
         files: files.clone(),
         strings: std::collections::HashMap::new(),
@@ -1094,6 +1104,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             .rules
             .insert(rule.to_uppercase(), RuleConfig::Enabled(false));
     }
+
+    // Apply --preset flag (overrides config-file preset if both are set)
+    if let Some(ref preset_name) = args.preset {
+        config.preset = Some(preset_name.clone());
+    }
+    // apply_preset is called inside resolve_extends() via load_config(),
+    // but since we bypass load_config here, call it explicitly.
+    config.apply_preset();
 
     let mut strings = std::collections::HashMap::new();
     if let Some(content) = stdin_content {

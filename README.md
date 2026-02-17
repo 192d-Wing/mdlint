@@ -14,7 +14,7 @@ A fast Markdown linter written in Rust, inspired by [markdownlint](https://githu
 
 ## Features
 
-- **53 lint rules** (MD001-MD060) enforcing Markdown best practices
+- **59 lint rules** (MD001-MD060 + KMD001-KMD006) enforcing Markdown best practices
 - **Automatic fixing** for **48 rules (90.6% coverage)** with `--fix` flag
 - **Helpful suggestions** for all rules with actionable guidance
 - **VS Code extension** with bundled LSP server
@@ -179,6 +179,47 @@ mkdlint --enable MD001 --disable MD013 README.md
 
 # Combine multiple rule overrides
 mkdlint --config base.json --enable MD001 --disable MD033 docs/
+```
+
+### Kramdown Preset
+
+For authors writing RFCs and technical documents using [Kramdown](https://kramdown.gettalong.org/syntax.html) syntax:
+
+```sh
+# Enable Kramdown mode via CLI flag
+mkdlint --preset kramdown doc.md
+
+# Or set it in your config file
+```
+
+```json
+{
+  "preset": "kramdown"
+}
+```
+
+The `kramdown` preset:
+
+- **Disables** MD033 (inline HTML) — Kramdown IAL syntax `{: #id .class key="val"}` looks like inline HTML
+- **Disables** MD041 (first heading required) — RFC preambles often start with metadata, not headings
+- **Enables** 6 Kramdown-specific rules (off by default):
+
+| Rule | Name | Description |
+| ---- | ---- | ----------- |
+| KMD001 | `definition-list-term-has-definition` | DL terms must be followed by `: definition` |
+| KMD002 | `footnote-refs-defined` | `[^label]` refs must have matching `[^label]:` defs |
+| KMD003 | `footnote-defs-used` | `[^label]:` defs must be referenced in the document |
+| KMD004 | `abbreviation-defs-used` | `*[ABBR]: ...` defs must appear as text |
+| KMD005 | `no-duplicate-heading-ids` | Heading IDs (explicit or auto-slug) must be unique |
+| KMD006 | `valid-ial-syntax` | `{: ...}` lines must be well-formed IAL |
+
+You can enable individual KMD rules without the full preset:
+
+```json
+{
+  "KMD002": true,
+  "KMD006": true
+}
 ```
 
 ### Output Control

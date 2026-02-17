@@ -1,5 +1,7 @@
 //! Configuration parsing and management
 
+pub mod presets;
+
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::Path;
@@ -16,6 +18,10 @@ pub struct Config {
     /// Path to config file to extend
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub extends: Option<String>,
+
+    /// Named preset to apply (e.g., "kramdown")
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub preset: Option<String>,
 
     /// Rule-specific configuration
     #[serde(flatten)]
@@ -109,16 +115,35 @@ impl Config {
         None
     }
 
-    /// Resolve the `extends` chain: load the parent config and merge self on top
+    /// Apply the named preset (if any) as a base, then re-apply explicit rules on top.
+    ///
+    /// Preset rules are overridden by any explicit rule config in `self`.
+    pub fn apply_preset(&mut self) {
+        if let Some(ref name) = self.preset.clone()
+            && let Some(mut base) = presets::resolve_preset(name)
+        {
+            // Explicit rules in `self` override preset rules
+            base.merge(self.clone());
+            *self = base;
+            // Preserve the preset name so callers can inspect it
+            self.preset = Some(name.clone());
+        }
+    }
+
+    /// Resolve the `extends` chain: load the parent config and merge self on top.
+    /// Also applies any named preset after the chain is resolved.
     pub fn resolve_extends(&self) -> Result<Self> {
         if let Some(ref extends_path) = self.extends {
             let parent = Config::from_file(extends_path)?;
             let mut resolved = parent.resolve_extends()?;
             resolved.merge(self.clone());
             resolved.extends = None;
+            resolved.apply_preset();
             Ok(resolved)
         } else {
-            Ok(self.clone())
+            let mut resolved = self.clone();
+            resolved.apply_preset();
+            Ok(resolved)
         }
     }
 

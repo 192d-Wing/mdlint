@@ -24,7 +24,18 @@ fn prepare_rules(config: &Config) -> PreparedRules<'static> {
 
     let enabled: Vec<&BoxedRule> = rules::get_rules()
         .iter()
-        .filter(|rule| config.is_rule_enabled(rule.names()[0]))
+        .filter(|rule| {
+            let explicitly_configured = config.get_rule_config(rule.names()[0]).is_some();
+            if explicitly_configured {
+                config.is_rule_enabled(rule.names()[0])
+            } else {
+                // No explicit config entry: use the rule's own default,
+                // but still respect the global `default` override if set.
+                config
+                    .default
+                    .unwrap_or_else(|| rule.is_enabled_by_default())
+            }
+        })
         .collect();
 
     let needs_parser = enabled

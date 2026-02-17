@@ -367,6 +367,7 @@ proptest! {
         let config = Config {
             default: default_val,
             extends: None,
+            preset: None,
             rules,
         };
 

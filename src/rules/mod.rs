@@ -4,6 +4,14 @@ use crate::types::{BoxedRule, Rule};
 use once_cell::sync::Lazy;
 
 // ALL 54 RULES IMPLEMENTED!
+// Kramdown extension rules (KMD)
+mod kmd001;
+mod kmd002;
+mod kmd003;
+mod kmd004;
+mod kmd005;
+mod kmd006;
+
 mod md001;
 mod md003;
 mod md004;
@@ -58,9 +66,17 @@ mod md058;
 mod md059;
 mod md060;
 
-/// Global rule registry - ALL 54 RULES!
+/// Global rule registry - standard + Kramdown extension rules
 pub static RULES: Lazy<Vec<BoxedRule>> = Lazy::new(|| {
     vec![
+        // Kramdown extension rules (disabled by default; enabled by kramdown preset)
+        Box::new(kmd001::KMD001),
+        Box::new(kmd002::KMD002),
+        Box::new(kmd003::KMD003),
+        Box::new(kmd004::KMD004),
+        Box::new(kmd005::KMD005),
+        Box::new(kmd006::KMD006),
+        // Standard markdownlint rules
         Box::new(md001::MD001),
         Box::new(md003::MD003),
         Box::new(md004::MD004),
@@ -139,13 +155,14 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_all_53_rules() {
+    fn test_rule_counts() {
         let rules = get_rules();
-        // 53 active rules (MD001-MD060 minus 7 deprecated: MD002, MD006, MD008, MD015, MD016, MD017, MD057)
+        // 53 standard rules (MD001-MD060 minus 7 deprecated: MD002, MD006, MD008, MD015, MD016, MD017, MD057)
+        // + 6 Kramdown extension rules (KMD001-KMD006)
         assert_eq!(
             rules.len(),
-            53,
-            "Should have all 53 active rules registered"
+            59,
+            "Should have 53 standard + 6 KMD extension rules"
         );
     }
 
@@ -156,6 +173,8 @@ mod tests {
         assert!(find_rule("MD009").is_some());
         assert!(find_rule("MD030").is_some());
         assert!(find_rule("MD047").is_some());
+        assert!(find_rule("KMD001").is_some());
+        assert!(find_rule("KMD006").is_some());
     }
 
     #[test]

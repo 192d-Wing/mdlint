@@ -69,6 +69,14 @@ pub trait Rule: Send + Sync {
         None
     }
 
+    /// Whether this rule is enabled when no config entry is present.
+    ///
+    /// Returns `false` for extension rules (e.g., KMD*) so they only run
+    /// when the user explicitly enables them or activates a preset.
+    fn is_enabled_by_default(&self) -> bool {
+        true
+    }
+
     /// Whether this rule is asynchronous
     fn is_async(&self) -> bool {
         false

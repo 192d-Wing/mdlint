@@ -1468,3 +1468,198 @@ fn test_md060_fix_round_trip() {
     let errors_after = lint_string(&fixed);
     assert!(!has_rule(&errors_after, "MD060"), "Fixed: {:?}", fixed);
 }
+
+// ── Kramdown extension rules (KMD) ──────────────────────────────────────────
+
+/// Helper to lint with a preset applied
+fn lint_with_preset(markdown: &str, preset: &str) -> Vec<mkdlint::LintError> {
+    let mut config = Config {
+        preset: Some(preset.to_string()),
+        ..Config::default()
+    };
+    config.apply_preset();
+    lint_string_with_config(markdown, config)
+}
+
+#[test]
+fn test_kmd_rules_off_by_default() {
+    // KMD rules should NOT fire without the preset
+    let content = "# H\n\nText[^1] here.\n";
+    let errors = lint_string(content);
+    assert!(
+        !has_rule(&errors, "KMD002"),
+        "KMD rules must be off by default"
+    );
+}
+
+#[test]
+fn test_kmd002_undefined_footnote_ref() {
+    let content = "# H\n\nText[^1] here.\n";
+    let errors = lint_with_preset(content, "kramdown");
+    assert!(
+        has_rule(&errors, "KMD002"),
+        "KMD002 should fire for undefined footnote ref"
+    );
+}
+
+#[test]
+fn test_kmd002_defined_footnote_ref_ok() {
+    let content = "# H\n\nText[^1] here.\n\n[^1]: A note.\n";
+    let errors = lint_with_preset(content, "kramdown");
+    assert!(
+        !has_rule(&errors, "KMD002"),
+        "KMD002 should not fire when ref is defined"
+    );
+}
+
+#[test]
+fn test_kmd003_unused_footnote_def() {
+    let content = "# H\n\nText here.\n\n[^1]: Unused note.\n";
+    let errors = lint_with_preset(content, "kramdown");
+    assert!(
+        has_rule(&errors, "KMD003"),
+        "KMD003 should fire for unused footnote definition"
+    );
+}
+
+#[test]
+fn test_kmd004_unused_abbreviation() {
+    let content = "# H\n\nSome text.\n\n*[HTML]: HyperText Markup Language\n";
+    let errors = lint_with_preset(content, "kramdown");
+    assert!(
+        has_rule(&errors, "KMD004"),
+        "KMD004 should fire when abbreviation is never used"
+    );
+}
+
+#[test]
+fn test_kmd004_used_abbreviation_ok() {
+    let content = "# H\n\nHTML is great.\n\n*[HTML]: HyperText Markup Language\n";
+    let errors = lint_with_preset(content, "kramdown");
+    assert!(
+        !has_rule(&errors, "KMD004"),
+        "KMD004 should not fire when abbreviation appears in text"
+    );
+}
+
+#[test]
+fn test_kmd005_duplicate_heading_id() {
+    let content = "# Setup\n\n## Setup\n";
+    let errors = lint_with_preset(content, "kramdown");
+    assert!(
+        has_rule(&errors, "KMD005"),
+        "KMD005 should fire when two headings produce the same ID"
+    );
+}
+
+#[test]
+fn test_kmd005_unique_headings_ok() {
+    let content = "# Intro\n\n## Setup\n\n## Usage\n";
+    let errors = lint_with_preset(content, "kramdown");
+    assert!(
+        !has_rule(&errors, "KMD005"),
+        "KMD005 should not fire for unique headings"
+    );
+}
+
+#[test]
+fn test_kmd006_malformed_ial() {
+    let content = "# H\n\n{: bad!!syntax}\n";
+    let errors = lint_with_preset(content, "kramdown");
+    assert!(
+        has_rule(&errors, "KMD006"),
+        "KMD006 should fire on malformed IAL"
+    );
+}
+
+#[test]
+fn test_kmd006_valid_ial_ok() {
+    let content = "# H\n\n{: #my-id .section}\n";
+    let errors = lint_with_preset(content, "kramdown");
+    assert!(
+        !has_rule(&errors, "KMD006"),
+        "KMD006 should not fire on valid IAL"
+    );
+}
+
+#[test]
+fn test_preset_kramdown_disables_md033() {
+    // Verify that the kramdown preset config sets MD033: false
+    let mut config = Config {
+        preset: Some("kramdown".to_string()),
+        ..Config::default()
+    };
+    config.apply_preset();
+
+    assert!(
+        !config.is_rule_enabled("MD033"),
+        "kramdown preset should disable MD033"
+    );
+}
+
+#[test]
+fn test_preset_kramdown_disables_md041() {
+    // MD041 (first-heading) should be suppressed by the kramdown preset
+    let content = "Some preamble text.\n\n## Section\n";
+    let errors_default = lint_string(content);
+    let errors_kramdown = lint_with_preset(content, "kramdown");
+
+    assert!(
+        has_rule(&errors_default, "MD041"),
+        "MD041 should fire without preset"
+    );
+    assert!(
+        !has_rule(&errors_kramdown, "MD041"),
+        "MD041 should not fire with kramdown preset"
+    );
+}
+
+#[test]
+fn test_preset_via_config_key() {
+    // Using preset via config struct should produce same state as --preset flag
+    let mut config = Config {
+        preset: Some("kramdown".to_string()),
+        ..Config::default()
+    };
+    config.apply_preset();
+
+    // Preset should have disabled MD033 and MD041
+    assert!(
+        !config.is_rule_enabled("MD033"),
+        "MD033 should be disabled via config preset key"
+    );
+    assert!(
+        !config.is_rule_enabled("MD041"),
+        "MD041 should be disabled via config preset key"
+    );
+    // KMD rules should be enabled
+    assert!(
+        config.is_rule_enabled("KMD002"),
+        "KMD002 should be enabled via config preset key"
+    );
+}
+
+#[test]
+fn test_preset_explicit_rules_override_preset() {
+    // Explicit rule config should override the preset's settings
+    use mkdlint::RuleConfig;
+    let mut rules = std::collections::HashMap::new();
+    rules.insert("MD033".to_string(), RuleConfig::Enabled(true));
+    let mut config = Config {
+        preset: Some("kramdown".to_string()),
+        rules,
+        ..Config::default()
+    };
+    config.apply_preset();
+
+    // After apply_preset, MD033 should be enabled (explicit override wins)
+    assert!(
+        config.is_rule_enabled("MD033"),
+        "Explicit MD033:true should override preset's MD033:false"
+    );
+    // And KMD rules should still be enabled (from preset)
+    assert!(
+        config.is_rule_enabled("KMD001"),
+        "KMD001 should still be enabled from the preset"
+    );
+}
