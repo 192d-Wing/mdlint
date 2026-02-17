@@ -136,15 +136,28 @@ download_binary() {
 # Build from source
 build_from_source() {
     local version="$1"
-    
+
     info "Building mkdlint from source..."
-    
+
     if ! command -v cargo &> /dev/null; then
         error "cargo not found. Please install Rust or use use-binary: true"
         exit 1
     fi
-    
-    # Install specific version or latest
+
+    # If there is a local workspace (e.g. self-test inside the repo), build it
+    # directly instead of fetching from crates.io — avoids publish lag issues.
+    if [ -f "Cargo.toml" ] && grep -q 'name = "mkdlint"' Cargo.toml 2>/dev/null; then
+        info "Local workspace detected; building from workspace source..."
+        cargo build --release --features cli --quiet
+        local built_bin="./target/release/mkdlint"
+        if [ -f "$built_bin" ]; then
+            success "Built from local workspace successfully"
+            echo "$(realpath "$built_bin")"
+            return 0
+        fi
+    fi
+
+    # Install specific version or latest from crates.io
     if [ "$version" = "latest" ] || [ "$version" = "vlatest" ]; then
         cargo install mkdlint --features cli
     else
@@ -152,15 +165,15 @@ build_from_source() {
         local cargo_version="${version#v}"
         cargo install mkdlint --version "$cargo_version" --features cli
     fi
-    
+
     local binary_path
     binary_path="$(command -v mkdlint)"
-    
+
     if [ -z "$binary_path" ]; then
         error "mkdlint not found after installation"
         exit 1
     fi
-    
+
     success "Built from source successfully"
     echo "$binary_path"
 }
