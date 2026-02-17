@@ -15,7 +15,7 @@ A fast Markdown linter written in Rust, inspired by [markdownlint](https://githu
 ## Features
 
 - **63 lint rules** (MD001-MD060 + KMD001-KMD010) enforcing Markdown best practices
-- **Automatic fixing** for **48 rules (90.6% coverage)** with `--fix` flag
+- **Automatic fixing** for **54 rules (85.7% coverage)** with `--fix` flag
 - **Helpful suggestions** for all rules with actionable guidance
 - **VS Code extension** with bundled LSP server
 - **Language Server Protocol (LSP)** for real-time linting in any editor
@@ -76,18 +76,18 @@ See [GitHub Action documentation](.github/actions/mkdlint/README.md) for full de
 
 ```toml
 [dependencies]
-mkdlint = "0.10"
+mkdlint = "0.11"
 
 # With async support
-mkdlint = { version = "0.10", features = ["async"] }
+mkdlint = { version = "0.11", features = ["async"] }
 
 # With LSP support
-mkdlint = { version = "0.10", features = ["lsp"] }
+mkdlint = { version = "0.11", features = ["lsp"] }
 ```
 
 ## Auto-Fix Showcase
 
-mkdlint can automatically fix **48 out of 53 rules (90.6%)**! Here are some examples:
+mkdlint can automatically fix **54 out of 63 rules (85.7%)**! Here are some examples:
 
 ### Before Auto-Fix
 
@@ -202,7 +202,7 @@ The `kramdown` preset:
 
 - **Disables** MD033 (inline HTML) — Kramdown IAL syntax `{: #id .class key="val"}` looks like inline HTML
 - **Disables** MD041 (first heading required) — RFC preambles often start with metadata, not headings
-- **Enables** 6 Kramdown-specific rules (off by default):
+- **Enables** 10 Kramdown-specific rules (off by default):
 
 | Rule | Name | Description |
 | ---- | ---- | ----------- |
@@ -519,7 +519,22 @@ Rules can be enabled/disabled by name (`"MD013"`) or alias (`"line-length"`). Pa
 | MD059 | emphasis-marker-style-math | Emphasis marker style in math | Yes |
 | MD060 | dollar-in-code-fence | Dollar signs in fenced code blocks | Yes |
 
-**48 of 53 rules** have auto-fix support (90.6% coverage).
+### Kramdown Extension Rules (off by default)
+
+| Rule   | Alias                               | Description                                                    | Fixable |
+| ------ | ----------------------------------- | -------------------------------------------------------------- | ------- |
+| KMD001 | definition-list-term-has-definition | Definition list terms must be followed by a definition         |         |
+| KMD002 | footnote-refs-defined               | Footnote references must have matching definitions             |         |
+| KMD003 | footnote-defs-used                  | Footnote definitions must be referenced in the document        |         |
+| KMD004 | abbreviation-defs-used              | Abbreviation definitions should be used in document text       |         |
+| KMD005 | no-duplicate-heading-ids            | Heading IDs must be unique within the document                 | Yes     |
+| KMD006 | valid-ial-syntax                    | IAL (Inline Attribute List) syntax must be well-formed         | Yes     |
+| KMD007 | math-block-delimiters               | Math block `$$` delimiters must be matched                     | Yes     |
+| KMD008 | block-extension-syntax              | Block extensions must be properly opened and closed            | Yes     |
+| KMD009 | ald-defs-used                       | Attribute List Definitions must be referenced in the document  | Yes     |
+| KMD010 | inline-ial-syntax                   | Inline IAL syntax must be well-formed                          | Yes     |
+
+**54 of 63 rules** have auto-fix support (85.7% coverage).
 
 ## License
 

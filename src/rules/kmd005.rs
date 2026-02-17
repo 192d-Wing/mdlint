@@ -7,7 +7,7 @@
 //! Auto-slug algorithm (matches Kramdown): lowercase the heading text, replace
 //! spaces with hyphens, strip all non-alphanumeric-or-hyphen characters.
 
-use crate::types::{LintError, ParserType, Rule, RuleParams, Severity};
+use crate::types::{FixInfo, LintError, ParserType, Rule, RuleParams, Severity};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use std::collections::HashMap;
@@ -66,7 +66,7 @@ impl Rule for KMD005 {
     }
 
     fn tags(&self) -> &[&'static str] {
-        &["kramdown", "headings", "ids"]
+        &["kramdown", "headings", "ids", "fixable"]
     }
 
     fn parser_type(&self) -> ParserType {
@@ -81,8 +81,8 @@ impl Rule for KMD005 {
         let mut errors = Vec::new();
         let lines = params.lines;
 
-        // id → first line number
-        let mut seen: HashMap<String, usize> = HashMap::new();
+        // id → (first_line, occurrence_count); count starts at 1 for first occurrence
+        let mut seen: HashMap<String, (usize, usize)> = HashMap::new();
         let mut in_code_block = false;
         // Track previous non-empty line for setext heading detection
         let mut prev_text: Option<(&str, usize)> = None; // (text, line_number)
@@ -108,15 +108,26 @@ impl Rule for KMD005 {
 
             if (is_setext_h1 || is_setext_h2) && prev_text.is_some() {
                 if let Some((heading_text, heading_line)) = prev_text.take() {
-                    // Setext heading: use prev_text_line as the heading text
-                    let id = if let Some(explicit) = EXPLICIT_ID_RE.captures(heading_text) {
-                        explicit[1].to_string()
+                    let explicit_cap = EXPLICIT_ID_RE.captures(heading_text);
+                    let id = if let Some(ref cap) = explicit_cap {
+                        cap[1].to_string()
                     } else {
                         kramdown_slug(heading_text)
                     };
 
                     if !id.is_empty() {
-                        if let Some(&first_line) = seen.get(&id) {
+                        let entry = seen.entry(id.clone()).or_insert((heading_line, 0));
+                        entry.1 += 1;
+                        let (first_line, count) = *entry;
+                        if count > 1 {
+                            // Fix: append ` {#id-N}` to the text line (heading_line)
+                            let new_id = format!("{id}-{count}");
+                            let fix_text = format!(" {{#{new_id}}}");
+                            // Column after last non-newline char on the heading text line
+                            let text_line = lines[heading_line - 1];
+                            let text_no_newline =
+                                text_line.trim_end_matches('\n').trim_end_matches('\r');
+                            let insert_col = text_no_newline.len() + 1;
                             errors.push(LintError {
                                 line_number: heading_line,
                                 rule_names: self.names(),
@@ -125,10 +136,14 @@ impl Rule for KMD005 {
                                     "Duplicate heading ID '{id}' (first defined on line {first_line})"
                                 )),
                                 severity: Severity::Error,
+                                fix_info: Some(FixInfo {
+                                    line_number: Some(heading_line),
+                                    edit_column: Some(insert_col),
+                                    delete_count: None,
+                                    insert_text: Some(fix_text),
+                                }),
                                 ..Default::default()
                             });
-                        } else {
-                            seen.insert(id, heading_line);
                         }
                     }
                 }
@@ -152,7 +167,15 @@ impl Rule for KMD005 {
                     continue;
                 }
 
-                if let Some(&first_line) = seen.get(&id) {
+                let entry = seen.entry(id.clone()).or_insert((line_number, 0));
+                entry.1 += 1;
+                let (first_line, count) = *entry;
+                if count > 1 {
+                    let new_id = format!("{id}-{count}");
+                    let fix_text = format!(" {{#{new_id}}}");
+                    // Insert at end of heading content (before newline)
+                    let line_no_newline = line.trim_end_matches('\n').trim_end_matches('\r');
+                    let insert_col = line_no_newline.len() + 1;
                     errors.push(LintError {
                         line_number,
                         rule_names: self.names(),
@@ -161,10 +184,14 @@ impl Rule for KMD005 {
                             "Duplicate heading ID '{id}' (first defined on line {first_line})"
                         )),
                         severity: Severity::Error,
+                        fix_info: Some(FixInfo {
+                            line_number: Some(line_number),
+                            edit_column: Some(insert_col),
+                            delete_count: None,
+                            insert_text: Some(fix_text),
+                        }),
                         ..Default::default()
                     });
-                } else {
-                    seen.insert(id, line_number);
                 }
                 prev_text = None;
                 continue;
@@ -258,6 +285,56 @@ mod tests {
         assert!(
             errors.is_empty(),
             "bare --- after blank line should not be treated as setext heading"
+        );
+    }
+
+    #[test]
+    fn test_kmd005_fix_info_present() {
+        let errors = lint("# Setup\n\n## Setup\n");
+        let err = errors.iter().find(|e| e.rule_names[0] == "KMD005").unwrap();
+        assert!(
+            err.fix_info.is_some(),
+            "duplicate heading should have fix_info"
+        );
+        let fix = err.fix_info.as_ref().unwrap();
+        // Should insert " {#setup-2}" at the end of the heading line
+        assert_eq!(fix.insert_text.as_deref(), Some(" {#setup-2}"));
+        assert!(fix.delete_count.is_none());
+    }
+
+    #[test]
+    fn test_kmd005_fix_round_trip() {
+        use crate::lint::apply_fixes;
+        let content = "# Setup\n\n## Setup\n";
+        let errors = lint(content);
+        let fixed = apply_fixes(content, &errors);
+        // After fix, re-linting should produce no KMD005 errors
+        let errors2 = lint(&fixed);
+        assert!(
+            errors2.iter().all(|e| e.rule_names[0] != "KMD005"),
+            "after fix, no KMD005 errors expected; got: {errors2:?}"
+        );
+    }
+
+    #[test]
+    fn test_kmd005_fix_triple_duplicate() {
+        use crate::lint::apply_fixes;
+        let content = "# Intro\n\n## Intro\n\n### Intro\n";
+        let errors = lint(content);
+        assert_eq!(errors.len(), 2, "two duplicate errors expected");
+        // Check suffixes
+        let texts: Vec<_> = errors
+            .iter()
+            .filter_map(|e| e.fix_info.as_ref())
+            .filter_map(|f| f.insert_text.as_deref())
+            .collect();
+        assert!(texts.contains(&" {#intro-2}"), "second gets -2");
+        assert!(texts.contains(&" {#intro-3}"), "third gets -3");
+        let fixed = apply_fixes(content, &errors);
+        let errors2 = lint(&fixed);
+        assert!(
+            errors2.iter().all(|e| e.rule_names[0] != "KMD005"),
+            "after fix, no KMD005 errors; got: {errors2:?}"
         );
     }
 }

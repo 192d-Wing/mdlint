@@ -10,8 +10,17 @@ use crate::types::{FixInfo, LintError, ParserType, Rule, RuleParams, Severity};
 use once_cell::sync::Lazy;
 use regex::Regex;
 
-/// A line that starts an IAL block
+/// A line that starts an IAL block.
+///
+/// Excludes block extensions (`{::name}`, `{:/name}`) and ALD definitions
+/// (`{:identifier:`) — those are handled by KMD008 and KMD009 respectively.
 static IAL_LINE_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"^\{:").unwrap());
+
+/// Matches a block extension tag: `{::name}` or `{:/name}` — skip in KMD006
+static BLOCK_EXT_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"^\{:[:/]").unwrap());
+
+/// Matches an ALD definition: `{:identifier:` — skip in KMD006
+static ALD_DEF_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"^\{:[A-Za-z][\w-]*:").unwrap());
 
 /// A valid IAL: `{:` followed by zero or more valid attributes, then `}`
 ///
@@ -43,7 +52,7 @@ impl Rule for KMD006 {
     }
 
     fn tags(&self) -> &[&'static str] {
-        &["kramdown", "ial", "attributes"]
+        &["kramdown", "ial", "attributes", "fixable"]
     }
 
     fn parser_type(&self) -> ParserType {
@@ -73,6 +82,12 @@ impl Rule for KMD006 {
 
             // Only check lines that look like IALs
             if !IAL_LINE_RE.is_match(trimmed) {
+                continue;
+            }
+
+            // Skip block extensions ({::name}, {:/name}) and ALD definitions ({:id:})
+            // — those are handled by KMD008 and KMD009 respectively
+            if BLOCK_EXT_RE.is_match(trimmed) || ALD_DEF_RE.is_match(trimmed) {
                 continue;
             }
 

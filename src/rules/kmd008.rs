@@ -37,7 +37,7 @@ impl Rule for KMD008 {
     }
 
     fn tags(&self) -> &[&'static str] {
-        &["kramdown", "block-extensions"]
+        &["kramdown", "block-extensions", "fixable"]
     }
 
     fn parser_type(&self) -> ParserType {

@@ -1751,3 +1751,83 @@ fn test_kmd010_valid_inline_ial_ok() {
         "valid inline IAL should not fire"
     );
 }
+
+// ── KMD auto-fix round-trip tests ────────────────────────────────────────────
+
+#[test]
+fn test_kmd005_fix_round_trip() {
+    let content = "# Setup\n\n## Setup\n\n### Setup\n";
+    let errors = lint_with_preset(content, "kramdown");
+    assert!(has_rule(&errors, "KMD005"), "should have KMD005 errors");
+    let fixed = apply_fixes(content, &errors);
+    let errors2 = lint_with_preset(&fixed, "kramdown");
+    assert!(
+        !has_rule(&errors2, "KMD005"),
+        "after fix, KMD005 should be gone; fixed:\n{fixed}"
+    );
+}
+
+#[test]
+fn test_kmd006_fix_round_trip() {
+    let content = "# H\n\n{: bad!!syntax}\n";
+    let errors = lint_with_preset(content, "kramdown");
+    assert!(has_rule(&errors, "KMD006"), "should have KMD006 error");
+    let fixed = apply_fixes(content, &errors);
+    let errors2 = lint_with_preset(&fixed, "kramdown");
+    assert!(
+        !has_rule(&errors2, "KMD006"),
+        "after fix, KMD006 should be gone; fixed:\n{fixed}"
+    );
+}
+
+#[test]
+fn test_kmd007_fix_round_trip() {
+    let content = "# H\n\n$$\nx = 1\n";
+    let errors = lint_with_preset(content, "kramdown");
+    assert!(has_rule(&errors, "KMD007"), "should have KMD007 error");
+    let fixed = apply_fixes(content, &errors);
+    let errors2 = lint_with_preset(&fixed, "kramdown");
+    assert!(
+        !has_rule(&errors2, "KMD007"),
+        "after fix, KMD007 should be gone; fixed:\n{fixed}"
+    );
+}
+
+#[test]
+fn test_kmd008_fix_round_trip() {
+    let content = "# H\n\n{::comment}\nsome text\n";
+    let errors = lint_with_preset(content, "kramdown");
+    assert!(has_rule(&errors, "KMD008"), "should have KMD008 error");
+    let fixed = apply_fixes(content, &errors);
+    let errors2 = lint_with_preset(&fixed, "kramdown");
+    assert!(
+        !has_rule(&errors2, "KMD008"),
+        "after fix, KMD008 should be gone; fixed:\n{fixed}"
+    );
+}
+
+#[test]
+fn test_kmd009_fix_round_trip() {
+    let content = "# H\n\n{:myref: .highlight}\n\nA paragraph.\n";
+    let errors = lint_with_preset(content, "kramdown");
+    assert!(has_rule(&errors, "KMD009"), "should have KMD009 error");
+    let fixed = apply_fixes(content, &errors);
+    let errors2 = lint_with_preset(&fixed, "kramdown");
+    assert!(
+        !has_rule(&errors2, "KMD009"),
+        "after fix, KMD009 should be gone; fixed:\n{fixed}"
+    );
+}
+
+#[test]
+fn test_kmd010_fix_round_trip() {
+    let content = "# H\n\n*text*{: bad!!syntax}\n";
+    let errors = lint_with_preset(content, "kramdown");
+    assert!(has_rule(&errors, "KMD010"), "should have KMD010 error");
+    let fixed = apply_fixes(content, &errors);
+    let errors2 = lint_with_preset(&fixed, "kramdown");
+    assert!(
+        !has_rule(&errors2, "KMD010"),
+        "after fix, KMD010 should be gone; fixed:\n{fixed}"
+    );
+}
