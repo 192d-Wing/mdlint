@@ -7,6 +7,7 @@ Complete guide to using mkdlint for linting and auto-fixing Markdown files.
 - [Getting Started](#getting-started)
 - [Language Server Protocol (LSP)](#language-server-protocol-lsp)
 - [Configuration](#configuration)
+- [Inline Configuration](#inline-configuration)
 - [Auto-Fix Guide](#auto-fix-guide)
 - [IDE Integration](#ide-integration)
 - [CI/CD Integration](#ci-cd-integration)
@@ -74,9 +75,12 @@ mkdlint includes a full-featured LSP server for real-time linting in your editor
 ### Features
 
 - ✅ **Real-time diagnostics** as you type (300ms debounced)
-- ✅ **Code actions** (quick fixes) for all 45 auto-fixable rules
+- ✅ **Code actions** (quick fixes) for all 44 auto-fixable rules
 - ✅ **"Fix All" command** to apply all fixes at once
+- ✅ **Hover information** — rule docs, suggestions, and
+  fix availability on hover
 - ✅ **Automatic config discovery** (walks up to workspace root)
+- ✅ **Config file watching** — re-lints when config changes
 - ✅ **Multi-workspace support**
 - ✅ **UTF-8 aware** range calculation
 
@@ -183,6 +187,9 @@ README.md:5:1 error MD001/heading-increment
 - Individual fixes: "Fix MD001: Add space after hash"
 - Fix All: "Fix all mkdlint issues (5 fixes)"
 
+**Hover**: Hover over a diagnostic to see rule documentation,
+suggestions, fix availability, and a link to full docs.
+
 **Commands**:
 - `mkdlint.fixAll` - Apply all auto-fixes to current document
 
@@ -198,7 +205,9 @@ The LSP automatically finds `.markdownlint.json` by walking up from the file's d
       contributing.md     ← Uses parent config
 ```
 
-Configs are cached per directory for performance.
+Configs are cached per directory for performance. When a config
+file is created, modified, or deleted, the LSP automatically
+invalidates its cache and re-lints all open documents.
 
 ### Troubleshooting LSP
 
@@ -351,11 +360,56 @@ mkdlint --enable MD001 MD002 file.md
 mkdlint --ignore "**/node_modules/**" --ignore "vendor/**" .
 ```
 
+## Inline Configuration
+
+You can control which rules are active for specific sections of a
+document using HTML comment directives. These are processed before
+linting and filter out errors on the affected lines.
+
+### Disable/Enable Rules
+
+```markdown
+<!-- markdownlint-disable MD013 MD033 -->
+This long line and <b>inline HTML</b> are allowed here.
+<!-- markdownlint-enable MD013 MD033 -->
+```
+
+Omit rule IDs to disable **all** rules:
+
+```markdown
+<!-- markdownlint-disable -->
+Everything here is ignored by the linter.
+<!-- markdownlint-enable -->
+```
+
+### Disable for Next Line Only
+
+```markdown
+<!-- markdownlint-disable-next-line MD013 -->
+This single long line is allowed, but the next line is still checked.
+```
+
+### Disable for Entire File
+
+Place this anywhere in the file (typically at the top):
+
+```markdown
+<!-- markdownlint-disable-file MD033 -->
+```
+
+Re-enable with `<!-- markdownlint-enable-file MD033 -->` if needed.
+
+### Notes
+
+- Directives take effect for lines **after** the comment line.
+- Rule IDs are case-insensitive (`md013` and `MD013` both work).
+- Multiple rule IDs can be space-separated in a single directive.
+
 ## Auto-Fix Guide
 
 ### What Can Be Fixed
 
-mkdlint can automatically fix **45 out of 53 rules (84.9%)**:
+mkdlint can automatically fix **44 out of 53 rules (83%)**:
 
 **Headings (11 rules)**:
 - MD001: Heading level increments
@@ -388,11 +442,10 @@ mkdlint can automatically fix **45 out of 53 rules (84.9%)**:
 - MD045: Images without alt text
 - MD053: Unused link definitions
 
-**Code Blocks (7 rules)**:
+**Code Blocks (6 rules)**:
 - MD014: Dollar signs in commands
 - MD031: Blank lines around code blocks
 - MD040: Fenced code language
-- MD046: Code block style
 - MD047: Single trailing newline
 - MD048: Code fence style
 - MD060: Dollar signs in fenced blocks
@@ -449,7 +502,7 @@ mkdlint's auto-fix is safe:
 
 ### What Cannot Be Fixed
 
-8 rules cannot be auto-fixed because they require human judgment:
+9 rules cannot be auto-fixed because they require human judgment:
 
 - **MD013**: Line length (requires context-aware wrapping)
 - **MD033**: Inline HTML (may be intentional)
@@ -1150,7 +1203,8 @@ mkdlint --verbose .
 
 ### Q: How do I disable a rule for just one line
 
-A: Use inline comments:
+A: Use inline comments (see
+[Inline Configuration](#inline-configuration) for full details):
 
 ```markdown
 <!-- markdownlint-disable-next-line MD013 -->
@@ -1211,7 +1265,7 @@ A: Yes! Add it to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-mkdlint = "0.9"
+mkdlint = "0.10"
 ```
 
 See the [API documentation](https://docs.rs/mkdlint) for details.
