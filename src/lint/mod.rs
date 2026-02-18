@@ -246,6 +246,10 @@ fn lint_content(
 
 /// Parsed inline configuration state.
 ///
+/// Uses a snapshot-based approach: instead of cloning rule ID strings into
+/// per-line HashSets (O(lines × rules) allocations), we store directive
+/// events and evaluate `is_disabled()` lazily by scanning events.
+///
 /// Supports the following HTML comment directives:
 /// - `<!-- markdownlint-disable MD001 MD002 -->` — disable specific rules
 /// - `<!-- markdownlint-disable -->` — disable all rules
@@ -257,128 +261,160 @@ fn lint_content(
 struct InlineConfig {
     /// Whether any directives were found (fast path for skipping filter).
     has_directives: bool,
-    /// Per-line set of disabled rule IDs. Empty string means "all rules".
-    disabled_at: HashMap<usize, HashSet<String>>,
+    /// Sorted directive events (line_number, event). Always sorted by line_number.
+    events: Vec<(usize, DirectiveEvent)>,
 }
 
-use std::collections::HashMap;
 use std::collections::HashSet;
+
+/// A single inline directive event, stored once during parse.
+enum DirectiveEvent {
+    Disable(Vec<String>),
+    Enable(Vec<String>),
+    DisableNextLine(Vec<String>),
+    DisableFile(Vec<String>),
+    EnableFile(Vec<String>),
+}
 
 impl InlineConfig {
     /// Parse inline directives from document lines.
     fn parse(lines: &[&str]) -> Self {
         let mut has_directives = false;
-        let mut disabled_at: HashMap<usize, HashSet<String>> = HashMap::new();
-        // Currently disabled rules (sticky across lines until re-enabled).
-        // Empty string "" means "all rules".
-        let mut active_disabled: HashSet<String> = HashSet::new();
-        // Rules disabled for the entire file
-        let mut file_disabled: HashSet<String> = HashSet::new();
-        // "disable-next-line" applies to the NEXT non-directive line
-        let mut disable_next_line: Option<Vec<String>> = None;
+        let mut events = Vec::new();
 
         for (idx, line) in lines.iter().enumerate() {
             let line_number = idx + 1;
             let trimmed = line.trim();
 
-            // Check for inline directive
             if let Some(directive) = Self::parse_directive(trimmed) {
                 has_directives = true;
-                match directive {
-                    Directive::Disable(rules) => {
-                        if rules.is_empty() {
-                            active_disabled.insert(String::new());
-                        } else {
-                            for r in rules {
-                                active_disabled.insert(r);
-                            }
-                        }
-                    }
-                    Directive::Enable(rules) => {
-                        if rules.is_empty() {
-                            active_disabled.clear();
-                        } else {
-                            for r in &rules {
-                                active_disabled.remove(r);
-                            }
-                        }
-                    }
-                    Directive::DisableNextLine(rules) => {
-                        disable_next_line = Some(rules);
-                    }
-                    Directive::DisableFile(rules) => {
-                        if rules.is_empty() {
-                            file_disabled.insert(String::new());
-                        } else {
-                            for r in rules {
-                                file_disabled.insert(r);
-                            }
-                        }
-                    }
-                    Directive::EnableFile(rules) => {
-                        if rules.is_empty() {
-                            file_disabled.clear();
-                        } else {
-                            for r in &rules {
-                                file_disabled.remove(r);
-                            }
-                        }
-                    }
-                }
-                continue;
-            }
-
-            // Build the disabled set for this line
-            let mut line_disabled = HashSet::new();
-
-            // File-level disables
-            for r in &file_disabled {
-                line_disabled.insert(r.clone());
-            }
-
-            // Sticky disable/enable
-            for r in &active_disabled {
-                line_disabled.insert(r.clone());
-            }
-
-            // disable-next-line (consumed after one non-directive line)
-            if let Some(ref next_rules) = disable_next_line {
-                if next_rules.is_empty() {
-                    line_disabled.insert(String::new());
-                } else {
-                    for r in next_rules {
-                        line_disabled.insert(r.clone());
-                    }
-                }
-                disable_next_line = None;
-            }
-
-            if !line_disabled.is_empty() {
-                disabled_at.insert(line_number, line_disabled);
+                let event = match directive {
+                    Directive::Disable(rules) => DirectiveEvent::Disable(rules),
+                    Directive::Enable(rules) => DirectiveEvent::Enable(rules),
+                    Directive::DisableNextLine(rules) => DirectiveEvent::DisableNextLine(rules),
+                    Directive::DisableFile(rules) => DirectiveEvent::DisableFile(rules),
+                    Directive::EnableFile(rules) => DirectiveEvent::EnableFile(rules),
+                };
+                events.push((line_number, event));
             }
         }
 
         InlineConfig {
             has_directives,
-            disabled_at,
+            events,
         }
     }
 
     /// Check if a rule is disabled at a given line.
+    ///
+    /// Replays directive events up to `line_number` to compute the disabled
+    /// state. This avoids the O(lines × rules) String cloning of the
+    /// previous per-line HashSet approach.
     fn is_disabled(&self, line_number: usize, rule_names: &[&str]) -> bool {
-        if let Some(disabled) = self.disabled_at.get(&line_number) {
-            // Empty string means "all rules disabled"
-            if disabled.contains("") {
-                return true;
+        let mut active_disabled: HashSet<&str> = HashSet::new();
+        let mut file_disabled: HashSet<&str> = HashSet::new();
+        // Track the line number of the last disable-next-line directive
+        let mut disable_next_line: Option<(usize, &[String])> = None;
+
+        for (event_line, event) in &self.events {
+            if *event_line >= line_number {
+                break;
             }
-            // Check if any of the rule's names/aliases match
-            for name in rule_names {
-                if disabled.contains(*name) {
-                    return true;
+            match event {
+                DirectiveEvent::Disable(rules) => {
+                    if rules.is_empty() {
+                        active_disabled.insert("");
+                    } else {
+                        for r in rules {
+                            active_disabled.insert(r);
+                        }
+                    }
+                }
+                DirectiveEvent::Enable(rules) => {
+                    if rules.is_empty() {
+                        active_disabled.clear();
+                    } else {
+                        for r in rules {
+                            active_disabled.remove(r.as_str());
+                        }
+                    }
+                }
+                DirectiveEvent::DisableNextLine(rules) => {
+                    disable_next_line = Some((*event_line, rules));
+                }
+                DirectiveEvent::DisableFile(rules) => {
+                    if rules.is_empty() {
+                        file_disabled.insert("");
+                    } else {
+                        for r in rules {
+                            file_disabled.insert(r);
+                        }
+                    }
+                }
+                DirectiveEvent::EnableFile(rules) => {
+                    if rules.is_empty() {
+                        file_disabled.clear();
+                    } else {
+                        for r in rules {
+                            file_disabled.remove(r.as_str());
+                        }
+                    }
                 }
             }
         }
+
+        // Check file-level disables
+        if file_disabled.contains("") {
+            return true;
+        }
+        for name in rule_names {
+            if file_disabled.contains(name) {
+                return true;
+            }
+        }
+
+        // Check sticky disable/enable
+        if active_disabled.contains("") {
+            return true;
+        }
+        for name in rule_names {
+            if active_disabled.contains(name) {
+                return true;
+            }
+        }
+
+        // Check disable-next-line: applies to the first non-directive line
+        // after the directive. We need to find if line_number is the target.
+        if let Some((dnl_line, rules)) = disable_next_line {
+            // The disable-next-line applies to the next non-directive line
+            // after dnl_line. Find it by checking if any events exist between
+            // dnl_line and line_number.
+            let next_non_directive = self.find_next_non_directive_line(dnl_line);
+            if next_non_directive == Some(line_number) {
+                if rules.is_empty() {
+                    return true;
+                }
+                for name in rule_names {
+                    if rules.iter().any(|r| r == name) {
+                        return true;
+                    }
+                }
+            }
+        }
+
         false
+    }
+
+    /// Find the first non-directive line after `after_line`.
+    fn find_next_non_directive_line(&self, after_line: usize) -> Option<usize> {
+        // Collect all directive line numbers
+        let directive_lines: HashSet<usize> = self.events.iter().map(|(l, _)| *l).collect();
+        let mut line = after_line + 1;
+        // Skip consecutive directive lines
+        while directive_lines.contains(&line) {
+            line += 1;
+        }
+        Some(line)
     }
 
     /// Parse a single directive from a trimmed line.
