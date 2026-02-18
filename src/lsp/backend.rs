@@ -608,54 +608,35 @@ impl LanguageServer for MkdlintLanguageServer {
                 let typed_anchor = &prefix[anchor_start + 2..];
 
                 // Collect heading anchors from the document
-                let lines: Vec<&str> = doc.content.lines().collect();
-                let mut in_code_block = false;
                 let mut items: Vec<CompletionItem> = Vec::new();
 
-                for (idx, l) in lines.iter().enumerate() {
-                    let trimmed = l.trim();
-                    if crate::helpers::is_code_fence(trimmed) {
-                        in_code_block = !in_code_block;
+                for h in crate::lsp::heading::parse_headings(&doc.content) {
+                    let anchor = crate::helpers::heading_to_anchor_id(&h.text);
+                    if !anchor.starts_with(typed_anchor) {
                         continue;
                     }
-                    if in_code_block {
-                        continue;
-                    }
-                    if trimmed.starts_with('#') {
-                        let level = trimmed.chars().take_while(|&c| c == '#').count();
-                        if (1..=6).contains(&level) {
-                            let text = trimmed[level..].trim().trim_end_matches('#').trim();
-                            if text.is_empty() {
-                                continue;
-                            }
-                            let anchor = crate::helpers::heading_to_anchor_id(text);
-                            if !anchor.starts_with(typed_anchor) {
-                                continue;
-                            }
-                            // Replace range: from just after `(#` to cursor
-                            let replace_start = (anchor_start as u32 + 2).min(col as u32);
-                            let replace_range = Range {
-                                start: Position {
-                                    line: position.line,
-                                    character: replace_start,
-                                },
-                                end: Position {
-                                    line: position.line,
-                                    character: col as u32,
-                                },
-                            };
-                            items.push(CompletionItem {
-                                label: anchor.clone(),
-                                kind: Some(CompletionItemKind::REFERENCE),
-                                detail: Some(format!("Line {}: {}", idx + 1, text)),
-                                text_edit: Some(CompletionTextEdit::Edit(TextEdit {
-                                    range: replace_range,
-                                    new_text: anchor,
-                                })),
-                                ..Default::default()
-                            });
-                        }
-                    }
+                    // Replace range: from just after `(#` to cursor
+                    let replace_start = (anchor_start as u32 + 2).min(col as u32);
+                    let replace_range = Range {
+                        start: Position {
+                            line: position.line,
+                            character: replace_start,
+                        },
+                        end: Position {
+                            line: position.line,
+                            character: col as u32,
+                        },
+                    };
+                    items.push(CompletionItem {
+                        label: anchor.clone(),
+                        kind: Some(CompletionItemKind::REFERENCE),
+                        detail: Some(format!("Line {}: {}", h.line + 1, h.text)),
+                        text_edit: Some(CompletionTextEdit::Edit(TextEdit {
+                            range: replace_range,
+                            new_text: anchor,
+                        })),
+                        ..Default::default()
+                    });
                 }
 
                 return Ok(Some(CompletionResponse::Array(items)));
@@ -760,32 +741,13 @@ impl LanguageServer for MkdlintLanguageServer {
             None => return Ok(None),
         };
 
-        let lines: Vec<&str> = doc.content.lines().collect();
-        let total_lines = lines.len() as u32;
+        let total_lines = doc.content.lines().count() as u32;
 
         // Parse headings from document content
-        let mut headings: Vec<(usize, u32, String)> = Vec::new(); // (level, line, text)
-        let mut in_code_block = false;
-
-        for (idx, line) in lines.iter().enumerate() {
-            let trimmed = line.trim();
-            if crate::helpers::is_code_fence(trimmed) {
-                in_code_block = !in_code_block;
-                continue;
-            }
-            if in_code_block {
-                continue;
-            }
-            if trimmed.starts_with('#') {
-                let level = trimmed.chars().take_while(|&c| c == '#').count();
-                if (1..=6).contains(&level) {
-                    let text = trimmed[level..].trim().trim_end_matches('#').trim();
-                    if !text.is_empty() {
-                        headings.push((level, idx as u32, text.to_string()));
-                    }
-                }
-            }
-        }
+        let headings: Vec<(usize, u32, String)> = crate::lsp::heading::parse_headings(&doc.content)
+            .into_iter()
+            .map(|h| (h.level, h.line as u32, h.text))
+            .collect();
 
         if headings.is_empty() {
             return Ok(Some(DocumentSymbolResponse::Nested(vec![])));
@@ -980,30 +942,27 @@ impl LanguageServer for MkdlintLanguageServer {
             }
 
             // Heading section folding
-            if trimmed.starts_with('#') {
-                let level = trimmed.chars().take_while(|&c| c == '#').count();
-                if (1..=6).contains(&level) {
-                    // Close all headings at same or deeper level
-                    while let Some(&(prev_level, prev_start)) = heading_stack.last() {
-                        if prev_level >= level {
-                            heading_stack.pop();
-                            let end = line_num.saturating_sub(1);
-                            if end > prev_start {
-                                ranges.push(FoldingRange {
-                                    start_line: prev_start,
-                                    start_character: None,
-                                    end_line: end,
-                                    end_character: None,
-                                    kind: Some(FoldingRangeKind::Region),
-                                    collapsed_text: None,
-                                });
-                            }
-                        } else {
-                            break;
+            if let Some((level, _text)) = crate::lsp::heading::heading_at_line(&lines, idx) {
+                // Close all headings at same or deeper level
+                while let Some(&(prev_level, prev_start)) = heading_stack.last() {
+                    if prev_level >= level {
+                        heading_stack.pop();
+                        let end = line_num.saturating_sub(1);
+                        if end > prev_start {
+                            ranges.push(FoldingRange {
+                                start_line: prev_start,
+                                start_character: None,
+                                end_line: end,
+                                end_character: None,
+                                kind: Some(FoldingRangeKind::Region),
+                                collapsed_text: None,
+                            });
                         }
+                    } else {
+                        break;
                     }
-                    heading_stack.push((level, line_num));
                 }
+                heading_stack.push((level, line_num));
             }
         }
 
@@ -1048,17 +1007,14 @@ impl LanguageServer for MkdlintLanguageServer {
         };
 
         // Only allow rename on ATX heading lines
-        if !line.starts_with('#') {
-            return Err(tower_lsp::jsonrpc::Error::invalid_params(
-                "Rename is only supported on heading lines",
-            ));
-        }
-        let level = line.chars().take_while(|&c| c == '#').count();
-        if level > 6 {
-            return Err(tower_lsp::jsonrpc::Error::invalid_params(
-                "Not a valid heading",
-            ));
-        }
+        let (level, _) = match crate::helpers::parse_heading_line(line) {
+            Some(result) => result,
+            None => {
+                return Err(tower_lsp::jsonrpc::Error::invalid_params(
+                    "Rename is only supported on heading lines",
+                ));
+            }
+        };
 
         // Compute the range of heading text (after `## `)
         let raw_line = lines[line_idx]; // original (unstripped) line
@@ -1103,18 +1059,14 @@ impl LanguageServer for MkdlintLanguageServer {
         let trimmed = raw_line.trim();
 
         // Extract old heading text
-        if !trimmed.starts_with('#') {
-            return Err(tower_lsp::jsonrpc::Error::invalid_params(
-                "Position is not a heading",
-            ));
-        }
-        let level = trimmed.chars().take_while(|&c| c == '#').count();
-        if level > 6 {
-            return Err(tower_lsp::jsonrpc::Error::invalid_params(
-                "Not a valid heading",
-            ));
-        }
-        let old_text = trimmed[level..].trim().trim_end_matches('#').trim();
+        let (level, old_text) = match crate::helpers::parse_heading_line(trimmed) {
+            Some(result) => result,
+            None => {
+                return Err(tower_lsp::jsonrpc::Error::invalid_params(
+                    "Position is not a heading",
+                ));
+            }
+        };
         let old_slug = crate::helpers::heading_to_anchor_id(old_text);
         let new_slug = crate::helpers::heading_to_anchor_id(new_name);
 
@@ -1200,17 +1152,11 @@ impl LanguageServer for MkdlintLanguageServer {
         //   3. Otherwise → no references
         let target_slug: String;
 
-        if trimmed.starts_with('#') {
-            let level = trimmed.chars().take_while(|&c| c == '#').count();
-            if level <= 6 {
-                let text = trimmed[level..].trim().trim_end_matches('#').trim();
-                if text.is_empty() {
-                    return Ok(None);
-                }
-                target_slug = crate::helpers::heading_to_anchor_id(text);
-            } else {
-                return Ok(None);
-            }
+        if let Some((_level, text)) = crate::helpers::parse_heading_line(trimmed) {
+            target_slug = crate::helpers::heading_to_anchor_id(text);
+        } else if trimmed.starts_with('#') {
+            // starts with '#' but not a valid heading (e.g. level > 6 or empty text)
+            return Ok(None);
         } else {
             // Try to find an anchor link under the cursor
             let mut found = None;
@@ -1304,42 +1250,24 @@ impl LanguageServer for MkdlintLanguageServer {
         };
 
         // Find the heading whose slug matches
-        let mut in_code_block = false;
-        for (idx, l) in lines.iter().enumerate() {
-            let trimmed = l.trim();
-            if crate::helpers::is_code_fence(trimmed) {
-                in_code_block = !in_code_block;
-                continue;
-            }
-            if in_code_block {
-                continue;
-            }
-            if trimmed.starts_with('#') {
-                let level = trimmed.chars().take_while(|&c| c == '#').count();
-                if level > 6 {
-                    continue;
-                }
-                let text = trimmed[level..].trim().trim_end_matches('#').trim();
-                if text.is_empty() {
-                    continue;
-                }
-                if crate::helpers::heading_to_anchor_id(text) == slug {
-                    let heading_end = l.len() as u32;
-                    return Ok(Some(GotoDefinitionResponse::Scalar(Location {
-                        uri,
-                        range: Range {
-                            start: Position {
-                                line: idx as u32,
-                                character: 0,
-                            },
-                            end: Position {
-                                line: idx as u32,
-                                character: heading_end,
-                            },
-                        },
-                    })));
-                }
-            }
+        if let Some(h) = crate::lsp::heading::parse_headings(&doc.content)
+            .into_iter()
+            .find(|h| crate::helpers::heading_to_anchor_id(&h.text) == slug)
+        {
+            let heading_end = lines.get(h.line).map_or(0, |l| l.len()) as u32;
+            return Ok(Some(GotoDefinitionResponse::Scalar(Location {
+                uri,
+                range: Range {
+                    start: Position {
+                        line: h.line as u32,
+                        character: 0,
+                    },
+                    end: Position {
+                        line: h.line as u32,
+                        character: heading_end,
+                    },
+                },
+            })));
         }
 
         Ok(None)
