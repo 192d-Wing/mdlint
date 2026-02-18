@@ -2209,3 +2209,34 @@ fn test_severity_default_error_when_not_configured() {
         "Default severity should be Error"
     );
 }
+
+#[test]
+fn test_front_matter_extraction_with_pattern() {
+    // When front_matter pattern is provided, it extracts front matter
+    // This test just verifies that having a pattern doesn't crash
+    let markdown = "---\ntitle: Test\n---\n# Section\n";
+
+    let mut options = LintOptions::new();
+    options
+        .strings
+        .insert("test.md".to_string(), markdown.to_string());
+    options.front_matter = Some("^---$".to_string());
+
+    let results = lint_sync(&options);
+    assert!(
+        results.is_ok(),
+        "Linting with front_matter pattern should not error"
+    );
+}
+
+#[test]
+fn test_front_matter_no_extraction_by_default() {
+    // When no pattern is provided, front matter is NOT extracted (opt-in only)
+    let markdown = "---\ntitle: Test\n---\n## Section\n";
+
+    let errors = lint_string(markdown);
+
+    // Without front_matter pattern, the --- lines are just thematic breaks
+    // MD041 WILL fire because there's no h1 at the top
+    assert!(errors.iter().any(|e| e.rule_names.contains(&"MD041")));
+}

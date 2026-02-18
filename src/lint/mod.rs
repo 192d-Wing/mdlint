@@ -14,12 +14,13 @@ use rayon::prelude::*;
 struct PreparedRules<'a> {
     enabled: Vec<&'a BoxedRule>,
     needs_parser: bool,
+    front_matter_pattern: Option<String>,
 }
 
 /// Build the enabled-rules list and parser flag from the config.
 ///
 /// Returns `'static` because rule references come from the global registry.
-fn prepare_rules(config: &Config) -> PreparedRules<'static> {
+fn prepare_rules(config: &Config, front_matter_pattern: Option<String>) -> PreparedRules<'static> {
     use crate::rules;
 
     let enabled: Vec<&BoxedRule> = rules::get_rules()
@@ -45,6 +46,7 @@ fn prepare_rules(config: &Config) -> PreparedRules<'static> {
     PreparedRules {
         enabled,
         needs_parser,
+        front_matter_pattern,
     }
 }
 
@@ -70,7 +72,7 @@ pub fn lint_sync(options: &LintOptions) -> Result<LintResults> {
     }
 
     // Precompute enabled rules once (avoids per-file HashMap lookups)
-    let prepared = prepare_rules(&config);
+    let prepared = prepare_rules(&config, options.front_matter.clone());
 
     // Lint all inputs in parallel
     let file_results: Vec<(
@@ -134,7 +136,7 @@ pub async fn lint_async(options: &LintOptions) -> Result<LintResults> {
     }
 
     // Precompute enabled rules once
-    let prepared = Arc::new(prepare_rules(&config));
+    let prepared = Arc::new(prepare_rules(&config, options.front_matter.clone()));
 
     // Lint all inputs concurrently using spawn_blocking (CPU-bound)
     let lint_handles: Vec<_> = inputs
@@ -179,6 +181,41 @@ fn load_config(options: &LintOptions) -> Result<Config> {
     config.resolve_extends()
 }
 
+/// Extract front matter line count from document.
+///
+/// Supports custom regex pattern. When pattern is None, no front matter is extracted
+/// (for backwards compatibility - user must opt-in via --front-matter flag).
+/// Returns the number of lines in the front matter block (including delimiters),
+/// or 0 if no front matter is detected.
+fn extract_front_matter_line_count(lines: &[&str], pattern: Option<&str>) -> usize {
+    if lines.is_empty() {
+        return 0;
+    }
+
+    let first_line = lines[0].trim_end_matches(['\n', '\r']);
+
+    // Only extract front matter when explicitly requested via pattern
+    let pattern_str = match pattern {
+        Some(p) => p,
+        None => return 0, // No pattern = no front matter extraction (opt-in only)
+    };
+
+    let Ok(regex) = regex::Regex::new(pattern_str) else {
+        return 0;
+    };
+    if !regex.is_match(first_line) {
+        return 0;
+    }
+    // Scan for closing delimiter (second pattern match)
+    for i in 1..lines.len() {
+        let line = lines[i].trim_end_matches(['\n', '\r']);
+        if regex.is_match(line) {
+            return i + 1;
+        }
+    }
+    0 // No closing = no front matter
+}
+
 /// Lint a single piece of content using pre-computed rule state.
 fn lint_content(
     content: &str,
@@ -194,6 +231,11 @@ fn lint_content(
 
     // Split into lines (zero-copy, preserving line endings)
     let lines: Vec<&str> = content.split_inclusive('\n').collect();
+
+    // Extract front matter if present
+    let fm_count =
+        extract_front_matter_line_count(&lines, prepared.front_matter_pattern.as_deref());
+    let front_matter_lines: &[&str] = &lines[..fm_count];
 
     // Parse inline configuration directives (<!-- markdownlint-disable/enable -->)
     let inline_config = InlineConfig::parse(&lines);
@@ -220,7 +262,7 @@ fn lint_content(
             name,
             version: crate::VERSION,
             lines: &lines,
-            front_matter_lines: &[],
+            front_matter_lines,
             tokens: &tokens,
             config: rule_config,
         };
@@ -809,5 +851,44 @@ mod tests {
         )];
         let result = apply_fixes(content, &errors);
         assert_eq!(result, "# Title\r\n\r\nSome text\r\n");
+    }
+
+    #[test]
+    fn test_extract_front_matter_no_pattern() {
+        let lines = vec!["---", "title: Test", "---", "# Content"];
+        assert_eq!(extract_front_matter_line_count(&lines, None), 0);
+    }
+
+    #[test]
+    fn test_extract_front_matter_yaml() {
+        let lines = vec!["---\n", "title: Test\n", "---\n", "# Content\n"];
+        assert_eq!(extract_front_matter_line_count(&lines, Some("^---$")), 3);
+    }
+
+    #[test]
+    fn test_extract_front_matter_toml() {
+        let lines = vec!["+++\n", "title = \"Test\"\n", "+++\n", "# Content\n"];
+        assert_eq!(
+            extract_front_matter_line_count(&lines, Some("^\\+\\+\\+$")),
+            3
+        );
+    }
+
+    #[test]
+    fn test_extract_front_matter_unclosed() {
+        let lines = vec!["---\n", "title: Test\n", "# Content\n"];
+        assert_eq!(extract_front_matter_line_count(&lines, Some("^---$")), 0);
+    }
+
+    #[test]
+    fn test_extract_front_matter_empty_doc() {
+        let lines: Vec<&str> = vec![];
+        assert_eq!(extract_front_matter_line_count(&lines, Some("^---$")), 0);
+    }
+
+    #[test]
+    fn test_extract_front_matter_invalid_regex() {
+        let lines = vec!["---\n", "title: Test\n", "---\n"];
+        assert_eq!(extract_front_matter_line_count(&lines, Some("[")), 0);
     }
 }
