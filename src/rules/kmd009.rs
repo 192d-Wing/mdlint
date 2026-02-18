@@ -145,7 +145,7 @@ mod tests {
     fn test_kmd009_ald_unused() {
         let errors = lint("# H\n\n{:myref: .highlight}\n\nA paragraph.\n");
         assert!(
-            errors.iter().any(|e| e.rule_names[0] == "KMD009"),
+            errors.iter().any(|e| e.rule_names.first() == Some(&"KMD009")),
             "should fire when ALD is never referenced"
         );
     }
@@ -175,7 +175,7 @@ mod tests {
     #[test]
     fn test_kmd009_fix_info_present() {
         let errors = lint("# H\n\n{:myref: .highlight}\n\nA paragraph.\n");
-        let err = errors.iter().find(|e| e.rule_names[0] == "KMD009").unwrap();
+        let err = errors.iter().find(|e| e.rule_names.first() == Some(&"KMD009")).unwrap();
         assert!(err.fix_info.is_some(), "KMD009 error should have fix_info");
         let fix = err.fix_info.as_ref().unwrap();
         assert_eq!(fix.delete_count, Some(-1));
@@ -191,7 +191,7 @@ mod tests {
         let fixed = apply_fixes(content, &errors);
         let errors2 = lint(&fixed);
         assert!(
-            errors2.iter().all(|e| e.rule_names[0] != "KMD009"),
+            errors2.iter().all(|e| e.rule_names.first() != Some(&"KMD009")),
             "after fix, no KMD009 errors; fixed:\n{fixed}"
         );
     }

@@ -157,7 +157,7 @@ mod tests {
     fn test_kmd010_malformed_inline_ial() {
         let errors = lint("# H\n\n*text*{: bad!!syntax}\n");
         assert!(
-            errors.iter().any(|e| e.rule_names[0] == "KMD010"),
+            errors.iter().any(|e| e.rule_names.first() == Some(&"KMD010")),
             "should fire on malformed inline IAL"
         );
     }

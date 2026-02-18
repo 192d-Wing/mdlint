@@ -171,7 +171,7 @@ mod tests {
     fn test_kmd006_malformed_ial() {
         let errors = lint("# H\n\n{: bad!!syntax}\n");
         assert!(
-            errors.iter().any(|e| e.rule_names[0] == "KMD006"),
+            errors.iter().any(|e| e.rule_names.first() == Some(&"KMD006")),
             "should fire on malformed IAL"
         );
     }
@@ -180,7 +180,7 @@ mod tests {
     fn test_kmd006_unclosed_ial() {
         let errors = lint("# H\n\n{: #id\n");
         assert!(
-            errors.iter().any(|e| e.rule_names[0] == "KMD006"),
+            errors.iter().any(|e| e.rule_names.first() == Some(&"KMD006")),
             "should fire on unclosed IAL"
         );
     }
