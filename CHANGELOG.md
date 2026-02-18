@@ -16,7 +16,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **`std::sync::LazyLock` migration**: Replaced all 27 usages of `once_cell::sync::Lazy` with stdlib `LazyLock` (available since Rust 1.80); removed `once_cell` dependency
-
 - **Documentation counts updated**: src/lib.rs and src/rules/mod.rs now correctly state "64 rules" (was "54")
 - **Severity-per-rule support**: `RuleConfig::Severity` is now properly applied to `LintError.severity` — configs like `{"MD001": "warning"}` or `{"MD013": {"severity": "warning", "line_length": 120}}` now work correctly
 - **MD005 tags**: Removed `"fixable"` tag to reflect that only ordered lists get auto-fix (unordered list indentation handled by MD007)
@@ -26,6 +25,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Multi-rule fix interactions (e.g., MD003 setext→ATX conversion creating MD022 blank-line violations) now converge properly via multi-pass fixing
 - Severity config values no longer silently dropped — properly propagated to diagnostics
+
+### Removed
+
+- **`syntect` feature from comrak**: Removed unused `syntect` feature from comrak dependency, eliminating RUSTSEC-2025-0141 and RUSTSEC-2024-0320 security advisories (bincode and yaml-rust unmaintained crates); cleaned up `deny.toml` ignore list
 
 ## [0.11.9] - 2026-02-18
 

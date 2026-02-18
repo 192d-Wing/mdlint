@@ -26,7 +26,7 @@ required-features = ["lsp"]
 
 [dependencies]
 # Markdown parsing
-comrak = { version = "0.50", default-features = false, features = ["syntect"] }
+comrak = { version = "0.50", default-features = false }
 
 # Async runtime (optional, for async API)
 tokio = { version = "1.41", features = [
