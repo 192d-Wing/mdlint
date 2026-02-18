@@ -63,7 +63,7 @@ impl Rule for KMD008 {
             let line_number = idx + 1;
 
             // Track code fences
-            if trimmed.starts_with("```") || trimmed.starts_with("~~~") {
+            if crate::helpers::is_code_fence(trimmed) {
                 in_code_block = !in_code_block;
                 continue;
             }

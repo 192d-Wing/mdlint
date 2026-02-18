@@ -57,7 +57,7 @@ fn collect_heading_ids(lines: &[&str]) -> Vec<String> {
 
     for line in lines {
         let trimmed = line.trim();
-        if trimmed.starts_with("```") || trimmed.starts_with("~~~") {
+        if crate::helpers::is_code_fence(trimmed) {
             in_code_block = !in_code_block;
             continue;
         }
@@ -113,7 +113,7 @@ impl Rule for MD051 {
             let line_number = idx + 1;
             let trimmed = line.trim();
 
-            if trimmed.starts_with("```") || trimmed.starts_with("~~~") {
+            if crate::helpers::is_code_fence(trimmed) {
                 in_code_block = !in_code_block;
                 continue;
             }

@@ -33,7 +33,7 @@ impl Rule for MD040 {
             let line_number = idx + 1;
             let trimmed = line.trim();
 
-            if trimmed.starts_with("```") || trimmed.starts_with("~~~") {
+            if crate::helpers::is_code_fence(trimmed) {
                 let fence_chars = if trimmed.starts_with("```") {
                     "```"
                 } else {

@@ -19,6 +19,12 @@ pub fn detect_line_ending(content: &str) -> &str {
     }
 }
 
+/// Check if a trimmed line starts a code fence (``` or ~~~)
+#[inline]
+pub fn is_code_fence(trimmed: &str) -> bool {
+    trimmed.starts_with("```") || trimmed.starts_with("~~~")
+}
+
 /// Split content into lines preserving line endings
 pub fn split_lines(content: &str) -> Vec<String> {
     let line_ending = detect_line_ending(content);

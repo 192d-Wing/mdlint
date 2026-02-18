@@ -19,12 +19,6 @@ static COLLAPSED_REF_RE: Lazy<Regex> =
 
 pub struct MD052;
 
-/// Check if a line is a code fence opener/closer (``` or ~~~)
-fn is_code_fence(line: &str) -> bool {
-    let trimmed = line.trim_start();
-    trimmed.starts_with("```") || trimmed.starts_with("~~~")
-}
-
 impl Rule for MD052 {
     fn names(&self) -> &'static [&'static str] {
         &["MD052", "reference-links-images"]
@@ -53,7 +47,7 @@ impl Rule for MD052 {
         // Pass 1: Collect all reference definitions (skipping code blocks)
         let mut in_code_block = false;
         for line in params.lines.iter() {
-            if is_code_fence(line) {
+            if crate::helpers::is_code_fence(line.trim_start()) {
                 in_code_block = !in_code_block;
                 continue;
             }
@@ -72,7 +66,7 @@ impl Rule for MD052 {
         for (idx, line) in params.lines.iter().enumerate() {
             let line_number = idx + 1;
 
-            if is_code_fence(line) {
+            if crate::helpers::is_code_fence(line.trim_start()) {
                 in_code_block = !in_code_block;
                 continue;
             }

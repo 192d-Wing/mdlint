@@ -23,12 +23,6 @@ static SHORTCUT_REF_RE: Lazy<Regex> =
 
 pub struct MD053;
 
-/// Check if a line is a code fence opener/closer (``` or ~~~)
-fn is_code_fence(line: &str) -> bool {
-    let trimmed = line.trim_start();
-    trimmed.starts_with("```") || trimmed.starts_with("~~~")
-}
-
 /// Check if a label matches any of the ignored patterns
 fn is_ignored(label: &str, ignored_definitions: &[String]) -> bool {
     ignored_definitions.iter().any(|pattern| pattern == label)
@@ -71,7 +65,7 @@ impl Rule for MD053 {
         for (idx, line) in params.lines.iter().enumerate() {
             let line_number = idx + 1;
 
-            if is_code_fence(line) {
+            if crate::helpers::is_code_fence(line.trim_start()) {
                 in_code_block = !in_code_block;
                 continue;
             }
@@ -102,7 +96,7 @@ impl Rule for MD053 {
         let mut used_labels: HashSet<String> = HashSet::new();
         in_code_block = false;
         for line in params.lines.iter() {
-            if is_code_fence(line) {
+            if crate::helpers::is_code_fence(line.trim_start()) {
                 in_code_block = !in_code_block;
                 continue;
             }

@@ -55,7 +55,7 @@ impl Rule for KMD002 {
             let trimmed = line.trim_end_matches('\n').trim_end_matches('\r');
 
             // Track code fences
-            if trimmed.starts_with("```") || trimmed.starts_with("~~~") {
+            if crate::helpers::is_code_fence(trimmed) {
                 in_code_block = !in_code_block;
                 continue;
             }

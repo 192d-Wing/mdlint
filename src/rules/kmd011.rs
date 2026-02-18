@@ -46,7 +46,7 @@ impl Rule for KMD011 {
 
             // Track code fences
             let fence_trimmed = trimmed.trim();
-            if fence_trimmed.starts_with("```") || fence_trimmed.starts_with("~~~") {
+            if crate::helpers::is_code_fence(fence_trimmed) {
                 in_code_block = !in_code_block;
                 continue;
             }

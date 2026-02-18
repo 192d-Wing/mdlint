@@ -66,7 +66,7 @@ impl Rule for MD044 {
             let trimmed = line.trim();
 
             // Track code blocks
-            if trimmed.starts_with("```") || trimmed.starts_with("~~~") {
+            if crate::helpers::is_code_fence(trimmed) {
                 in_code_block = !in_code_block;
                 continue;
             }

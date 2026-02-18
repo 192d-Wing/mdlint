@@ -34,7 +34,7 @@ impl Rule for MD014 {
             let line_number = idx + 1;
             let trimmed = line.trim();
 
-            if trimmed.starts_with("```") || trimmed.starts_with("~~~") {
+            if crate::helpers::is_code_fence(trimmed) {
                 in_code_block = !in_code_block;
             } else if in_code_block && trimmed.starts_with('$') {
                 // Calculate position and deletion count

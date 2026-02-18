@@ -105,7 +105,7 @@ impl Rule for MD031 {
             let trimmed = line.trim_start();
 
             // Check if this line starts or ends a code fence
-            if trimmed.starts_with("```") || trimmed.starts_with("~~~") {
+            if crate::helpers::is_code_fence(trimmed) {
                 let current_fence_char = trimmed.chars().next().unwrap();
 
                 if !in_code_fence {
