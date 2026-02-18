@@ -7,12 +7,12 @@
 //! never appears in the document body.
 
 use crate::types::{FixInfo, LintError, ParserType, Rule, RuleParams, Severity};
-use once_cell::sync::Lazy;
 use regex::Regex;
+use std::sync::LazyLock;
 
 /// Matches abbreviation definitions: `*[TERM]: expansion`
-static ABBR_DEF_RE: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"^\*\[([^\]]+)\]:").expect("valid regex"));
+static ABBR_DEF_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"^\*\[([^\]]+)\]:").expect("valid regex"));
 
 pub struct KMD004;
 

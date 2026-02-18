@@ -12,20 +12,21 @@
 //! when a closing tag has no opener, or when names are mismatched.
 
 use crate::types::{FixInfo, LintError, ParserType, Rule, RuleParams, Severity};
-use once_cell::sync::Lazy;
 use regex::Regex;
+use std::sync::LazyLock;
 
 /// Matches an opening block extension tag: `{::name}` or `{::name attrs}`
 /// Does NOT match self-closing (those end with `/}`).
-static OPEN_RE: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"^\{::(\w+)(?:\s[^}]*)?\}$").expect("valid regex"));
+static OPEN_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"^\{::(\w+)(?:\s[^}]*)?\}$").expect("valid regex"));
 
 /// Matches a self-closing block extension: `{::name .../}`
-static SELF_CLOSING_RE: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"^\{::(\w+)[^}]*/\}$").expect("valid regex"));
+static SELF_CLOSING_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"^\{::(\w+)[^}]*/\}$").expect("valid regex"));
 
 /// Matches a closing block extension tag: `{:/name}`
-static CLOSE_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"^\{:/(\w+)\}$").expect("valid regex"));
+static CLOSE_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"^\{:/(\w+)\}$").expect("valid regex"));
 
 pub struct KMD008;
 

@@ -6,10 +6,10 @@ use super::{
     code_actions, config::ConfigManager, diagnostics, document::DocumentManager, utils::Debouncer,
 };
 use crate::{LintOptions, apply_fixes, lint_sync};
-use once_cell::sync::Lazy;
 use regex::Regex;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
+use std::sync::LazyLock;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use tower_lsp::jsonrpc::Result;
@@ -18,7 +18,8 @@ use tower_lsp::{Client, LanguageServer};
 
 /// Regex that captures the fragment portion in a markdown anchor link `(#fragment)`.
 /// Matches `(#` followed by the fragment up to `)`, `"`, `'`, or whitespace.
-static ANCHOR_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r#"\(#([^)"'\s]+)"#).expect("valid regex"));
+static ANCHOR_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r#"\(#([^)"'\s]+)"#).expect("valid regex"));
 
 /// Walk a directory recursively and collect `.md`/`.markdown` files.
 ///

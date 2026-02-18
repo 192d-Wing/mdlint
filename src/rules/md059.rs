@@ -1,14 +1,14 @@
 //! MD059 - Emphasis marker style in math
 
 use crate::types::{FixInfo, LintError, ParserType, Rule, RuleParams, Severity};
-use once_cell::sync::Lazy;
 use regex::Regex;
+use std::sync::LazyLock;
 
 // Pattern to detect emphasis-style underscores: _text_ within math
 // Uses a non-backslash char (or start) before the opening _, and the closing _
 // must also not be preceded by a backslash.
-static EMPHASIS_UNDERSCORE_RE: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"(?:^|[^\\])(_[^_\\]+_)").expect("valid regex"));
+static EMPHASIS_UNDERSCORE_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"(?:^|[^\\])(_[^_\\]+_)").expect("valid regex"));
 
 pub struct MD059;
 

@@ -1,11 +1,11 @@
 //! MD045 - Images should have alternate text (alt text)
 
 use crate::types::{FixInfo, LintError, ParserType, Rule, RuleParams, Severity};
-use once_cell::sync::Lazy;
 use regex::Regex;
+use std::sync::LazyLock;
 
-static IMAGE_RE: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"!\[([^\]]*)\]\([^)]+\)").expect("valid regex"));
+static IMAGE_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"!\[([^\]]*)\]\([^)]+\)").expect("valid regex"));
 
 pub struct MD045;
 

@@ -1,7 +1,7 @@
 //! Built-in and custom rules
 
 use crate::types::{BoxedRule, Rule};
-use once_cell::sync::Lazy;
+use std::sync::LazyLock;
 
 // ALL 64 RULES IMPLEMENTED!
 // (53 standard MD rules + 11 Kramdown extension KMD rules)
@@ -72,7 +72,7 @@ mod md059;
 mod md060;
 
 /// Global rule registry - standard + Kramdown extension rules
-pub static RULES: Lazy<Vec<BoxedRule>> = Lazy::new(|| {
+pub static RULES: LazyLock<Vec<BoxedRule>> = LazyLock::new(|| {
     vec![
         // Kramdown extension rules (disabled by default; enabled by kramdown preset)
         Box::new(kmd001::KMD001),

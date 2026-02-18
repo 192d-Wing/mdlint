@@ -3,11 +3,11 @@
 //! This rule checks for reversed link syntax like (text)[link] instead of [text](link)
 
 use crate::types::{FixInfo, LintError, ParserType, Rule, RuleParams, Severity};
-use once_cell::sync::Lazy;
 use regex::Regex;
+use std::sync::LazyLock;
 
-static REVERSED_LINK_RE: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"\(([^)]+)\)\[([^\]]+)\]").expect("valid regex"));
+static REVERSED_LINK_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\(([^)]+)\)\[([^\]]+)\]").expect("valid regex"));
 
 pub struct MD011;
 

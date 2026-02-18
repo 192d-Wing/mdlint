@@ -4,15 +4,17 @@
 //! This rule fires when a `[^label]:` definition has no corresponding `[^label]` reference.
 
 use crate::types::{FixInfo, LintError, ParserType, Rule, RuleParams, Severity};
-use once_cell::sync::Lazy;
 use regex::Regex;
 use std::collections::{HashMap, HashSet};
+use std::sync::LazyLock;
 
 /// Matches footnote definitions: `[^label]:` at the start of a line
-static DEF_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"^\[\^([^\]]+)\]:").expect("valid regex"));
+static DEF_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"^\[\^([^\]]+)\]:").expect("valid regex"));
 
 /// Matches any `[^label]` occurrence (both refs and defs — we filter in code)
-static REF_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"\[\^([^\]]+)\]").expect("valid regex"));
+static REF_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\[\^([^\]]+)\]").expect("valid regex"));
 
 pub struct KMD003;
 

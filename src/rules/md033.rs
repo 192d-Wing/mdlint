@@ -4,11 +4,11 @@
 //! It can be configured to allow specific HTML elements.
 
 use crate::types::{LintError, ParserType, Rule, RuleParams, Severity};
-use once_cell::sync::Lazy;
 use regex::Regex;
+use std::sync::LazyLock;
 
-static HTML_TAG_NAME_RE: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"^<([^!>][^/\s>]*)").expect("valid regex"));
+static HTML_TAG_NAME_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"^<([^!>][^/\s>]*)").expect("valid regex"));
 
 pub struct MD033;
 

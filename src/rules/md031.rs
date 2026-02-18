@@ -1,11 +1,11 @@
 //! MD031 - Fenced code blocks should be surrounded by blank lines
 
 use crate::types::{FixInfo, LintError, ParserType, Rule, RuleParams, Severity};
-use once_cell::sync::Lazy;
 use regex::Regex;
+use std::sync::LazyLock;
 
-static CODE_FENCE_PREFIX_RE: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"^(.*?)[`~]").expect("valid regex"));
+static CODE_FENCE_PREFIX_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"^(.*?)[`~]").expect("valid regex"));
 
 pub struct MD031;
 

@@ -3,23 +3,23 @@
 //! This rule checks for links with no URL or only a fragment (#).
 
 use crate::types::{FixInfo, LintError, ParserType, Rule, RuleParams, Severity};
-use once_cell::sync::Lazy;
 use regex::Regex;
 use std::collections::HashMap;
+use std::sync::LazyLock;
 
-static INLINE_LINK_RE: Lazy<Regex> = Lazy::new(|| {
+static INLINE_LINK_RE: LazyLock<Regex> = LazyLock::new(|| {
     // Match inline links: [text](url)
     // Captures the link text and the URL part
     Regex::new(r"\[([^\]]*)\]\(([^)]*)\)").expect("valid regex")
 });
 
-static REFERENCE_LINK_RE: Lazy<Regex> = Lazy::new(|| {
+static REFERENCE_LINK_RE: LazyLock<Regex> = LazyLock::new(|| {
     // Match reference links: [text][ref] or [text][] or [text]
     // Note: We can't use negative lookahead (?!\() in Rust regex, so we'll filter inline links manually
     Regex::new(r"\[([^\]]+)\](?:\[([^\]]*)\])?").expect("valid regex")
 });
 
-static LINK_DEFINITION_RE: Lazy<Regex> = Lazy::new(|| {
+static LINK_DEFINITION_RE: LazyLock<Regex> = LazyLock::new(|| {
     // Match link definitions: [ref]: url
     // Note: no $ anchor because lines may have trailing \n
     Regex::new(r"^\s*\[([^\]]+)\]:\s*(\S*)").expect("valid regex")

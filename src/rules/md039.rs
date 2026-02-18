@@ -1,11 +1,11 @@
 //! MD039 - Spaces inside link text
 
 use crate::types::{FixInfo, LintError, ParserType, Rule, RuleParams, Severity};
-use once_cell::sync::Lazy;
 use regex::Regex;
+use std::sync::LazyLock;
 
-static LINK_SPACE_RE: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"\[( +[^\]]+?[^ \]]+ +)\]").expect("valid regex"));
+static LINK_SPACE_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\[( +[^\]]+?[^ \]]+ +)\]").expect("valid regex"));
 
 pub struct MD039;
 

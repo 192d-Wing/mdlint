@@ -1,11 +1,11 @@
 //! MD051 - Link fragments should be valid
 
 use crate::types::{LintError, ParserType, Rule, RuleParams, Severity};
-use once_cell::sync::Lazy;
 use regex::Regex;
+use std::sync::LazyLock;
 
-static FRAGMENT_LINK_RE: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"\[([^\]]*)\]\(#([^)]+)\)").expect("valid regex"));
+static FRAGMENT_LINK_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\[([^\]]*)\]\(#([^)]+)\)").expect("valid regex"));
 
 pub struct MD051;
 

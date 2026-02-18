@@ -8,17 +8,17 @@
 //! spaces with hyphens, strip all non-alphanumeric-or-hyphen characters.
 
 use crate::types::{FixInfo, LintError, ParserType, Rule, RuleParams, Severity};
-use once_cell::sync::Lazy;
 use regex::Regex;
 use std::collections::HashMap;
+use std::sync::LazyLock;
 
 /// Matches ATX headings (with optional trailing IAL): `## Title {#custom-id}`
-static ATX_RE: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"^(#{1,6})\s+(.+?)(?:\s*\{[^}]*\})?\s*$").expect("valid regex"));
+static ATX_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"^(#{1,6})\s+(.+?)(?:\s*\{[^}]*\})?\s*$").expect("valid regex"));
 
 /// Matches an explicit `{#id}` attribute in an IAL or inline heading suffix
-static EXPLICIT_ID_RE: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"\{[^}]*#([A-Za-z][\w-]*)[^}]*\}").expect("valid regex"));
+static EXPLICIT_ID_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\{[^}]*#([A-Za-z][\w-]*)[^}]*\}").expect("valid regex"));
 
 /// Generate a Kramdown-style heading slug from heading text.
 ///

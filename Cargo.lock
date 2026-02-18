@@ -1119,7 +1119,6 @@ dependencies = [
  "lsp-types",
  "notify",
  "notify-debouncer-full",
- "once_cell",
  "pretty_assertions",
  "proptest",
  "rayon",

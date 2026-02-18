@@ -5,11 +5,11 @@
 //! (default: 2).
 
 use crate::types::{FixInfo, LintError, ParserType, Rule, RuleParams, Severity};
-use once_cell::sync::Lazy;
 use regex::Regex;
+use std::sync::LazyLock;
 
-static UL_MARKER_RE: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"^(\s*)[*+\-]\s").expect("valid regex"));
+static UL_MARKER_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"^(\s*)[*+\-]\s").expect("valid regex"));
 
 pub struct MD007;
 

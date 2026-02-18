@@ -227,10 +227,10 @@ fn lint_content(
     prepared: &PreparedRules<'_>,
 ) -> Result<Vec<LintError>> {
     use crate::config::RuleConfig;
-    use once_cell::sync::Lazy;
     use std::collections::HashMap;
+    use std::sync::LazyLock;
 
-    static EMPTY_CONFIG: Lazy<HashMap<String, serde_json::Value>> = Lazy::new(HashMap::new);
+    static EMPTY_CONFIG: LazyLock<HashMap<String, serde_json::Value>> = LazyLock::new(HashMap::new);
 
     // Split into lines (zero-copy, preserving line endings)
     let lines: Vec<&str> = content.split_inclusive('\n').collect();

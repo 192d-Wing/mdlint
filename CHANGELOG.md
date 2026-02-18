@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Heading parsing helpers**: `ParsedHeading` struct and `parse_headings()` / `parse_heading_line()` functions in `src/helpers/mod.rs` extract ATX headings with code-fence skipping (eliminates 7+ duplicated implementations across LSP and rules)
+- **Front matter extraction**: `extract_front_matter_line_count()` function supports custom regex patterns via `LintOptions.front_matter` field
+- **Multi-pass fix convergence**: `--fix` and `--fix-dry-run` now apply fixes iteratively (up to 10 passes) until content stabilizes, resolving multi-rule interaction bugs
+
+### Changed
+
+- **`std::sync::LazyLock` migration**: Replaced all 27 usages of `once_cell::sync::Lazy` with stdlib `LazyLock` (available since Rust 1.80); removed `once_cell` dependency
+
+- **Documentation counts updated**: src/lib.rs and src/rules/mod.rs now correctly state "64 rules" (was "54")
+- **Severity-per-rule support**: `RuleConfig::Severity` is now properly applied to `LintError.severity` — configs like `{"MD001": "warning"}` or `{"MD013": {"severity": "warning", "line_length": 120}}` now work correctly
+- **MD005 tags**: Removed `"fixable"` tag to reflect that only ordered lists get auto-fix (unordered list indentation handled by MD007)
+- **PreparedRules struct**: Now includes `front_matter_pattern` field threaded from `LintOptions`
+
+### Fixed
+
+- Multi-rule fix interactions (e.g., MD003 setext→ATX conversion creating MD022 blank-line violations) now converge properly via multi-pass fixing
+- Severity config values no longer silently dropped — properly propagated to diagnostics
+
 ## [0.11.9] - 2026-02-18
 
 ### Added
@@ -896,7 +916,9 @@ This release makes existing auto-fixes discoverable by properly tagging them. No
 - Parallel file processing
 - Inline configuration comments support
 
-[Unreleased]: https://github.com/192d-Wing/mkdlint/compare/v0.11.7...HEAD
+[Unreleased]: https://github.com/192d-Wing/mkdlint/compare/v0.11.9...HEAD
+[0.11.9]: https://github.com/192d-Wing/mkdlint/compare/v0.11.8...v0.11.9
+[0.11.8]: https://github.com/192d-Wing/mkdlint/compare/v0.11.7...v0.11.8
 [0.11.7]: https://github.com/192d-Wing/mkdlint/compare/v0.11.6...v0.11.7
 [0.11.6]: https://github.com/192d-Wing/mkdlint/compare/v0.11.5...v0.11.6
 [0.11.5]: https://github.com/192d-Wing/mkdlint/compare/v0.11.4...v0.11.5

@@ -1,11 +1,11 @@
 //! MD037 - Spaces inside emphasis markers
 
 use crate::types::{FixInfo, LintError, ParserType, Rule, RuleParams, Severity};
-use once_cell::sync::Lazy;
 use regex::Regex;
+use std::sync::LazyLock;
 
-static EMPHASIS_SPACE_RE: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"(\*|_)( +[^*_]+?[^ *_]+ +)(\*|_)").expect("valid regex"));
+static EMPHASIS_SPACE_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"(\*|_)( +[^*_]+?[^ *_]+ +)(\*|_)").expect("valid regex"));
 
 pub struct MD037;
 

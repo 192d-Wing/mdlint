@@ -1,25 +1,25 @@
 //! MD053 - Link and image reference definitions should be needed
 
 use crate::types::{FixInfo, LintError, ParserType, Rule, RuleParams, Severity};
-use once_cell::sync::Lazy;
 use regex::Regex;
 use std::collections::HashSet;
+use std::sync::LazyLock;
 
 /// Regex for reference link definitions: `[label]: url`
-static DEF_RE: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"^\s*\[([^\]]+)\]:\s+").expect("valid regex"));
+static DEF_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"^\s*\[([^\]]+)\]:\s+").expect("valid regex"));
 
 /// Regex for full reference links: `[text][label]`
-static FULL_REF_RE: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"\[([^\]]*)\]\[([^\]]+)\]").expect("valid regex"));
+static FULL_REF_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\[([^\]]*)\]\[([^\]]+)\]").expect("valid regex"));
 
 /// Regex for collapsed reference links: `[label][]`
-static COLLAPSED_REF_RE: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"\[([^\]]+)\]\[\]").expect("valid regex"));
+static COLLAPSED_REF_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\[([^\]]+)\]\[\]").expect("valid regex"));
 
 /// Regex for shortcut reference links: `[label]` (not followed by `[` or `(` or `:`)
-static SHORTCUT_REF_RE: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"\[([^\]]+)\](?:[^(\[:]|$)").expect("valid regex"));
+static SHORTCUT_REF_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\[([^\]]+)\](?:[^(\[:]|$)").expect("valid regex"));
 
 pub struct MD053;
 

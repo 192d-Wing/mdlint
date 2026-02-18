@@ -8,14 +8,15 @@
 //! (i.e., inline on spans rather than as standalone block IALs).
 
 use crate::types::{FixInfo, LintError, ParserType, Rule, RuleParams, Severity};
-use once_cell::sync::Lazy;
 use regex::Regex;
+use std::sync::LazyLock;
 
 /// Finds all `{:...}` occurrences within a line (inline IALs)
-static INLINE_IAL_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"\{:[^}]*\}").expect("valid regex"));
+static INLINE_IAL_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\{:[^}]*\}").expect("valid regex"));
 
 /// A valid IAL body: zero or more valid attributes
-static VALID_IAL_RE: Lazy<Regex> = Lazy::new(|| {
+static VALID_IAL_RE: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(
         r#"^\{:\s*(?:[#.][^\s}\{]+|[A-Za-z_][\w-]*(?:=(?:"[^"]*"|'[^']*'|[\w-]+))?)?\s*(?:\s+(?:[#.][^\s}\{]+|[A-Za-z_][\w-]*(?:=(?:"[^"]*"|'[^']*'|[\w-]+))?))*\s*\}$"#,
     )
@@ -23,7 +24,8 @@ static VALID_IAL_RE: Lazy<Regex> = Lazy::new(|| {
 });
 
 /// An empty IAL `{:}` is also valid
-static EMPTY_IAL_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"^\{:\s*\}$").expect("valid regex"));
+static EMPTY_IAL_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"^\{:\s*\}$").expect("valid regex"));
 
 pub struct KMD010;
 

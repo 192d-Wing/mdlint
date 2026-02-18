@@ -1,35 +1,36 @@
 //! MD054 - Link and image style
 
 use crate::types::{FixInfo, LintError, ParserType, Rule, RuleParams, Severity};
-use once_cell::sync::Lazy;
 use regex::Regex;
+use std::sync::LazyLock;
 
 // Inline link: [text](url)
-static INLINE_RE: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"\[([^\]]*)\]\(([^)]*)\)").expect("valid regex"));
+static INLINE_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\[([^\]]*)\]\(([^)]*)\)").expect("valid regex"));
 
 // Full reference link: [text][label]
-static FULL_REF_RE: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"\[([^\]]*)\]\[([^\]]+)\]").expect("valid regex"));
+static FULL_REF_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\[([^\]]*)\]\[([^\]]+)\]").expect("valid regex"));
 
 // Collapsed reference link: [text][]
-static COLLAPSED_REF_RE: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"\[([^\]]+)\]\[\]").expect("valid regex"));
+static COLLAPSED_REF_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\[([^\]]+)\]\[\]").expect("valid regex"));
 
 // Shortcut reference link: [text] not followed by ( or [
-static SHORTCUT_REF_RE: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"\[([^\]]+)\](?:[^(\[])").expect("valid regex"));
+static SHORTCUT_REF_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\[([^\]]+)\](?:[^(\[])").expect("valid regex"));
 
 // Autolink: <http://...> or <https://...>
-static AUTOLINK_RE: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"<(https?://[^>]+)>").expect("valid regex"));
+static AUTOLINK_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"<(https?://[^>]+)>").expect("valid regex"));
 
 // Inline code span regex for stripping
-static INLINE_CODE_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"`[^`]+`").expect("valid regex"));
+static INLINE_CODE_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"`[^`]+`").expect("valid regex"));
 
 // Code fence opening/closing
-static CODE_FENCE_RE: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"^(`{3,}|~{3,})").expect("valid regex"));
+static CODE_FENCE_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"^(`{3,}|~{3,})").expect("valid regex"));
 
 pub struct MD054;
 
