@@ -6,7 +6,8 @@ use super::lint::lint_files_once;
 /// Run watch mode with file change detection
 pub(crate) fn run_watch_mode(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
     use colored::Colorize;
-    use notify_debouncer_full::{new_debouncer, notify::*};
+    use notify::RecursiveMode;
+    use notify_debouncer_full::new_debouncer;
     use std::path::Path;
     use std::sync::mpsc::channel;
     use std::time::Duration;
@@ -36,9 +37,7 @@ pub(crate) fn run_watch_mode(args: &Args) -> Result<(), Box<dyn std::error::Erro
     for path in watch_paths {
         let path_obj = Path::new(path);
         if path_obj.exists() {
-            debouncer
-                .watcher()
-                .watch(path_obj, RecursiveMode::Recursive)?;
+            debouncer.watch(path_obj, RecursiveMode::Recursive)?;
             println!("{} Watching: {}", "✓".green(), path.cyan());
         } else {
             eprintln!(
