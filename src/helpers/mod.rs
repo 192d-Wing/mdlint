@@ -25,6 +25,37 @@ pub fn is_code_fence(trimmed: &str) -> bool {
     trimmed.starts_with("```") || trimmed.starts_with("~~~")
 }
 
+/// Convert a heading text string to a GitHub-style anchor ID.
+///
+/// Rules: lowercase, spaces and hyphens become hyphens (de-duplicated),
+/// all other non-alphanumeric characters are dropped, leading/trailing
+/// hyphens are trimmed.
+///
+/// This matches the algorithm used by GitHub-Flavored Markdown and is
+/// shared by MD051 and the LSP rename/completion handlers.
+///
+/// # Examples
+/// ```
+/// assert_eq!(mkdlint::helpers::heading_to_anchor_id("Hello World"), "hello-world");
+/// assert_eq!(mkdlint::helpers::heading_to_anchor_id("What's New?"), "whats-new");
+/// ```
+pub fn heading_to_anchor_id(text: &str) -> String {
+    let lower = text.to_lowercase();
+    let mut id = String::with_capacity(lower.len());
+    let mut prev_hyphen = false;
+    for ch in lower.chars() {
+        if ch.is_alphanumeric() {
+            id.push(ch);
+            prev_hyphen = false;
+        } else if (ch == ' ' || ch == '-') && !prev_hyphen {
+            id.push('-');
+            prev_hyphen = true;
+        }
+        // Skip other characters (punctuation, etc.)
+    }
+    id.trim_matches('-').to_string()
+}
+
 /// Split content into lines preserving line endings
 pub fn split_lines(content: &str) -> Vec<String> {
     let line_ending = detect_line_ending(content);

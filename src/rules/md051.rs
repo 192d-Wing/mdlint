@@ -9,23 +9,9 @@ static FRAGMENT_LINK_RE: Lazy<Regex> =
 
 pub struct MD051;
 
-/// Convert heading text to a GitHub-style anchor ID
+/// Convert heading text to a GitHub-style anchor ID (delegates to shared helper)
 fn heading_to_id(text: &str) -> String {
-    let lower = text.to_lowercase();
-    let mut id = String::with_capacity(lower.len());
-    let mut prev_hyphen = false;
-    for ch in lower.chars() {
-        if ch.is_alphanumeric() {
-            id.push(ch);
-            prev_hyphen = false;
-        } else if (ch == ' ' || ch == '-') && !prev_hyphen {
-            id.push('-');
-            prev_hyphen = true;
-        }
-        // Skip other characters (punctuation, etc.)
-    }
-    // Trim leading/trailing hyphens
-    id.trim_matches('-').to_string()
+    crate::helpers::heading_to_anchor_id(text)
 }
 
 /// Extract heading text from a markdown heading line

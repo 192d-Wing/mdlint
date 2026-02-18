@@ -1728,3 +1728,328 @@ async fn test_hover_on_rule_name_without_diagnostic_shows_docs() {
         _ => panic!("Expected MarkupContent"),
     }
 }
+
+// ── Rename capability tests (item 4) ────────────────────────────────────────
+
+#[tokio::test]
+async fn test_capabilities_include_rename() {
+    let server = create_test_server().await;
+    let result = server
+        .initialize(InitializeParams::default())
+        .await
+        .unwrap();
+    assert!(
+        result.capabilities.rename_provider.is_some(),
+        "rename_provider capability should be declared"
+    );
+}
+
+#[tokio::test]
+async fn test_prepare_rename_on_heading() {
+    let server = create_test_server().await;
+    server
+        .initialize(InitializeParams::default())
+        .await
+        .unwrap();
+    server.initialized(InitializedParams {}).await;
+
+    let uri = Url::parse("file:///test.md").unwrap();
+    server
+        .did_open(DidOpenTextDocumentParams {
+            text_document: TextDocumentItem {
+                uri: uri.clone(),
+                language_id: "markdown".to_string(),
+                version: 1,
+                text: "# My Heading\n\nSome text.\n".to_string(),
+            },
+        })
+        .await;
+
+    let result = server
+        .prepare_rename(TextDocumentPositionParams {
+            text_document: TextDocumentIdentifier { uri: uri.clone() },
+            position: Position {
+                line: 0,
+                character: 5,
+            },
+        })
+        .await
+        .unwrap();
+
+    assert!(
+        result.is_some(),
+        "prepare_rename on a heading should return a range"
+    );
+}
+
+#[tokio::test]
+async fn test_prepare_rename_on_non_heading_returns_error() {
+    let server = create_test_server().await;
+    server
+        .initialize(InitializeParams::default())
+        .await
+        .unwrap();
+    server.initialized(InitializedParams {}).await;
+
+    let uri = Url::parse("file:///test.md").unwrap();
+    server
+        .did_open(DidOpenTextDocumentParams {
+            text_document: TextDocumentItem {
+                uri: uri.clone(),
+                language_id: "markdown".to_string(),
+                version: 1,
+                text: "# Heading\n\nBody text here.\n".to_string(),
+            },
+        })
+        .await;
+
+    // Line 2 is body text, not a heading
+    let result = server
+        .prepare_rename(TextDocumentPositionParams {
+            text_document: TextDocumentIdentifier { uri: uri.clone() },
+            position: Position {
+                line: 2,
+                character: 0,
+            },
+        })
+        .await;
+
+    assert!(
+        result.is_err(),
+        "prepare_rename on body text should return an error"
+    );
+}
+
+#[tokio::test]
+async fn test_rename_heading_updates_anchor_links() {
+    let server = create_test_server().await;
+    server
+        .initialize(InitializeParams::default())
+        .await
+        .unwrap();
+    server.initialized(InitializedParams {}).await;
+
+    let uri = Url::parse("file:///test.md").unwrap();
+    let content =
+        "## My Heading\n\nSee [link](#my-heading) and [other](#my-heading).\n".to_string();
+    server
+        .did_open(DidOpenTextDocumentParams {
+            text_document: TextDocumentItem {
+                uri: uri.clone(),
+                language_id: "markdown".to_string(),
+                version: 1,
+                text: content,
+            },
+        })
+        .await;
+
+    let result = server
+        .rename(RenameParams {
+            text_document_position: TextDocumentPositionParams {
+                text_document: TextDocumentIdentifier { uri: uri.clone() },
+                position: Position {
+                    line: 0,
+                    character: 5,
+                },
+            },
+            new_name: "New Name".to_string(),
+            work_done_progress_params: WorkDoneProgressParams::default(),
+        })
+        .await
+        .unwrap();
+
+    assert!(result.is_some(), "rename should return a WorkspaceEdit");
+    let edit = result.unwrap();
+    let changes = edit.changes.expect("changes should be present");
+    let edits = changes.get(&uri).expect("edits for the file");
+
+    // Should have at least 3 edits: heading + 2 link anchors
+    assert!(
+        edits.len() >= 3,
+        "Expected heading + 2 link edits, got {}",
+        edits.len()
+    );
+
+    // The first edit should rename the heading to "## New Name"
+    assert_eq!(edits[0].new_text, "## New Name");
+
+    // The remaining edits should replace old slug with new slug
+    for edit in &edits[1..] {
+        assert_eq!(edit.new_text, "new-name", "Link anchors should be updated");
+    }
+}
+
+#[tokio::test]
+async fn test_rename_heading_no_links() {
+    let server = create_test_server().await;
+    server
+        .initialize(InitializeParams::default())
+        .await
+        .unwrap();
+    server.initialized(InitializedParams {}).await;
+
+    let uri = Url::parse("file:///test.md").unwrap();
+    server
+        .did_open(DidOpenTextDocumentParams {
+            text_document: TextDocumentItem {
+                uri: uri.clone(),
+                language_id: "markdown".to_string(),
+                version: 1,
+                text: "## Old Title\n\nNo links here.\n".to_string(),
+            },
+        })
+        .await;
+
+    let result = server
+        .rename(RenameParams {
+            text_document_position: TextDocumentPositionParams {
+                text_document: TextDocumentIdentifier { uri: uri.clone() },
+                position: Position {
+                    line: 0,
+                    character: 5,
+                },
+            },
+            new_name: "New Title".to_string(),
+            work_done_progress_params: WorkDoneProgressParams::default(),
+        })
+        .await
+        .unwrap();
+
+    assert!(result.is_some(), "rename should return a WorkspaceEdit");
+    let edit = result.unwrap();
+    let changes = edit.changes.expect("changes should be present");
+    let edits = changes.get(&uri).expect("edits for the file");
+
+    // Only the heading line edit
+    assert_eq!(edits.len(), 1);
+    assert_eq!(edits[0].new_text, "## New Title");
+}
+
+// ── Link completion for headings tests (item 5) ──────────────────────────────
+
+#[tokio::test]
+async fn test_completion_heading_anchors() {
+    let server = create_test_server().await;
+    server
+        .initialize(InitializeParams::default())
+        .await
+        .unwrap();
+    server.initialized(InitializedParams {}).await;
+
+    let uri = Url::parse("file:///test.md").unwrap();
+    server
+        .did_open(DidOpenTextDocumentParams {
+            text_document: TextDocumentItem {
+                uri: uri.clone(),
+                language_id: "markdown".to_string(),
+                version: 1,
+                text: "# Introduction\n\n## Getting Started\n\n## API Reference\n\nSee [link](#\n"
+                    .to_string(),
+            },
+        })
+        .await;
+
+    // Request completion at the `(#` position (line 6, after `(#`)
+    // "See [link](#" → S=0 e=1 e=2 ' '=3 [=4 l=5 i=6 n=7 k=8 ]=9 (=10 #=11, cursor=12
+    let result = server
+        .completion(CompletionParams {
+            text_document_position: TextDocumentPositionParams {
+                text_document: TextDocumentIdentifier { uri: uri.clone() },
+                position: Position {
+                    line: 6,
+                    character: 12, // after `See [link](#`
+                },
+            },
+            work_done_progress_params: WorkDoneProgressParams::default(),
+            partial_result_params: PartialResultParams::default(),
+            context: None,
+        })
+        .await
+        .unwrap();
+
+    assert!(result.is_some(), "completion should return items");
+    let items = match result.unwrap() {
+        CompletionResponse::Array(items) => items,
+        CompletionResponse::List(list) => list.items,
+    };
+    assert!(
+        !items.is_empty(),
+        "Should return heading anchor completions"
+    );
+
+    let labels: Vec<&str> = items.iter().map(|i| i.label.as_str()).collect();
+    assert!(
+        labels.contains(&"introduction"),
+        "Should include 'introduction' anchor. Got: {:?}",
+        labels
+    );
+    assert!(
+        labels.contains(&"getting-started"),
+        "Should include 'getting-started' anchor. Got: {:?}",
+        labels
+    );
+    assert!(
+        labels.contains(&"api-reference"),
+        "Should include 'api-reference' anchor. Got: {:?}",
+        labels
+    );
+}
+
+#[tokio::test]
+async fn test_completion_heading_anchor_prefix_filter() {
+    let server = create_test_server().await;
+    server
+        .initialize(InitializeParams::default())
+        .await
+        .unwrap();
+    server.initialized(InitializedParams {}).await;
+
+    let uri = Url::parse("file:///test.md").unwrap();
+    server
+        .did_open(DidOpenTextDocumentParams {
+            text_document: TextDocumentItem {
+                uri: uri.clone(),
+                language_id: "markdown".to_string(),
+                version: 1,
+                text:
+                    "# Alpha Section\n\n## Beta Section\n\n## Alpha Details\n\nSee [link](#alpha\n"
+                        .to_string(),
+            },
+        })
+        .await;
+
+    // Request completion after `(#alpha` — only headings starting with "alpha" should match
+    // "See [link](#alpha" → S=0...#=11 a=12 l=13 p=14 h=15 a=16, cursor=17
+    let result = server
+        .completion(CompletionParams {
+            text_document_position: TextDocumentPositionParams {
+                text_document: TextDocumentIdentifier { uri: uri.clone() },
+                position: Position {
+                    line: 6,
+                    character: 17, // after `See [link](#alpha`
+                },
+            },
+            work_done_progress_params: WorkDoneProgressParams::default(),
+            partial_result_params: PartialResultParams::default(),
+            context: None,
+        })
+        .await
+        .unwrap();
+
+    assert!(result.is_some());
+    let items = match result.unwrap() {
+        CompletionResponse::Array(items) => items,
+        CompletionResponse::List(list) => list.items,
+    };
+    // Only alpha-* anchors should be returned, not beta-section
+    let labels: Vec<&str> = items.iter().map(|i| i.label.as_str()).collect();
+    assert!(
+        labels.iter().all(|l| l.starts_with("alpha")),
+        "All completions should start with 'alpha', got: {:?}",
+        labels
+    );
+    assert!(
+        !labels.contains(&"beta-section"),
+        "beta-section should be filtered out"
+    );
+}

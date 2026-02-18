@@ -278,6 +278,7 @@ impl LanguageServer for MkdlintLanguageServer {
                 document_symbol_provider: Some(OneOf::Left(true)),
                 document_formatting_provider: Some(OneOf::Left(true)),
                 folding_range_provider: Some(FoldingRangeProviderCapability::Simple(true)),
+                rename_provider: Some(OneOf::Left(true)),
                 // Declare that we handle workspace/didChangeConfiguration
                 workspace: Some(WorkspaceServerCapabilities {
                     workspace_folders: None,
@@ -589,6 +590,70 @@ impl LanguageServer for MkdlintLanguageServer {
         let col = position.character as usize;
         let prefix = &line[..col.min(line.len())];
 
+        // ── Link anchor completion: [text](#   or   [text](#partial ──────────
+        // Detect if the cursor is inside a link's fragment: `[...](#`
+        if let Some(anchor_start) = prefix.rfind("(#") {
+            // Make sure there's no `)` closing the link between `(#` and cursor
+            if !prefix[anchor_start..].contains(')') {
+                // The partial anchor text the user has typed after `(#`
+                let typed_anchor = &prefix[anchor_start + 2..];
+
+                // Collect heading anchors from the document
+                let lines: Vec<&str> = doc.content.lines().collect();
+                let mut in_code_block = false;
+                let mut items: Vec<CompletionItem> = Vec::new();
+
+                for (idx, l) in lines.iter().enumerate() {
+                    let trimmed = l.trim();
+                    if crate::helpers::is_code_fence(trimmed) {
+                        in_code_block = !in_code_block;
+                        continue;
+                    }
+                    if in_code_block {
+                        continue;
+                    }
+                    if trimmed.starts_with('#') {
+                        let level = trimmed.chars().take_while(|&c| c == '#').count();
+                        if (1..=6).contains(&level) {
+                            let text = trimmed[level..].trim().trim_end_matches('#').trim();
+                            if text.is_empty() {
+                                continue;
+                            }
+                            let anchor = crate::helpers::heading_to_anchor_id(text);
+                            if !anchor.starts_with(typed_anchor) {
+                                continue;
+                            }
+                            // Replace range: from just after `(#` to cursor
+                            let replace_start = (anchor_start as u32 + 2).min(col as u32);
+                            let replace_range = Range {
+                                start: Position {
+                                    line: position.line,
+                                    character: replace_start,
+                                },
+                                end: Position {
+                                    line: position.line,
+                                    character: col as u32,
+                                },
+                            };
+                            items.push(CompletionItem {
+                                label: anchor.clone(),
+                                kind: Some(CompletionItemKind::REFERENCE),
+                                detail: Some(format!("Line {}: {}", idx + 1, text)),
+                                text_edit: Some(CompletionTextEdit::Edit(TextEdit {
+                                    range: replace_range,
+                                    new_text: anchor,
+                                })),
+                                ..Default::default()
+                            });
+                        }
+                    }
+                }
+
+                return Ok(Some(CompletionResponse::Array(items)));
+            }
+        }
+
+        // ── Kramdown IAL completion: {: ... } ────────────────────────────────
         // Find last `{:` before the cursor (within the same line)
         let ial_start = match prefix.rfind("{:") {
             Some(pos) => pos,
@@ -885,6 +950,158 @@ impl LanguageServer for MkdlintLanguageServer {
         } else {
             Ok(Some(ranges))
         }
+    }
+
+    async fn prepare_rename(
+        &self,
+        params: TextDocumentPositionParams,
+    ) -> Result<Option<PrepareRenameResponse>> {
+        let uri = params.text_document.uri;
+        let line_idx = params.position.line as usize;
+
+        let doc = match self.document_manager.get(&uri) {
+            Some(doc) => doc,
+            None => return Ok(None),
+        };
+
+        let lines: Vec<&str> = doc.content.lines().collect();
+        let line = match lines.get(line_idx) {
+            Some(l) => l.trim(),
+            None => return Ok(None),
+        };
+
+        // Only allow rename on ATX heading lines
+        if !line.starts_with('#') {
+            return Err(tower_lsp::jsonrpc::Error::invalid_params(
+                "Rename is only supported on heading lines",
+            ));
+        }
+        let level = line.chars().take_while(|&c| c == '#').count();
+        if level > 6 {
+            return Err(tower_lsp::jsonrpc::Error::invalid_params(
+                "Not a valid heading",
+            ));
+        }
+
+        // Compute the range of heading text (after `## `)
+        let raw_line = lines[line_idx]; // original (unstripped) line
+        let hashes_and_space = level + 1; // `## ` = level chars + 1 space
+        let text_start = hashes_and_space.min(raw_line.len());
+        let text = raw_line[text_start..].trim_end_matches('#').trim();
+        if text.is_empty() {
+            return Err(tower_lsp::jsonrpc::Error::invalid_params("Empty heading"));
+        }
+
+        // Find the character offset of the text in the original line
+        let char_start = raw_line.find(text).unwrap_or(text_start) as u32;
+        let char_end = char_start + text.len() as u32;
+
+        Ok(Some(PrepareRenameResponse::Range(Range {
+            start: Position {
+                line: params.position.line,
+                character: char_start,
+            },
+            end: Position {
+                line: params.position.line,
+                character: char_end,
+            },
+        })))
+    }
+
+    async fn rename(&self, params: RenameParams) -> Result<Option<WorkspaceEdit>> {
+        let uri = params.text_document_position.text_document.uri.clone();
+        let line_idx = params.text_document_position.position.line as usize;
+        let new_name = &params.new_name;
+
+        let doc = match self.document_manager.get(&uri) {
+            Some(doc) => doc,
+            None => return Ok(None),
+        };
+
+        let lines: Vec<&str> = doc.content.lines().collect();
+        let raw_line = match lines.get(line_idx) {
+            Some(l) => *l,
+            None => return Ok(None),
+        };
+        let trimmed = raw_line.trim();
+
+        // Extract old heading text
+        if !trimmed.starts_with('#') {
+            return Err(tower_lsp::jsonrpc::Error::invalid_params(
+                "Position is not a heading",
+            ));
+        }
+        let level = trimmed.chars().take_while(|&c| c == '#').count();
+        if level > 6 {
+            return Err(tower_lsp::jsonrpc::Error::invalid_params(
+                "Not a valid heading",
+            ));
+        }
+        let old_text = trimmed[level..].trim().trim_end_matches('#').trim();
+        let old_slug = crate::helpers::heading_to_anchor_id(old_text);
+        let new_slug = crate::helpers::heading_to_anchor_id(new_name);
+
+        // Build hashes prefix (e.g. "## ")
+        let hashes: String = "#".repeat(level);
+        let new_heading_line = format!("{} {}", hashes, new_name);
+
+        let mut edits: Vec<TextEdit> = Vec::new();
+
+        // 1. Replace the heading line itself
+        edits.push(TextEdit {
+            range: Range {
+                start: Position {
+                    line: line_idx as u32,
+                    character: 0,
+                },
+                end: Position {
+                    line: line_idx as u32,
+                    character: raw_line.len() as u32,
+                },
+            },
+            new_text: new_heading_line,
+        });
+
+        // 2. Update same-document anchor links `[label](#old-slug)` and
+        //    `[label](#old-slug "title")` — replace only the fragment part.
+        use once_cell::sync::Lazy;
+        use regex::Regex;
+        static ANCHOR_RE: Lazy<Regex> =
+            Lazy::new(|| Regex::new(r#"\(#([^)"'\s]+)"#).expect("valid regex"));
+
+        for (idx, l) in lines.iter().enumerate() {
+            if idx == line_idx {
+                continue; // skip the heading line we already handled
+            }
+            for cap in ANCHOR_RE.captures_iter(l) {
+                let fragment = &cap[1];
+                if fragment == old_slug {
+                    // Find byte offset of this match in the line
+                    let match_start = cap.get(1).unwrap().start() as u32;
+                    let match_end = cap.get(1).unwrap().end() as u32;
+                    edits.push(TextEdit {
+                        range: Range {
+                            start: Position {
+                                line: idx as u32,
+                                character: match_start,
+                            },
+                            end: Position {
+                                line: idx as u32,
+                                character: match_end,
+                            },
+                        },
+                        new_text: new_slug.clone(),
+                    });
+                }
+            }
+        }
+
+        let mut changes = HashMap::new();
+        changes.insert(uri, edits);
+        Ok(Some(WorkspaceEdit {
+            changes: Some(changes),
+            ..Default::default()
+        }))
     }
 
     async fn code_action(&self, params: CodeActionParams) -> Result<Option<CodeActionResponse>> {

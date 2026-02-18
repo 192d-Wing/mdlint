@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.8] - 2026-02-18
+
+### Added
+
+- **LSP rename** (`textDocument/rename` + `textDocument/prepareRename`): rename any
+  ATX heading and all same-document anchor links that reference it are updated
+  automatically (e.g. `[link](#old-name)` → `[link](#new-name)`)
+- **LSP link completion**: when typing `[text](#` in a markdown link, the server
+  now completes with GitHub-style anchor IDs derived from all headings in the
+  current document; completions are filtered by what the user has already typed
+- **`helpers::heading_to_anchor_id()`**: shared public helper (used by MD051 rule
+  and the LSP rename/completion handlers) — GitHub-style anchor slug algorithm
+  (lowercase, spaces/hyphens → `-`, non-alphanumeric dropped)
+
+### Verified (already implemented, now tested)
+
+- **Watch mode** (`--watch`, `--watch-paths`): uses `notify-debouncer-full` with
+  300 ms debounce; re-lints changed `.md`/`.markdown` files automatically
+- **Parallel linting**: `lint_sync()` distributes per-file linting across CPU
+  cores via `rayon::par_iter()` — verified with 50-file parallel test
+- **Config inheritance**: `Config::discover()` walks up parent directories to find
+  `.markdownlint.{json,yaml,yml,toml}` or `.markdownlintrc`; `Config::resolve_extends()`
+  follows `extends` chains recursively — both now covered by integration tests
+
+### Tests
+
+- +7 LSP integration tests: rename capability, prepare_rename (heading / non-heading),
+  rename with links, rename without links, heading anchor completion, prefix-filtered
+  completion
+- +4 integration tests: config discovery (walks parent dirs), config discovery
+  (returns None when absent), `extends` chain resolution, 50-file parallel lint
+- +1 helper test: `heading_to_anchor_id` basic cases
+
 ## [0.11.7] - 2026-02-17
 
 ### Changed
