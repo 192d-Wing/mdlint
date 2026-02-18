@@ -187,7 +187,10 @@ fn lint_content(
     prepared: &PreparedRules<'_>,
 ) -> Result<Vec<LintError>> {
     use crate::config::RuleConfig;
+    use once_cell::sync::Lazy;
     use std::collections::HashMap;
+
+    static EMPTY_CONFIG: Lazy<HashMap<String, serde_json::Value>> = Lazy::new(HashMap::new);
 
     // Split into lines (zero-copy, preserving line endings)
     let lines: Vec<&str> = content.split_inclusive('\n').collect();
@@ -204,15 +207,13 @@ fn lint_content(
         vec![]
     };
 
-    let empty_config = HashMap::new();
-
     for rule in &prepared.enabled {
         let rule_name = rule.names()[0];
 
         // Extract per-rule config options (avoid clone when no config)
         let rule_config = match config.get_rule_config(rule_name) {
             Some(RuleConfig::Options(opts)) => opts,
-            _ => &empty_config,
+            _ => &EMPTY_CONFIG,
         };
 
         let params = crate::types::RuleParams {
