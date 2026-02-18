@@ -62,10 +62,28 @@ jobs:
       - name: Run clippy
         run: cargo clippy --all-targets --all-features -- -D warnings
 
+  msrv:
+    name: Minimum Supported Rust Version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install MSRV toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.93"
+
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: "msrv"
+
+      - name: Check MSRV compiles
+        run: cargo check --all-features
+
   benchmark:
     name: Benchmarks
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
     steps:
       - uses: actions/checkout@v6
         with:
@@ -80,21 +98,14 @@ jobs:
           shared-key: "bench"
 
       - name: Run benchmarks
-        run: cargo bench --bench lint_bench -- --save-baseline pr
+        run: cargo bench --bench lint_bench -- --save-baseline current
 
-      - name: Checkout base branch
-        run: git checkout ${{ github.base_ref }}
-
-      - name: Run baseline benchmarks
-        run: cargo bench --bench lint_bench -- --save-baseline base
-
-      - name: Compare benchmarks
+      - name: Benchmark summary
         run: |
           echo "## Benchmark Results" >> $GITHUB_STEP_SUMMARY
-          echo "Comparison between base branch and PR:" >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-          cargo bench --bench lint_bench -- --baseline base pr 2>&1 | tee -a $GITHUB_STEP_SUMMARY
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          cargo bench --bench lint_bench -- --baseline current 2>&1 | tail -n +2 >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
 
   coverage:
     name: Code Coverage
@@ -116,7 +127,16 @@ jobs:
           shared-key: "coverage"
 
       - name: Generate coverage
-        run: cargo llvm-cov --all-features --workspace --lcov --output-path lcov.info
+        run: |
+          cargo llvm-cov --all-features --workspace --lcov --output-path lcov.info
+          cargo llvm-cov report --all-features --workspace --summary-only 2>&1 | tee coverage-summary.txt
+
+      - name: Coverage summary
+        run: |
+          echo "## Code Coverage" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          cat coverage-summary.txt >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
