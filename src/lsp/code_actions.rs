@@ -125,6 +125,112 @@ fn create_delete_line_edit(line_number: usize, total_lines: usize) -> TextEdit {
     }
 }
 
+/// Compute the Levenshtein edit distance between two strings.
+fn edit_distance(a: &str, b: &str) -> usize {
+    let b_len = b.len();
+    let mut prev: Vec<usize> = (0..=b_len).collect();
+    let mut curr = vec![0; b_len + 1];
+
+    for (i, ca) in a.chars().enumerate() {
+        curr[0] = i + 1;
+        for (j, cb) in b.chars().enumerate() {
+            let cost = if ca == cb { 0 } else { 1 };
+            curr[j + 1] = (prev[j + 1] + 1).min(curr[j] + 1).min(prev[j] + cost);
+        }
+        std::mem::swap(&mut prev, &mut curr);
+    }
+    prev[b_len]
+}
+
+/// Build code actions for MD051 broken link errors.
+///
+/// Parses the `error_context` to locate the broken fragment, then suggests
+/// the closest matching heading anchors as replacement quick fixes.
+pub fn md051_code_actions(
+    uri: &Url,
+    error: &LintError,
+    content: &str,
+    available_headings: &[String],
+    diagnostic: Option<Diagnostic>,
+    max_suggestions: usize,
+) -> Vec<CodeActionOrCommand> {
+    let context = match &error.error_context {
+        Some(ctx) => ctx.as_str(),
+        None => return vec![],
+    };
+
+    // Extract the broken fragment from error_context
+    // Same-file:  "[text](#broken-fragment)"
+    // Cross-file: "[text](file.md#broken-fragment)"
+    let fragment = if let Some(hash_pos) = context.rfind('#') {
+        let after_hash = &context[hash_pos + 1..];
+        after_hash.trim_end_matches(')')
+    } else {
+        return vec![];
+    };
+
+    if fragment.is_empty() || available_headings.is_empty() {
+        return vec![];
+    }
+
+    // Find the fragment's position in the source line
+    let lines: Vec<&str> = content.lines().collect();
+    let error_line_idx = error.line_number.saturating_sub(1);
+    let line = match lines.get(error_line_idx) {
+        Some(l) => *l,
+        None => return vec![],
+    };
+
+    let search_pattern = format!("#{}", fragment);
+    let hash_col = match line.find(&search_pattern) {
+        Some(pos) => pos,
+        None => return vec![],
+    };
+    let frag_start_col = hash_col + 1; // after the '#'
+    let frag_end_col = frag_start_col + fragment.len();
+
+    // Rank available headings by edit distance
+    let mut scored: Vec<(usize, &String)> = available_headings
+        .iter()
+        .map(|h| (edit_distance(fragment, h), h))
+        .collect();
+    scored.sort_by_key(|(dist, _)| *dist);
+
+    // Build code actions for the top N suggestions
+    let mut actions = Vec::new();
+    for (_dist, heading) in scored.into_iter().take(max_suggestions) {
+        let text_edit = TextEdit {
+            range: Range {
+                start: Position {
+                    line: error_line_idx as u32,
+                    character: frag_start_col as u32,
+                },
+                end: Position {
+                    line: error_line_idx as u32,
+                    character: frag_end_col as u32,
+                },
+            },
+            new_text: heading.clone(),
+        };
+
+        let mut changes = HashMap::new();
+        changes.insert(uri.clone(), vec![text_edit]);
+
+        let code_action = CodeAction {
+            title: format!("MD051: Replace with #{}", heading),
+            kind: Some(CodeActionKind::QUICKFIX),
+            edit: Some(WorkspaceEdit {
+                changes: Some(changes),
+                ..Default::default()
+            }),
+            diagnostics: diagnostic.as_ref().map(|d| vec![d.clone()]),
+            ..Default::default()
+        };
+        actions.push(CodeActionOrCommand::CodeAction(code_action));
+    }
+    actions
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -278,5 +384,98 @@ mod tests {
 
         let action = fix_to_code_action(&uri, &error, content, None);
         assert!(action.is_none());
+    }
+
+    #[test]
+    fn test_edit_distance() {
+        assert_eq!(edit_distance("", ""), 0);
+        assert_eq!(edit_distance("abc", "abc"), 0);
+        assert_eq!(edit_distance("kitten", "sitting"), 3);
+        assert_eq!(edit_distance("introductoin", "introduction"), 2);
+        assert_eq!(edit_distance("", "abc"), 3);
+        assert_eq!(edit_distance("abc", ""), 3);
+    }
+
+    #[test]
+    fn test_md051_code_actions_same_file() {
+        let uri = Url::parse("file:///tmp/test.md").unwrap();
+        let error = LintError {
+            line_number: 3,
+            rule_names: &["MD051", "link-fragments"],
+            rule_description: "Link fragments should be valid",
+            error_detail: Some("No matching heading for fragment: #introductoin".to_string()),
+            error_context: Some("[link](#introductoin)".to_string()),
+            rule_information: None,
+            error_range: None,
+            fix_info: None,
+            suggestion: None,
+            severity: Severity::Error,
+            fix_only: false,
+        };
+        let content = "# Introduction\n\n[link](#introductoin)\n";
+        let headings = vec![
+            "introduction".to_string(),
+            "getting-started".to_string(),
+            "api-reference".to_string(),
+        ];
+
+        let actions = md051_code_actions(&uri, &error, content, &headings, None, 3);
+        assert!(!actions.is_empty(), "Should produce code actions");
+
+        // First suggestion should be the closest match: "introduction"
+        if let CodeActionOrCommand::CodeAction(ca) = &actions[0] {
+            assert!(
+                ca.title.contains("introduction"),
+                "First action should suggest 'introduction', got: {}",
+                ca.title
+            );
+            let edit = ca.edit.as_ref().unwrap();
+            let changes = edit.changes.as_ref().unwrap();
+            let edits = changes.get(&uri).unwrap();
+            assert_eq!(edits[0].new_text, "introduction");
+        }
+    }
+
+    #[test]
+    fn test_md051_code_actions_no_context() {
+        let uri = Url::parse("file:///tmp/test.md").unwrap();
+        let error = LintError {
+            line_number: 1,
+            rule_names: &["MD051"],
+            rule_description: "Link fragments should be valid",
+            error_detail: None,
+            error_context: None,
+            rule_information: None,
+            error_range: None,
+            fix_info: None,
+            suggestion: None,
+            severity: Severity::Error,
+            fix_only: false,
+        };
+        let actions = md051_code_actions(&uri, &error, "# Test\n", &["test".to_string()], None, 3);
+        assert!(actions.is_empty(), "No context should produce no actions");
+    }
+
+    #[test]
+    fn test_md051_code_actions_empty_headings() {
+        let uri = Url::parse("file:///tmp/test.md").unwrap();
+        let error = LintError {
+            line_number: 1,
+            rule_names: &["MD051"],
+            rule_description: "Link fragments should be valid",
+            error_detail: Some("No matching heading for fragment: #broken".to_string()),
+            error_context: Some("[link](#broken)".to_string()),
+            rule_information: None,
+            error_range: None,
+            fix_info: None,
+            suggestion: None,
+            severity: Severity::Error,
+            fix_only: false,
+        };
+        let actions = md051_code_actions(&uri, &error, "[link](#broken)\n", &[], None, 3);
+        assert!(
+            actions.is_empty(),
+            "Empty headings should produce no actions"
+        );
     }
 }

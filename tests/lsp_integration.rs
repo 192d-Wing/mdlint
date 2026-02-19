@@ -2332,3 +2332,462 @@ async fn test_goto_definition_returns_none_on_body_text() {
         "goto_definition on plain text should return None"
     );
 }
+
+// ── Cross-file heading anchor completion tests ──────────────────────────
+
+#[tokio::test]
+async fn test_completion_cross_file_heading_anchors() {
+    let server = create_test_server().await;
+    server
+        .initialize(InitializeParams::default())
+        .await
+        .unwrap();
+    server.initialized(InitializedParams {}).await;
+
+    // Open target file with headings (populates heading_index via did_open)
+    let target_uri = Url::parse("file:///test/other.md").unwrap();
+    server
+        .did_open(DidOpenTextDocumentParams {
+            text_document: TextDocumentItem {
+                uri: target_uri.clone(),
+                language_id: "markdown".to_string(),
+                version: 1,
+                text: "# Introduction\n\n## Getting Started\n".to_string(),
+            },
+        })
+        .await;
+
+    // Open source file with cross-file link
+    let source_uri = Url::parse("file:///test/main.md").unwrap();
+    server
+        .did_open(DidOpenTextDocumentParams {
+            text_document: TextDocumentItem {
+                uri: source_uri.clone(),
+                language_id: "markdown".to_string(),
+                version: 1,
+                text: "See [link](other.md#\n".to_string(),
+            },
+        })
+        .await;
+
+    // Request completion after `other.md#`
+    // "See [link](other.md#" → col 20
+    let result = server
+        .completion(CompletionParams {
+            text_document_position: TextDocumentPositionParams {
+                text_document: TextDocumentIdentifier {
+                    uri: source_uri.clone(),
+                },
+                position: Position {
+                    line: 0,
+                    character: 20,
+                },
+            },
+            work_done_progress_params: WorkDoneProgressParams::default(),
+            partial_result_params: PartialResultParams::default(),
+            context: None,
+        })
+        .await
+        .unwrap();
+
+    assert!(result.is_some(), "Should return completion response");
+    let items = match result.unwrap() {
+        CompletionResponse::Array(items) => items,
+        CompletionResponse::List(list) => list.items,
+    };
+    let labels: Vec<&str> = items.iter().map(|i| i.label.as_str()).collect();
+    assert!(
+        labels.contains(&"introduction"),
+        "Should include 'introduction'. Got: {:?}",
+        labels
+    );
+    assert!(
+        labels.contains(&"getting-started"),
+        "Should include 'getting-started'. Got: {:?}",
+        labels
+    );
+}
+
+#[tokio::test]
+async fn test_completion_cross_file_heading_prefix_filter() {
+    let server = create_test_server().await;
+    server
+        .initialize(InitializeParams::default())
+        .await
+        .unwrap();
+    server.initialized(InitializedParams {}).await;
+
+    let target_uri = Url::parse("file:///test/other.md").unwrap();
+    server
+        .did_open(DidOpenTextDocumentParams {
+            text_document: TextDocumentItem {
+                uri: target_uri.clone(),
+                language_id: "markdown".to_string(),
+                version: 1,
+                text: "# Introduction\n\n## Getting Started\n\n## API Reference\n".to_string(),
+            },
+        })
+        .await;
+
+    let source_uri = Url::parse("file:///test/main.md").unwrap();
+    server
+        .did_open(DidOpenTextDocumentParams {
+            text_document: TextDocumentItem {
+                uri: source_uri.clone(),
+                language_id: "markdown".to_string(),
+                version: 1,
+                text: "See [link](other.md#get\n".to_string(),
+            },
+        })
+        .await;
+
+    // After `other.md#get` → col 23
+    let result = server
+        .completion(CompletionParams {
+            text_document_position: TextDocumentPositionParams {
+                text_document: TextDocumentIdentifier {
+                    uri: source_uri.clone(),
+                },
+                position: Position {
+                    line: 0,
+                    character: 23,
+                },
+            },
+            work_done_progress_params: WorkDoneProgressParams::default(),
+            partial_result_params: PartialResultParams::default(),
+            context: None,
+        })
+        .await
+        .unwrap();
+
+    assert!(result.is_some());
+    let items = match result.unwrap() {
+        CompletionResponse::Array(items) => items,
+        CompletionResponse::List(list) => list.items,
+    };
+    let labels: Vec<&str> = items.iter().map(|i| i.label.as_str()).collect();
+    assert_eq!(
+        labels,
+        vec!["getting-started"],
+        "Only 'getting-started' should match prefix 'get'. Got: {:?}",
+        labels
+    );
+}
+
+#[tokio::test]
+async fn test_completion_cross_file_unknown_file() {
+    let server = create_test_server().await;
+    server
+        .initialize(InitializeParams::default())
+        .await
+        .unwrap();
+    server.initialized(InitializedParams {}).await;
+
+    let source_uri = Url::parse("file:///test/main.md").unwrap();
+    server
+        .did_open(DidOpenTextDocumentParams {
+            text_document: TextDocumentItem {
+                uri: source_uri.clone(),
+                language_id: "markdown".to_string(),
+                version: 1,
+                text: "See [link](unknown.md#heading\n".to_string(),
+            },
+        })
+        .await;
+
+    // After `unknown.md#heading` → col 29
+    let result = server
+        .completion(CompletionParams {
+            text_document_position: TextDocumentPositionParams {
+                text_document: TextDocumentIdentifier {
+                    uri: source_uri.clone(),
+                },
+                position: Position {
+                    line: 0,
+                    character: 29,
+                },
+            },
+            work_done_progress_params: WorkDoneProgressParams::default(),
+            partial_result_params: PartialResultParams::default(),
+            context: None,
+        })
+        .await
+        .unwrap();
+
+    assert!(
+        result.is_some(),
+        "Should return response even for unknown file"
+    );
+    let items = match result.unwrap() {
+        CompletionResponse::Array(items) => items,
+        CompletionResponse::List(list) => list.items,
+    };
+    assert!(
+        items.is_empty(),
+        "Unknown file should return empty completions. Got: {:?}",
+        items.iter().map(|i| &i.label).collect::<Vec<_>>()
+    );
+}
+
+// ── Incremental cross-file re-lint tests ────────────────────────────────
+
+#[tokio::test]
+async fn test_heading_change_triggers_cross_file_relint() {
+    let server = create_test_server().await;
+    server
+        .initialize(InitializeParams::default())
+        .await
+        .unwrap();
+    server.initialized(InitializedParams {}).await;
+
+    // Open target file with a heading
+    let target_uri = Url::parse("file:///test/target.md").unwrap();
+    server
+        .did_open(DidOpenTextDocumentParams {
+            text_document: TextDocumentItem {
+                uri: target_uri.clone(),
+                language_id: "markdown".to_string(),
+                version: 1,
+                text: "# Introduction\n".to_string(),
+            },
+        })
+        .await;
+
+    // Open source file linking to that heading
+    let source_uri = Url::parse("file:///test/source.md").unwrap();
+    server
+        .did_open(DidOpenTextDocumentParams {
+            text_document: TextDocumentItem {
+                uri: source_uri.clone(),
+                language_id: "markdown".to_string(),
+                version: 1,
+                text: "# Main\n\n[link](target.md#introduction)\n".to_string(),
+            },
+        })
+        .await;
+
+    // Wait for initial lint
+    tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
+
+    // Now rename the heading in target (breaking the cross-file link)
+    server
+        .did_change(DidChangeTextDocumentParams {
+            text_document: VersionedTextDocumentIdentifier {
+                uri: target_uri.clone(),
+                version: 2,
+            },
+            content_changes: vec![TextDocumentContentChangeEvent {
+                range: None,
+                range_length: None,
+                text: "# Overview\n".to_string(),
+            }],
+        })
+        .await;
+
+    // Wait for debounced lint + cascade re-lint
+    tokio::time::sleep(tokio::time::Duration::from_millis(600)).await;
+
+    // Verify: source file should now have MD051 errors cached
+    // (the link to #introduction is now broken since heading was renamed to #overview)
+    let source_doc = server.document_manager.get(&source_uri);
+    assert!(source_doc.is_some(), "source document should still be open");
+    let doc = source_doc.unwrap();
+    let md051_errors: Vec<_> = doc
+        .cached_errors
+        .iter()
+        .filter(|e| e.rule_names.first() == Some(&"MD051"))
+        .collect();
+    assert!(
+        !md051_errors.is_empty(),
+        "source.md should have MD051 error after target heading changed. Errors: {:?}",
+        doc.cached_errors
+            .iter()
+            .map(|e| e.rule_names.first())
+            .collect::<Vec<_>>()
+    );
+}
+
+#[tokio::test]
+async fn test_heading_unchanged_skips_relint() {
+    let server = create_test_server().await;
+    server
+        .initialize(InitializeParams::default())
+        .await
+        .unwrap();
+    server.initialized(InitializedParams {}).await;
+
+    let target_uri = Url::parse("file:///test/target2.md").unwrap();
+    server
+        .did_open(DidOpenTextDocumentParams {
+            text_document: TextDocumentItem {
+                uri: target_uri.clone(),
+                language_id: "markdown".to_string(),
+                version: 1,
+                text: "# Stable Heading\n\nSome body text.\n".to_string(),
+            },
+        })
+        .await;
+
+    // Change body text only (heading stays the same)
+    server
+        .did_change(DidChangeTextDocumentParams {
+            text_document: VersionedTextDocumentIdentifier {
+                uri: target_uri.clone(),
+                version: 2,
+            },
+            content_changes: vec![TextDocumentContentChangeEvent {
+                range: None,
+                range_length: None,
+                text: "# Stable Heading\n\nDifferent body text.\n".to_string(),
+            }],
+        })
+        .await;
+
+    // This should not crash or cause issues — smoke test for the normalization path
+    tokio::time::sleep(tokio::time::Duration::from_millis(400)).await;
+}
+
+// ── MD051 code action tests ─────────────────────────────────────────────
+
+#[tokio::test]
+async fn test_code_action_md051_suggests_closest_heading() {
+    let server = create_test_server().await;
+    server
+        .initialize(InitializeParams::default())
+        .await
+        .unwrap();
+    server.initialized(InitializedParams {}).await;
+
+    let uri = Url::parse("file:///test/md051_fix.md").unwrap();
+    // "introductoin" is a typo for "introduction"
+    server
+        .did_open(DidOpenTextDocumentParams {
+            text_document: TextDocumentItem {
+                uri: uri.clone(),
+                language_id: "markdown".to_string(),
+                version: 1,
+                text: "# Introduction\n\n## Getting Started\n\n[link](#introductoin)\n".to_string(),
+            },
+        })
+        .await;
+
+    // Wait for lint to populate cached_errors
+    tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
+
+    let result = server
+        .code_action(CodeActionParams {
+            text_document: TextDocumentIdentifier { uri: uri.clone() },
+            range: Range {
+                start: Position {
+                    line: 4,
+                    character: 0,
+                },
+                end: Position {
+                    line: 4,
+                    character: 30,
+                },
+            },
+            context: CodeActionContext {
+                diagnostics: vec![],
+                only: None,
+                trigger_kind: None,
+            },
+            work_done_progress_params: WorkDoneProgressParams::default(),
+            partial_result_params: PartialResultParams::default(),
+        })
+        .await
+        .unwrap();
+
+    assert!(result.is_some(), "Should return code actions for MD051");
+    let actions = result.unwrap();
+    let md051_actions: Vec<_> = actions
+        .iter()
+        .filter_map(|a| match a {
+            CodeActionOrCommand::CodeAction(ca) if ca.title.starts_with("MD051:") => {
+                Some(ca.title.clone())
+            }
+            _ => None,
+        })
+        .collect();
+    assert!(
+        !md051_actions.is_empty(),
+        "Should have MD051 code actions. All actions: {:?}",
+        actions
+            .iter()
+            .filter_map(|a| match a {
+                CodeActionOrCommand::CodeAction(ca) => Some(&ca.title),
+                _ => None,
+            })
+            .collect::<Vec<_>>()
+    );
+    assert!(
+        md051_actions.iter().any(|t| t.contains("introduction")),
+        "Should suggest 'introduction' as fix. Got: {:?}",
+        md051_actions
+    );
+}
+
+#[tokio::test]
+async fn test_code_action_md051_no_action_for_valid_link() {
+    let server = create_test_server().await;
+    server
+        .initialize(InitializeParams::default())
+        .await
+        .unwrap();
+    server.initialized(InitializedParams {}).await;
+
+    let uri = Url::parse("file:///test/md051_valid.md").unwrap();
+    server
+        .did_open(DidOpenTextDocumentParams {
+            text_document: TextDocumentItem {
+                uri: uri.clone(),
+                language_id: "markdown".to_string(),
+                version: 1,
+                text: "# Introduction\n\n[link](#introduction)\n".to_string(),
+            },
+        })
+        .await;
+
+    tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
+
+    let result = server
+        .code_action(CodeActionParams {
+            text_document: TextDocumentIdentifier { uri: uri.clone() },
+            range: Range {
+                start: Position {
+                    line: 2,
+                    character: 0,
+                },
+                end: Position {
+                    line: 2,
+                    character: 25,
+                },
+            },
+            context: CodeActionContext {
+                diagnostics: vec![],
+                only: None,
+                trigger_kind: None,
+            },
+            work_done_progress_params: WorkDoneProgressParams::default(),
+            partial_result_params: PartialResultParams::default(),
+        })
+        .await
+        .unwrap();
+
+    // Valid link → no MD051 error → no MD051 code actions
+    let md051_actions: Vec<_> = result
+        .unwrap_or_default()
+        .iter()
+        .filter_map(|a| match a {
+            CodeActionOrCommand::CodeAction(ca) if ca.title.starts_with("MD051:") => {
+                Some(ca.title.clone())
+            }
+            _ => None,
+        })
+        .collect();
+    assert!(
+        md051_actions.is_empty(),
+        "Valid link should not produce MD051 actions. Got: {:?}",
+        md051_actions
+    );
+}

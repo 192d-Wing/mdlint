@@ -63,7 +63,8 @@ fn walk_recursive(dir: &Path, out: &mut Vec<PathBuf>) {
 /// The mkdlint Language Server
 pub struct MkdlintLanguageServer {
     client: Client,
-    document_manager: Arc<DocumentManager>,
+    /// Document manager for open documents and their cached lint errors.
+    pub document_manager: Arc<DocumentManager>,
     config_manager: Arc<RwLock<ConfigManager>>,
     debouncer: Arc<Debouncer>,
     /// Workspace-wide heading index: maps file system paths to heading anchor IDs.
@@ -100,6 +101,43 @@ impl MkdlintLanguageServer {
             .iter()
             .map(|entry| (entry.key().clone(), entry.value().clone()))
             .collect()
+    }
+
+    /// Re-lint other open documents if a file's heading anchors changed.
+    ///
+    /// When headings are added, removed, or renamed, cross-file links in
+    /// other documents may become valid or invalid. This method compares
+    /// old heading IDs with the current heading index and, if they differ,
+    /// re-lints all other open documents.
+    async fn relint_dependents_if_headings_changed(
+        &self,
+        changed_uri: &Url,
+        old_ids: Option<Vec<String>>,
+    ) {
+        let file_path = changed_uri
+            .to_file_path()
+            .ok()
+            .and_then(|p| p.to_str().map(String::from))
+            .unwrap_or_else(|| changed_uri.to_string());
+        let new_ids: Option<Vec<String>> = self
+            .heading_index
+            .get(&file_path)
+            .map(|r| r.value().clone());
+
+        // Normalize: treat None and Some(vec![]) as equivalent
+        let old_norm = old_ids.unwrap_or_default();
+        let new_norm = new_ids.unwrap_or_default();
+        if old_norm == new_norm {
+            return;
+        }
+
+        // Re-lint all other open documents
+        for uri in self.document_manager.all_uris() {
+            if &uri == changed_uri {
+                continue;
+            }
+            self.lint_and_publish(uri).await;
+        }
     }
 
     /// Scan workspace roots for `.md` files and publish diagnostics for each.
@@ -450,16 +488,27 @@ impl LanguageServer for MkdlintLanguageServer {
                 .ok()
                 .and_then(|p| p.to_str().map(String::from))
                 .unwrap_or_else(|| uri.to_string());
+
+            // Snapshot old heading IDs before update (for cross-file re-lint)
+            let old_ids = self
+                .heading_index
+                .get(&file_path)
+                .map(|r| r.value().clone());
+
             self.update_heading_index(&file_path, &content);
 
             // Update document
             self.document_manager.update(&uri, content, version);
 
-            // Debounced lint
+            // Debounced lint + cascade re-lint if headings changed
             let uri_clone = uri.clone();
+            let uri_for_relint = uri.clone();
             let self_clone = Arc::new(self.clone());
             self.debouncer.schedule(uri, async move {
                 self_clone.lint_and_publish(uri_clone).await;
+                self_clone
+                    .relint_dependents_if_headings_changed(&uri_for_relint, old_ids)
+                    .await;
             });
         }
     }
@@ -467,20 +516,39 @@ impl LanguageServer for MkdlintLanguageServer {
     async fn did_save(&self, params: DidSaveTextDocumentParams) {
         let uri = params.text_document.uri;
 
+        // Snapshot old heading IDs for cross-file re-lint
+        let file_path = uri
+            .to_file_path()
+            .ok()
+            .and_then(|p| p.to_str().map(String::from))
+            .unwrap_or_else(|| uri.to_string());
+        let old_ids = self
+            .heading_index
+            .get(&file_path)
+            .map(|r| r.value().clone());
+
         // Lint immediately on save (bypass debounce)
         self.debouncer.cancel(&uri);
-        self.lint_and_publish(uri).await;
+        self.lint_and_publish(uri.clone()).await;
+
+        // Re-lint dependents if headings changed
+        self.relint_dependents_if_headings_changed(&uri, old_ids)
+            .await;
     }
 
     async fn did_close(&self, params: DidCloseTextDocumentParams) {
         let uri = params.text_document.uri;
 
-        // Remove from heading index
-        if let Ok(path) = uri.to_file_path()
+        // Snapshot old heading IDs and remove from heading index
+        let old_ids = if let Ok(path) = uri.to_file_path()
             && let Some(path_str) = path.to_str()
         {
+            let ids = self.heading_index.get(path_str).map(|r| r.value().clone());
             self.heading_index.remove(path_str);
-        }
+            ids
+        } else {
+            None
+        };
 
         // Remove document
         self.document_manager.remove(&uri);
@@ -489,7 +557,15 @@ impl LanguageServer for MkdlintLanguageServer {
         self.debouncer.cancel(&uri);
 
         // Clear diagnostics
-        self.client.publish_diagnostics(uri, vec![], None).await;
+        self.client
+            .publish_diagnostics(uri.clone(), vec![], None)
+            .await;
+
+        // Re-lint dependents if headings were removed
+        if old_ids.is_some() {
+            self.relint_dependents_if_headings_changed(&uri, old_ids)
+                .await;
+        }
     }
 
     async fn did_change_watched_files(&self, params: DidChangeWatchedFilesParams) {
@@ -719,6 +795,65 @@ impl LanguageServer for MkdlintLanguageServer {
             let typed_path = &prefix[href_start + 2..]; // text after `](`
             // Only handle file links (not anchors — those are handled above)
             if !typed_path.starts_with('#') {
+                // ── Cross-file heading anchor: [text](file.md#partial ───────
+                if let Some(hash_pos) = typed_path.find('#') {
+                    let file_ref = &typed_path[..hash_pos];
+                    let partial_anchor = &typed_path[hash_pos + 1..];
+
+                    let doc_path = uri.to_file_path().ok();
+                    let doc_dir = doc_path.as_ref().and_then(|p| p.parent());
+
+                    if let Some(dir) = doc_dir {
+                        let resolved = dir.join(file_ref);
+                        let resolved_str = resolved.to_string_lossy().to_string();
+
+                        let headings: Option<Vec<String>> = self
+                            .heading_index
+                            .get(&resolved_str)
+                            .map(|r| r.value().clone())
+                            .or_else(|| {
+                                resolved.canonicalize().ok().and_then(|canon| {
+                                    self.heading_index
+                                        .get(&canon.to_string_lossy().to_string())
+                                        .map(|r| r.value().clone())
+                                })
+                            });
+
+                        if let Some(ids) = headings {
+                            let mut items: Vec<CompletionItem> = Vec::new();
+                            let hash_char_pos = (href_start as u32 + 2) + hash_pos as u32 + 1;
+                            let replace_range = Range {
+                                start: Position {
+                                    line: position.line,
+                                    character: hash_char_pos.min(col as u32),
+                                },
+                                end: Position {
+                                    line: position.line,
+                                    character: col as u32,
+                                },
+                            };
+
+                            for anchor_id in &ids {
+                                if !anchor_id.starts_with(partial_anchor) {
+                                    continue;
+                                }
+                                items.push(CompletionItem {
+                                    label: anchor_id.clone(),
+                                    kind: Some(CompletionItemKind::REFERENCE),
+                                    detail: Some(format!("Heading in {}", file_ref)),
+                                    text_edit: Some(CompletionTextEdit::Edit(TextEdit {
+                                        range: replace_range,
+                                        new_text: anchor_id.clone(),
+                                    })),
+                                    ..Default::default()
+                                });
+                            }
+                            return Ok(Some(CompletionResponse::Array(items)));
+                        }
+                    }
+                    return Ok(Some(CompletionResponse::Array(vec![])));
+                }
+
                 let doc_uri = uri.clone();
                 let doc_dir = doc_uri
                     .to_file_path()
@@ -1357,31 +1492,85 @@ impl LanguageServer for MkdlintLanguageServer {
         // Find errors that overlap with the requested range
         let mut actions = Vec::new();
         for error in &doc.cached_errors {
-            // Check if error has fix_info
+            // Check if error line is within range
+            let error_line = (error.line_number - 1) as u32;
+            if error_line < range.start.line || error_line > range.end.line {
+                continue;
+            }
+
+            // ── MD051 broken link suggestions ──────────────────────────
+            if error.fix_info.is_none() && error.rule_names.first() == Some(&"MD051") {
+                let matched_diag = context_diagnostics.iter().find(|d| {
+                    d.range.start.line == error_line
+                        && d.code == Some(NumberOrString::String("MD051".to_string()))
+                });
+
+                // Determine available headings based on error type
+                let available = if let Some(detail) = &error.error_detail {
+                    if detail.starts_with("No matching heading for fragment:") {
+                        // Same-file: use current document headings
+                        let doc_lines: Vec<&str> = doc.content.lines().collect();
+                        crate::helpers::collect_heading_ids(&doc_lines)
+                    } else if let Some(in_pos) = detail.rfind("' in '") {
+                        // Cross-file: extract file_ref, look up heading_index
+                        let file_ref = &detail[in_pos + 6..detail.len() - 1];
+                        let doc_path = uri.to_file_path().ok();
+                        let doc_dir = doc_path.as_ref().and_then(|p| p.parent());
+                        if let Some(dir) = doc_dir {
+                            let resolved = dir.join(file_ref);
+                            let resolved_str = resolved.to_string_lossy().to_string();
+                            self.heading_index
+                                .get(&resolved_str)
+                                .map(|r| r.value().clone())
+                                .or_else(|| {
+                                    resolved.canonicalize().ok().and_then(|canon| {
+                                        self.heading_index
+                                            .get(&canon.to_string_lossy().to_string())
+                                            .map(|r| r.value().clone())
+                                    })
+                                })
+                                .unwrap_or_default()
+                        } else {
+                            vec![]
+                        }
+                    } else {
+                        vec![]
+                    }
+                } else {
+                    vec![]
+                };
+
+                if !available.is_empty() {
+                    actions.extend(code_actions::md051_code_actions(
+                        &uri,
+                        error,
+                        &doc.content,
+                        &available,
+                        matched_diag.cloned(),
+                        5,
+                    ));
+                }
+                continue;
+            }
+
+            // Skip non-fixable errors (except MD051 handled above)
             if error.fix_info.is_none() {
                 continue;
             }
 
-            // Check if error line is within range
-            let error_line = (error.line_number - 1) as u32;
-            if error_line >= range.start.line && error_line <= range.end.line {
-                // Match this error to a context diagnostic by line and rule code
-                let matched_diag = context_diagnostics.iter().find(|d| {
-                    d.range.start.line == error_line
-                        && error.rule_names.first().is_some_and(|name| {
-                            d.code == Some(NumberOrString::String(name.to_string()))
-                        })
-                });
+            // Match this error to a context diagnostic by line and rule code
+            let matched_diag = context_diagnostics.iter().find(|d| {
+                d.range.start.line == error_line
+                    && error.rule_names.first().is_some_and(|name| {
+                        d.code == Some(NumberOrString::String(name.to_string()))
+                    })
+            });
 
-                // Generate code action, linking to the matched diagnostic
-                if let Some(action) = code_actions::fix_to_code_action(
-                    &uri,
-                    error,
-                    &doc.content,
-                    matched_diag.cloned(),
-                ) {
-                    actions.push(action);
-                }
+            // Generate code action, linking to the matched diagnostic
+            if let Some(action) =
+                code_actions::fix_to_code_action(&uri, error, &doc.content, matched_diag.cloned())
+            {
+                actions.push(action);
             }
         }
 
